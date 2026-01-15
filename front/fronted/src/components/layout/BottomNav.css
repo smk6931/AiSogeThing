@@ -1,0 +1,124 @@
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.bottom-nav__container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 12px 0;
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition);
+  border-radius: var(--border-radius-sm);
+  min-width: 60px;
+}
+
+.bottom-nav__item:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.bottom-nav__item--active {
+  color: var(--purple-500);
+  background: rgba(102, 126, 234, 0.15);
+}
+
+.bottom-nav__item--active svg {
+  animation: bounce 0.5s ease;
+}
+
+.bottom-nav__label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* PC/Desktop 스타일 (사이드바) */
+@media (min-width: 768px) {
+  .bottom-nav {
+    display: block;
+    /* 숨김 해제 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    height: 100vh;
+    border-top: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-secondary);
+    padding-bottom: 0;
+  }
+
+  .bottom-nav__container {
+    flex-direction: column;
+    justify-content: flex-start;
+    height: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 40px 16px;
+    gap: 8px;
+  }
+
+  .bottom-nav__item {
+    flex-direction: row;
+    /* 아이콘-텍스트 가로 정렬 */
+    width: 100%;
+    padding: 16px 20px;
+    border-radius: 12px;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .bottom-nav__label {
+    font-size: 16px;
+  }
+
+  /* 활성화 효과 변경 */
+  .bottom-nav__item--active {
+    background: var(--primary-gradient);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+
+  .bottom-nav__item--active svg {
+    animation: none;
+    /* PC에서는 바운스 효과 제거 */
+  }
+
+  /* 호버 효과 개선 */
+  .bottom-nav__item:hover:not(.bottom-nav__item--active) {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
+  }
+}

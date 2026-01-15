@@ -1,0 +1,23 @@
+# Core Framework
+fastapi                 # 고성능 비동기 웹 프레임워크
+uvicorn[standard]       # ASGI 서버 (FastAPI 실행용)
+
+# Database & ORM
+sqlalchemy              # 데이터베이스 ORM (SQL 툴킷)
+alembic                 # DB 마이그레이션(버전 관리) 도구
+asyncpg                 # PostgreSQL 비동기 드라이버 (고성능)
+psycopg2-binary         # PostgreSQL 표준 드라이버 (Alembic용)
+
+# Validation & Settings
+pydantic                # 데이터 유효성 검사 및 설정 관리
+pydantic-settings       # 환경 변수(.env) 관리 도구
+python-dotenv           # .env 파일 로드 유틸리티
+
+# AI & LangChain
+langchain               # LLM 애플리케이션 개발 프레임워크
+langchain-openai        # OpenAI 모델 연동 라이브러리
+langgraph               # AI 에이전트/워크플로우 상태 관리 그래프
+
+# Utilities
+requests                # HTTP 요청 라이브러리 (동기)
+httpx                   # 비동기 HTTP 클라이언트 (FastAPI와 궁합 굿)
