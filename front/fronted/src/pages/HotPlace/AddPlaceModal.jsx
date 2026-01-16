@@ -2,37 +2,37 @@ import { useState } from 'react';
 import { Search, MapPin, Plus, X } from 'lucide-react';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
-import ApiInfo from '../../components/common/ApiInfo'; // API 정보 컴포넌트 추가
+import ApiInfo from '../../components/common/ApiInfo';
+import { searchPlace } from '../../api/hotplace'; // API 함수 임포트
 import './AddPlaceModal.css';
 
 export default function AddPlaceModal({ isOpen, onClose, onAddPlace }) {
   const [keyword, setKeyword] = useState('');
   const [results, setResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [quota, setQuota] = useState(null); // API 사용량 정보
+  const [quota, setQuota] = useState(null);
 
-  // 실제 백엔드 API 호출
+  // API 호출 (Refactored)
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!keyword.trim()) return;
 
     setIsSearching(true);
-    setResults([]); // 기존 결과 초기화
+    setResults([]);
 
     try {
-      // Python Backend (FastAPI) 호출
-      const response = await fetch(`http://localhost:8001/api/search?query=${keyword}`);
-      const data = await response.json();
+      // 이제 URL을 몰라도 됩니다. 함수만 호출!
+      const data = await searchPlace(keyword);
 
       if (data.items) {
         setResults(data.items);
-        if (data.meta) setQuota(data.meta); // API 사용량 정보 저장
+        if (data.meta) setQuota(data.meta);
       } else if (data.error) {
         alert("검색 실패: " + data.error);
       }
     } catch (error) {
-      console.error("API Error:", error);
-      alert("백엔드 서버가 켜져있는지 확인해주세요! (Port 8001)");
+      // Axios 에러 처리 (client.js에서 콘솔 로그는 찍힘)
+      alert("검색 중 오류가 발생했습니다. (백엔드 연결 확인)");
     } finally {
       setIsSearching(false);
     }

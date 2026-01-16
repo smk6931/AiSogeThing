@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Heart, MessageCircle, Users, User, MapPin } from 'lucide-react';
+import { Home, Heart, MessageCircle, Users, User, MapPin, Youtube } from 'lucide-react';
 import './BottomNav.css';
 
 export default function BottomNav() {
   const navItems = [
     { to: '/', icon: Home, label: '홈' },
     { to: '/hotplace', icon: MapPin, label: '핫플' },
+    { to: '/youtube', icon: Youtube, label: 'YouTube' },
     { to: '/matching', icon: Heart, label: '매칭' },
     { to: '/chat', icon: MessageCircle, label: '채팅' },
     { to: '/community', icon: Users, label: '커뮤니티' },

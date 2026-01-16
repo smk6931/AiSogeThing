@@ -99,7 +99,8 @@ body {
   .community,
   .mypage,
   .home,
-  .hotplace {
+  .hotplace,
+  .youtube-board {
     padding-left: 260px !important;
     /* 사이드바 너비(240px) + 여백(20px) */
     padding-bottom: 40px !important;

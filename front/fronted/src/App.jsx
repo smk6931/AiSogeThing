@@ -10,6 +10,7 @@ import MyPage from './pages/MyPage/MyPage';
 import Home from './pages/Home/Home';
 import Login from './pages/Login/Login';
 import HotPlace from './pages/HotPlace/HotPlace';
+import YoutubeBoard from './pages/Youtube/YoutubeBoard';
 import './App.css';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
             {/* 메인 페이지들 - 네비게이션 바 포함 */}
             <Route path="/" element={<><Home /><BottomNav /></>} />
             <Route path="/hotplace" element={<><HotPlace /><BottomNav /></>} />
+            <Route path="/youtube" element={<><YoutubeBoard /><BottomNav /></>} />
             <Route path="/matching" element={<><Matching /><BottomNav /></>} />
             <Route path="/chat" element={<><Chat /><BottomNav /></>} />
             <Route path="/community" element={<><Community /><BottomNav /></>} />

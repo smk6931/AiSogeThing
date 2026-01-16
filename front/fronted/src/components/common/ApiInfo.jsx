@@ -1,7 +1,7 @@
 import './ApiInfo.css';
 import { Activity } from 'lucide-react';
 
-export default function ApiInfo({ remaining, limit = 25000 }) {
+export default function ApiInfo({ remaining, limit = 25000, name = "API Query" }) {
   // 남은 횟수가 없거나 Unknown이면 기본 텍스트 표시
   if (remaining === undefined || remaining === 'Unknown' || remaining === null) {
     return (
@@ -24,7 +24,7 @@ export default function ApiInfo({ remaining, limit = 25000 }) {
     <div className="api-info glass">
       <div className="api-info-header">
         <Activity size={14} color={statusColor} />
-        <span className="api-info-label">Naver Search API</span>
+        <span className="api-info-label">{name}</span>
       </div>
       <div className="api-info-content">
         <span className="api-info-count" style={{ color: statusColor }}>
