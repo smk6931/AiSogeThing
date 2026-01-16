@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Search, PlayCircle, Eye } from 'lucide-react';
-import { searchYoutube, getPopularYoutube, logYoutubeVideo } from '../../api/youtube';
+import { Search, PlayCircle, Eye, Sparkles } from 'lucide-react';
+import { searchYoutube, getPopularYoutube, logYoutubeVideo, getDatingYoutube, discoverDatingChannels } from '../../api/youtube';
 import YoutubePlayer from './YoutubePlayer';
-import ApiInfo from '../../components/common/ApiInfo'; // API 정보 컴포넌트 추가
+import ApiInfo from '../../components/common/ApiInfo';
 import './YoutubeBoard.css';
 
 export default function YoutubeBoard() {
@@ -10,32 +10,32 @@ export default function YoutubeBoard() {
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [selectedVideo, setSelectedVideo] = useState(null);
-  const [quota, setQuota] = useState(null); // API 사용량 정보
-  const [selectedCategory, setSelectedCategory] = useState(null); // 선택된 카테고리 (null=전체)
-  const [hideShorts, setHideShorts] = useState(false); // 쇼츠 숨기기 토글
+  const [quota, setQuota] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [hideShorts, setHideShorts] = useState(false);
+  const [datingChannels, setDatingChannels] = useState([]);
+  const [selectedDatingChannel, setSelectedDatingChannel] = useState(null);
 
-  // 카테고리 목록 정의 (전체 리스트)
-  // 카테고리 목록 정의 (ID 순서대로 정렬)
   const categories = [
     { id: null, name: '🔥 전체' },
+    { id: 'dating', name: '💘 연애/코칭', special: true },
     { id: '1', name: '🎬 애니/영화' },
     { id: '2', name: '🚗 자동차' },
     { id: '10', name: '🎵 음악' },
     { id: '15', name: '🐶 동물' },
     { id: '17', name: '⚽ 스포츠' },
-    // { id: '19', name: '✈️ 여행' },
+    { id: '19', name: '✈️ 여행' },
     { id: '20', name: '🎮 게임' },
     { id: '22', name: '📷 일상' },
     { id: '23', name: '🤣 코미디' },
     { id: '24', name: '📺 엔터' },
     { id: '25', name: '📰 뉴스' },
-    { id: '26', name: '💄 요리/뷰티' },
+    { id: '26', name: '💄 뷰티/패션' },
     { id: '27', name: '📚 교육' },
     { id: '28', name: '🧪 과학/기술' },
-    // { id: '29', name: '🤝 사회/봉사' },
+    { id: '29', name: '🤝 사회/봉사' },
   ];
 
-  // 초기 로딩
   useEffect(() => {
     loadPopular(null);
   }, []);
@@ -43,25 +43,30 @@ export default function YoutubeBoard() {
   const loadPopular = async (categoryId) => {
     setLoading(true);
     setSelectedCategory(categoryId);
-    setKeyword(''); // 카테고리 클릭 시 검색어 초기화
+    setKeyword('');
+    setSelectedDatingChannel(null);
 
     try {
-      // 카테고리 ID가 있으면 해당 카테고리 조회, 없으면 전체 인기 조회
-      const data = await getPopularYoutube(categoryId);
+      let data;
+
+      if (categoryId === 'dating') {
+        data = await getDatingYoutube();
+        if (data.channels) setDatingChannels(data.channels);
+      } else {
+        data = await getPopularYoutube(categoryId);
+      }
+
       console.log("Youtube Data:", data);
 
       if (data.items) {
-        // 스마트 정렬: 쇼츠가 더 많으면 쇼츠 우선, 영상이 더 많으면 영상 우선
         const shortsCount = data.items.filter(v => v.isShort).length;
         const videoCount = data.items.length - shortsCount;
 
         let sortedItems = [...data.items];
 
         if (shortsCount > videoCount) {
-          // 쇼츠가 지배적이면 쇼츠를 앞으로
           sortedItems.sort((a, b) => (b.isShort === a.isShort) ? 0 : b.isShort ? 1 : -1);
         } else {
-          // 영상이 지배적이면 영상을 앞으로 (Default)
           sortedItems.sort((a, b) => (b.isShort === a.isShort) ? 0 : a.isShort ? 1 : -1);
         }
 
@@ -82,12 +87,10 @@ export default function YoutubeBoard() {
     if (!keyword.trim()) return;
 
     setLoading(true);
-    setSelectedCategory('search'); // 검색 모드로 상태 변경 (UI 하이라이트 해제용)
+    setSelectedCategory('search');
 
     try {
       const data = await searchYoutube(keyword);
-      console.log("Search Data:", data);
-
       if (data.items) {
         setVideos(data.items);
         if (data.meta) setQuota(data.meta);
@@ -101,10 +104,29 @@ export default function YoutubeBoard() {
     }
   };
 
-  // 조회수 포매팅 (예: 12345 -> 1.2만회)
+  const handleDiscover = async () => {
+    if (!confirm("🤖 AI가 YouTube를 탐색하여 새로운 '연애' 관련 인기 채널을 찾아냅니다.\n(API 100점 소모)\n\n계속하시겠습니까?")) return;
+
+    setLoading(true);
+    try {
+      const res = await discoverDatingChannels();
+      if (res.error) {
+        alert("오류 발생: " + res.error);
+      } else {
+        alert(`🎉 성공! ${res.added}개의 새로운 채널을 발견했습니다.\n이제 자동으로 목록에 추가됩니다.`);
+        loadPopular('dating'); // 목록 새로고침
+      }
+    } catch (e) {
+      alert("요청 실패");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatViewCount = (count) => {
     if (!count) return '';
     const num = Number(count);
+    if (isNaN(num)) return '';
     if (num >= 100000000) return (num / 100000000).toFixed(1) + '억회';
     if (num >= 10000) return (num / 10000).toFixed(1) + '만회';
     return num.toLocaleString() + '회';
@@ -115,7 +137,6 @@ export default function YoutubeBoard() {
       <div className="youtube-header">
         <h2>🎵 Youtube Lounge</h2>
 
-        {/* API 사용량 표시 */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
           <ApiInfo
             name="YouTube API"
@@ -124,8 +145,7 @@ export default function YoutubeBoard() {
           />
         </div>
 
-        {/* 쇼츠 숨기기 토글 */}
-        {/* <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
           <button
             onClick={() => setHideShorts(!hideShorts)}
             className="category-chip"
@@ -137,22 +157,65 @@ export default function YoutubeBoard() {
           >
             {hideShorts ? '✅ 쇼츠 숨김 켜짐' : '🚫 쇼츠 숨기기'}
           </button>
-        </div> */}
+        </div>
 
-        {/* 카테고리 탭 - 가로 스크롤 가능하게 처리 */}
         <div className="category-tabs">
           {categories.map((cat) => (
             <button
               key={cat.id || 'all'}
               className={`category-chip ${selectedCategory === cat.id ? 'active' : ''}`}
               onClick={() => loadPopular(cat.id)}
+              style={cat.special ? { border: '1px solid #ff69b4', color: '#ff69b4' } : {}}
             >
               {cat.name}
             </button>
           ))}
         </div>
 
-        <form onSubmit={handleSearch} className="youtube-search-bar">
+        {selectedCategory === 'dating' && (
+          <div className="category-control-row" style={{ marginTop: '10px', overflowX: 'auto', display: 'flex', gap: '8px', paddingBottom: '5px' }}>
+
+            {/* AI 채널 발굴 버튼 */}
+            <button
+              className="category-chip"
+              onClick={handleDiscover}
+              style={{
+                fontSize: '0.8rem',
+                padding: '4px 12px',
+                background: 'linear-gradient(45deg, #6a11cb 0%, #2575fc 100%)',
+                border: 'none',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <Sparkles size={14} /> AI 채널 발굴 (+100점)
+            </button>
+
+            <div style={{ width: '1px', background: 'rgba(255,255,255,0.2)', margin: '0 4px' }}></div>
+
+            <button
+              className={`category-chip ${selectedDatingChannel === null ? 'active' : ''}`}
+              onClick={() => setSelectedDatingChannel(null)}
+              style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+            >
+              전체 보기
+            </button>
+            {datingChannels.map(ch => (
+              <button
+                key={ch.id}
+                className={`category-chip ${selectedDatingChannel === ch.id ? 'active' : ''}`}
+                onClick={() => setSelectedDatingChannel(ch.id)}
+                style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+              >
+                {ch.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={handleSearch} className="youtube-search-bar" style={{ marginTop: '15px' }}>
           <input
             type="text"
             placeholder="좋아하는 영상 검색 (100점 소모)"
@@ -172,37 +235,46 @@ export default function YoutubeBoard() {
         </div>
       ) : (
         <div className="video-grid">
-          {videos.filter(v => !hideShorts || !v.isShort).map((video) => (
-            <div
-              key={video.id}
-              className="video-card glass-card"
-              onClick={() => {
-                logYoutubeVideo(video); // 클릭 로그 저장
-                setSelectedVideo(video.id);
-              }}
-            >
-              <div className="thumbnail-wrapper">
-                <img src={video.thumbnail} alt={video.title} loading="lazy" />
-                {video.isShort && <div className="shorts-badge">Shorts</div>}
-                <div className="play-overlay">
-                  <PlayCircle size={48} color="white" />
+          {videos
+            .filter(v => !hideShorts || !v.isShort)
+            .filter(v => {
+              if (selectedCategory === 'dating' && selectedDatingChannel) {
+                const targetName = datingChannels.find(c => c.id === selectedDatingChannel)?.name;
+                return v.channelTitle === targetName;
+              }
+              return true;
+            })
+            .map((video) => (
+              <div
+                key={video.id}
+                className="video-card glass-card"
+                onClick={() => {
+                  logYoutubeVideo(video);
+                  setSelectedVideo(video.id);
+                }}
+              >
+                <div className="thumbnail-wrapper">
+                  <img src={video.thumbnail} alt={video.title} loading="lazy" />
+                  {video.isShort && <div className="shorts-badge">Shorts</div>}
+                  <div className="play-overlay">
+                    <PlayCircle size={48} color="white" />
+                  </div>
                 </div>
-              </div>
 
-              <div className="video-info">
-                <h3 className="video-title">{video.title}</h3>
-                <div className="video-meta">
-                  <span className="channel-name">{video.channelTitle}</span>
-                  {video.viewCount && (
-                    <span className="view-count">
-                      <Eye size={12} style={{ marginRight: '4px', display: 'inline-block' }} />
-                      {formatViewCount(video.viewCount)}
-                    </span>
-                  )}
+                <div className="video-info">
+                  <h3 className="video-title">{video.title}</h3>
+                  <div className="video-meta">
+                    <span className="channel-name">{video.channelTitle}</span>
+                    {video.viewCount && (
+                      <span className="view-count">
+                        <Eye size={12} style={{ marginRight: '4px', display: 'inline-block' }} />
+                        {formatViewCount(video.viewCount)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       )}
 

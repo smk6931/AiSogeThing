@@ -13,6 +13,16 @@ export const getPopularYoutube = async (categoryId = null) => {
   return response.data;
 };
 
+export const getDatingYoutube = async () => {
+  const response = await client.get('/api/youtube/dating');
+  return response.data;
+};
+
+export const discoverDatingChannels = async () => {
+  const response = await client.post('/api/youtube/dating/discover');
+  return response.data;
+};
+
 export const logYoutubeVideo = async (videoData) => {
   try {
     await client.post('/api/youtube/log', videoData);
