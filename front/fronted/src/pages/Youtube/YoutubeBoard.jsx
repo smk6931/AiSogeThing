@@ -12,25 +12,27 @@ export default function YoutubeBoard() {
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [quota, setQuota] = useState(null); // API 사용량 정보
   const [selectedCategory, setSelectedCategory] = useState(null); // 선택된 카테고리 (null=전체)
+  const [hideShorts, setHideShorts] = useState(false); // 쇼츠 숨기기 토글
 
   // 카테고리 목록 정의 (전체 리스트)
+  // 카테고리 목록 정의 (ID 순서대로 정렬)
   const categories = [
     { id: null, name: '🔥 전체' },
+    { id: '1', name: '🎬 애니/영화' },
+    { id: '2', name: '🚗 자동차' },
     { id: '10', name: '🎵 음악' },
     { id: '15', name: '🐶 동물' },
+    { id: '17', name: '⚽ 스포츠' },
+    // { id: '19', name: '✈️ 여행' },
     { id: '20', name: '🎮 게임' },
     { id: '22', name: '📷 일상' },
     { id: '23', name: '🤣 코미디' },
     { id: '24', name: '📺 엔터' },
-    { id: '17', name: '⚽ 스포츠' },
-    { id: '1', name: '🎬 영화' },
-    { id: '26', name: '💄 뷰티/패션' },
-    { id: '2', name: '🚗 자동차' },
-    { id: '28', name: '🧪 과학/기술' },
-    { id: '19', name: '✈️ 여행' },
     { id: '25', name: '📰 뉴스' },
+    { id: '26', name: '💄 요리/뷰티' },
     { id: '27', name: '📚 교육' },
-    { id: '29', name: '🤝 사회/봉사' },
+    { id: '28', name: '🧪 과학/기술' },
+    // { id: '29', name: '🤝 사회/봉사' },
   ];
 
   // 초기 로딩
@@ -49,7 +51,21 @@ export default function YoutubeBoard() {
       console.log("Youtube Data:", data);
 
       if (data.items) {
-        setVideos(data.items);
+        // 스마트 정렬: 쇼츠가 더 많으면 쇼츠 우선, 영상이 더 많으면 영상 우선
+        const shortsCount = data.items.filter(v => v.isShort).length;
+        const videoCount = data.items.length - shortsCount;
+
+        let sortedItems = [...data.items];
+
+        if (shortsCount > videoCount) {
+          // 쇼츠가 지배적이면 쇼츠를 앞으로
+          sortedItems.sort((a, b) => (b.isShort === a.isShort) ? 0 : b.isShort ? 1 : -1);
+        } else {
+          // 영상이 지배적이면 영상을 앞으로 (Default)
+          sortedItems.sort((a, b) => (b.isShort === a.isShort) ? 0 : a.isShort ? 1 : -1);
+        }
+
+        setVideos(sortedItems);
         if (data.meta) setQuota(data.meta);
       } else if (data.error) {
         alert("영상 불러오기 실패: " + data.error);
@@ -108,6 +124,21 @@ export default function YoutubeBoard() {
           />
         </div>
 
+        {/* 쇼츠 숨기기 토글 */}
+        {/* <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <button
+            onClick={() => setHideShorts(!hideShorts)}
+            className="category-chip"
+            style={{
+              background: hideShorts ? '#ff0000' : 'rgba(255,255,255,0.05)',
+              border: hideShorts ? '1px solid #ff0000' : '1px solid rgba(255,255,255,0.2)',
+              fontWeight: hideShorts ? 'bold' : 'normal'
+            }}
+          >
+            {hideShorts ? '✅ 쇼츠 숨김 켜짐' : '🚫 쇼츠 숨기기'}
+          </button>
+        </div> */}
+
         {/* 카테고리 탭 - 가로 스크롤 가능하게 처리 */}
         <div className="category-tabs">
           {categories.map((cat) => (
@@ -141,7 +172,7 @@ export default function YoutubeBoard() {
         </div>
       ) : (
         <div className="video-grid">
-          {videos.map((video) => (
+          {videos.filter(v => !hideShorts || !v.isShort).map((video) => (
             <div
               key={video.id}
               className="video-card glass-card"
@@ -152,10 +183,10 @@ export default function YoutubeBoard() {
             >
               <div className="thumbnail-wrapper">
                 <img src={video.thumbnail} alt={video.title} loading="lazy" />
+                {video.isShort && <div className="shorts-badge">Shorts</div>}
                 <div className="play-overlay">
                   <PlayCircle size={48} color="white" />
                 </div>
-                {/* 썸네일 우측 하단에 영상 길이 등 정보를 넣을 수도 있음 */}
               </div>
 
               <div className="video-info">

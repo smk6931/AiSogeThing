@@ -1,29 +1,9 @@
+import re
 import os
 import urllib.parse
 from datetime import datetime
 from dotenv import load_dotenv
 from utils.safe_ops import safe_http_get, load_json_safe, save_json_safe, append_json_line
-
-# ... (기존 코드)
-
-def save_interaction_log(log_data: dict):
-    """
-    유튜브 인터랙션 로그 저장 (JSONL)
-    """
-    log_file = os.path.join(os.path.dirname(__file__), '..', 'logs', 'youtube_interaction.jsonl')
-    log_data['timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    append_json_line(log_file, log_data)
-    return True
-
-def _parse_duration(duration_str):
-    """YouTube Duration (ISO 8601) -> Seconds"""
-    if not duration_str: return 0
-    match = re.match(r'PT((?P<hours>\d+)H)?((?P<minutes>\d+)M)?((?P<seconds>\d+)S)?', duration_str)
-    if not match: return 0
-    h = int(match.group('hours') or 0)
-    m = int(match.group('minutes') or 0)
-    s = int(match.group('seconds') or 0)
-    return h * 3600 + m * 60 + s
 
 # .env 로드
 env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
@@ -34,6 +14,15 @@ else:
 
 API_KEY = os.getenv("YOUTUBE_API_KEY") or os.getenv("VITE_YOUTUBE_API_KEY")
 BASE_URL = "https://www.googleapis.com/youtube/v3"
+
+def save_interaction_log(log_data: dict):
+    """
+    유튜브 인터랙션 로그 저장 (JSONL)
+    """
+    log_file = os.path.join(os.path.dirname(__file__), '..', 'logs', 'youtube_interaction.jsonl')
+    log_data['timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    append_json_line(log_file, log_data)
+    return True
 
 def _manage_quota(cost=0):
     """
@@ -59,6 +48,17 @@ def _manage_quota(cost=0):
         
     return data['remaining'], limit
 
+def _parse_duration(duration_str):
+    """YouTube Duration (ISO 8601) -> Seconds"""
+    if not duration_str: return 0
+    # PT1H2M10S 형식을 파싱
+    match = re.match(r'PT((?P<hours>\d+)H)?((?P<minutes>\d+)M)?((?P<seconds>\d+)S)?', duration_str)
+    if not match: return 0
+    h = int(match.group('hours') or 0)
+    m = int(match.group('minutes') or 0)
+    s = int(match.group('seconds') or 0)
+    return h * 3600 + m * 60 + s
+
 def _parse_videos(items):
     """
     유튜브 API 결과를 프론트엔드용으로 가공
@@ -71,13 +71,13 @@ def _parse_videos(items):
         elif isinstance(item['id'], dict):
             video_id = item['id'].get('videoId')
         
-        # snippet 및 statistics 정보 추출
+        # snippet, statistics, contentDetails 정보 추출
         snippet = item.get('snippet', {})
         statistics = item.get('statistics', {})
         content_details = item.get('contentDetails', {})
         
         duration_sec = _parse_duration(content_details.get('duration', ''))
-        # 60초 이하는 쇼츠로 간주 (제목에 #shorts가 있거나)
+        # 60초 이하는 쇼츠로 간주
         is_short = duration_sec > 0 and duration_sec <= 60
         
         results.append({
@@ -87,7 +87,7 @@ def _parse_videos(items):
             "thumbnail": snippet.get('thumbnails', {}).get('medium', {}).get('url'),
             "channelTitle": snippet.get('channelTitle'),
             "publishedAt": snippet.get('publishedAt'),
-            "viewCount": statistics.get('viewCount'), # 조회수 추가
+            "viewCount": statistics.get('viewCount'),
             "duration": duration_sec,
             "isShort": is_short
         })
@@ -101,16 +101,16 @@ def search_videos(query: str, max_results: int = 50):
         return {"error": "YouTube API 키가 없습니다."}
 
     encoded_query = urllib.parse.quote(query)
+    # 검색 API는 statistics나 contentDetails를 직접 반환하지 않음 (100점 비용)
+    # 따라서 searchResult에서는 viewCount, duration이 null일 수 있음
     url = f"{BASE_URL}/search?part=snippet&q={encoded_query}&maxResults={max_results}&type=video&key={API_KEY}"
     
-    # API 키 리퍼러 제한 우회를 위한 헤더 추가
     headers = {"Referer": "http://localhost:5173"}
     data, error = safe_http_get(url, headers=headers)
     
     if error:
         return {"error": error}
         
-    # Quota 차감 (검색은 100점)
     remaining, limit = _manage_quota(cost=100)
         
     return {
@@ -132,18 +132,15 @@ def get_popular_videos(max_results: int = 50, category_id: str = None):
     # snippet, statistics, contentDetails(길이) 조회
     url = f"{BASE_URL}/videos?part=snippet,statistics,contentDetails&chart=mostPopular&maxResults={max_results}&regionCode=KR&key={API_KEY}"
     
-    # 카테고리 필터 추가
     if category_id:
         url += f"&videoCategoryId={category_id}"
     
-    # API 키 리퍼러 제한 우회를 위한 헤더 추가
     headers = {"Referer": "http://localhost:5173"}
     data, error = safe_http_get(url, headers=headers)
     
     if error:
         return {"error": error}
         
-    # Quota 차감 (조회는 1점)
     remaining, limit = _manage_quota(cost=1)
         
     return {
