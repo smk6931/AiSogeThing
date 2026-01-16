@@ -44,6 +44,9 @@ def search_place(query: str):
         # 여기서는 간단히 에러 내용을 반환
         return result
         
-    return {"items": result}
+    # 결과 타입에 따라 반환 형식 조정
+    if isinstance(result, list):
+        return {"items": result}
+    return result
 
 # 실행 방법: uvicorn main:app --reload

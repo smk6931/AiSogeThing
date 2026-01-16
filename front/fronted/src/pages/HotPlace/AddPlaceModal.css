@@ -39,16 +39,23 @@
 }
 
 .modal-header {
-  padding: 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
 .modal-header h3 {
   font-size: 18px;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.modal-api-info {
+  margin-left: auto;
+  margin-right: 8px;
 }
 
 .modal-close {

@@ -1,47 +1,41 @@
 import { useState } from 'react';
 import { Search, MapPin, Plus, X } from 'lucide-react';
-import Card from '../common/Card';
-import Button from '../common/Button';
+import Card from '../../components/common/Card';
+import Button from '../../components/common/Button';
+import ApiInfo from '../../components/common/ApiInfo'; // API 정보 컴포넌트 추가
 import './AddPlaceModal.css';
 
 export default function AddPlaceModal({ isOpen, onClose, onAddPlace }) {
   const [keyword, setKeyword] = useState('');
   const [results, setResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [quota, setQuota] = useState(null); // API 사용량 정보
 
-  // 네이버 API 연동 전 테스트를 위한 가짜 검색 함수
-  const handleSearch = (e) => {
+  // 실제 백엔드 API 호출
+  const handleSearch = async (e) => {
     e.preventDefault();
     if (!keyword.trim()) return;
 
     setIsSearching(true);
+    setResults([]); // 기존 결과 초기화
 
-    // TODO: 나중에 여기에 백엔드 API 호출 루틴이 들어갑니다.
-    // fetch(`/api/naver/search?query=${keyword}`)...
+    try {
+      // Python Backend (FastAPI) 호출
+      const response = await fetch(`http://localhost:8001/api/search?query=${keyword}`);
+      const data = await response.json();
 
-    setTimeout(() => {
-      // 임시 검색 결과 (테스트용)
-      const mockResults = [
-        {
-          title: `<b>${keyword}</b> 성수점`,
-          address: '서울 성동구 성수동 1가 12-3',
-          mapx: 127056000, // 네이버는 좌표를 이상한 정수로 줄 때가 있어 변환 필요 (여기선 위경도 예시)
-          // 실제 위경도 시뮬레이션 (성수역 근처 랜덤)
-          lat: 37.5445 + (Math.random() - 0.5) * 0.01,
-          lng: 127.0560 + (Math.random() - 0.5) * 0.01,
-          category: '음식점>카페'
-        },
-        {
-          title: `<b>${keyword}</b> 본점`,
-          address: '서울 강남구 역삼동 123',
-          lat: 37.5000 + (Math.random() - 0.5) * 0.01,
-          lng: 127.0300 + (Math.random() - 0.5) * 0.01,
-          category: '음식점>한식'
-        }
-      ];
-      setResults(mockResults);
+      if (data.items) {
+        setResults(data.items);
+        if (data.meta) setQuota(data.meta); // API 사용량 정보 저장
+      } else if (data.error) {
+        alert("검색 실패: " + data.error);
+      }
+    } catch (error) {
+      console.error("API Error:", error);
+      alert("백엔드 서버가 켜져있는지 확인해주세요! (Port 8001)");
+    } finally {
       setIsSearching(false);
-    }, 800);
+    }
   };
 
   // HTML 태그 제거 함수 (네이버 API는 <b>태그를 줘서 제거 필요)
@@ -54,6 +48,12 @@ export default function AddPlaceModal({ isOpen, onClose, onAddPlace }) {
       <div className="modal-content">
         <header className="modal-header">
           <h3>핫플 장소 등록</h3>
+
+          {/* API 정보 표시 (항상 표시하되 데이터 없으면 로딩중) */}
+          <div className="modal-api-info">
+            <ApiInfo remaining={quota?.remaining} limit={quota?.limit} />
+          </div>
+
           <button className="modal-close" onClick={onClose}>
             <X size={20} />
           </button>
@@ -80,7 +80,7 @@ export default function AddPlaceModal({ isOpen, onClose, onAddPlace }) {
           {results.length === 0 && !isSearching && (
             <div className="empty-state">
               <MapPin size={32} opacity={0.3} />
-              <p>장소를 검색하여 지도에 추가해보세요.<br />(네이버 검색 API 연동 예정)</p>
+              <p>장소를 검색하여 지도에 추가해보세요.<br />(네이버 검색 API 연동됨)</p>
             </div>
           )}
 
@@ -95,11 +95,11 @@ export default function AddPlaceModal({ isOpen, onClose, onAddPlace }) {
                 className="add-place-btn"
                 onClick={() => onAddPlace({
                   name: removeTags(place.title),
-                  desc: '내가 추천하는 핫한 장소! 👍', // 유저 입력 폼 추가 가능
-                  category: place.category.split('>')[1] || '기타',
+                  desc: '내가 추천하는 핫한 장소! 👍',
+                  category: place.category.split('>')[1] || place.category,
                   position: [place.lat, place.lng],
                   rating: 5.0,
-                  naverUrl: `https://map.naver.com/p/search/${removeTags(place.title)}`
+                  naverUrl: place.naver_map_url
                 })}
               >
                 <Plus size={16} /> 추가

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { MapPin, Star, Navigation, ExternalLink } from 'lucide-react';
+import { MapPin, Star, Navigation, ExternalLink, Trash2 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import Card from '../../components/common/Card';
 import AddPlaceModal from './AddPlaceModal';
@@ -34,7 +34,7 @@ export default function HotPlace() {
   const [zoom, setZoom] = useState(14);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 임시 데이터 (useState로 관리하여 추가 가능하게 변경)
+  // 임시 데이터 (중복 방지를 위해 초기값에 모두 포함)
   const [places, setPlaces] = useState([
     {
       id: 1,
@@ -55,39 +55,28 @@ export default function HotPlace() {
       image: 'https://picsum.photos/300/200?random=102',
       desc: '피크닉하고 산책하기 딱 좋은 도심 속 숲 🌿',
       naverUrl: 'https://map.naver.com/p/entry/place/11636254'
+    },
+    {
+      id: 3,
+      name: '뚝섬 한강공원',
+      category: '공원',
+      rating: 4.7,
+      position: [37.5294, 127.0700],
+      image: 'https://picsum.photos/300/200?random=103',
+      desc: '해질녘 노을 보면서 치킨 먹기 좋은 곳 🍗',
+      naverUrl: 'https://map.naver.com/p/entry/place/13446868'
+    },
+    {
+      id: 4,
+      name: '송리단길',
+      category: '맛집거리',
+      rating: 4.6,
+      position: [37.5112, 127.1085],
+      image: 'https://picsum.photos/300/200?random=104',
+      desc: '석촌호수 구경하고 맛집 가기 좋은 핫플 🍜',
+      naverUrl: 'https://map.naver.com/p/search/송리단길'
     }
-    // ... 나머지 데이터는 아래 places 배열 초기화 시 포함됨 (기존 코드 유지 위해 생략하려 했으나 useState 사용시 전체 초기화 필요)
   ]);
-
-  // 기존 places 변수를 useState 초기값으로 덮어씀 (4개 다 넣어야 함)
-  useEffect(() => {
-    // 최초 1회만 실행: 데이터가 비어있다면 초기 데이터 주입 (실제론 위 useState 초기값에 다 넣는게 맞음)
-    if (places.length === 2) {
-      setPlaces(prev => [
-        ...prev,
-        {
-          id: 3,
-          name: '뚝섬 한강공원',
-          category: '공원',
-          rating: 4.7,
-          position: [37.5294, 127.0700],
-          image: 'https://picsum.photos/300/200?random=103',
-          desc: '해질녘 노을 보면서 치킨 먹기 좋은 곳 🍗',
-          naverUrl: 'https://map.naver.com/p/entry/place/13446868'
-        },
-        {
-          id: 4,
-          name: '송리단길',
-          category: '맛집거리',
-          rating: 4.6,
-          position: [37.5112, 127.1085],
-          image: 'https://picsum.photos/300/200?random=104',
-          desc: '석촌호수 구경하고 맛집 가기 좋은 핫플 🍜',
-          naverUrl: 'https://map.naver.com/p/search/송리단길'
-        }
-      ])
-    }
-  }, []); // 의존성 배열 빈값
 
   const handleAddNewPlace = (newPlaceData) => {
     const newId = places.length + 1 + Date.now();
@@ -101,6 +90,14 @@ export default function HotPlace() {
     setMapCenter(newPlace.position); // 거기로 지도 이동
     setActivePlaceId(newId);
     setIsModalOpen(false);
+  };
+
+  const handleRemovePlace = (e, id) => {
+    e.stopPropagation(); // 카드 클릭 이벤트 막기
+    if (window.confirm('정말 이 장소를 삭제하시겠습니까?')) {
+      setPlaces(places.filter(p => p.id !== id));
+      if (activePlaceId === id) setActivePlaceId(null);
+    }
   };
 
   const handlePlaceClick = (place) => {
@@ -146,9 +143,14 @@ export default function HotPlace() {
                   <div className="hotplace__info">
                     <div className="hotplace__top">
                       <span className="hotplace__category">{place.category}</span>
-                      <span className="hotplace__rating">
-                        <Star size={12} fill="#fbbf24" stroke="#fbbf24" /> {place.rating}
-                      </span>
+                      <div className="hotplace__top-right">
+                        <span className="hotplace__rating">
+                          <Star size={12} fill="#fbbf24" stroke="#fbbf24" /> {place.rating}
+                        </span>
+                        <button className="hotplace__delete-btn" onClick={(e) => handleRemovePlace(e, place.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                     <h3 className="hotplace__name">{place.name}</h3>
                     <p className="hotplace__desc">{place.desc}</p>
@@ -192,6 +194,9 @@ export default function HotPlace() {
                     <span className="hotplace__popup-cate">{place.category}</span>
                     <button className="hotplace__popup-link" onClick={(e) => handleNaverLink(e, place.naverUrl)}>
                       상세보기 <ExternalLink size={10} />
+                    </button>
+                    <button className="hotplace__popup-delete" onClick={(e) => handleRemovePlace(e, place.id)}>
+                      장소 삭제
                     </button>
                   </div>
                 </Popup>

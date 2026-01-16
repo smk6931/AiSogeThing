@@ -38,7 +38,7 @@
    npm run dev
 
 4. FastAPI (Uvicorn)
-   python -m uvicorn main:app --reload
+   python -m uvicorn main:app --reload --port 8001
 
 [ Git (자주 쓰는 명령어) ]
 --------------------------------------------------------------------------------
