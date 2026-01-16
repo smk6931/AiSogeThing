@@ -13,8 +13,10 @@ export default function YoutubeBoard() {
   const [quota, setQuota] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [hideShorts, setHideShorts] = useState(false);
+
   const [datingChannels, setDatingChannels] = useState([]);
   const [selectedDatingChannel, setSelectedDatingChannel] = useState(null);
+  const [datingSubCategory, setDatingSubCategory] = useState('reality'); // 'reality' | 'sketch'
 
   const categories = [
     { id: null, name: '🔥 전체' },
@@ -62,8 +64,8 @@ export default function YoutubeBoard() {
         const shortsCount = data.items.filter(v => v.isShort).length;
         const videoCount = data.items.length - shortsCount;
 
+        // 스마트 정렬
         let sortedItems = [...data.items];
-
         if (shortsCount > videoCount) {
           sortedItems.sort((a, b) => (b.isShort === a.isShort) ? 0 : b.isShort ? 1 : -1);
         } else {
@@ -105,16 +107,17 @@ export default function YoutubeBoard() {
   };
 
   const handleDiscover = async () => {
-    if (!confirm("🤖 AI가 YouTube를 탐색하여 새로운 '연애' 관련 인기 채널을 찾아냅니다.\n(API 100점 소모)\n\n계속하시겠습니까?")) return;
+    const genreName = datingSubCategory === 'reality' ? "연애 코칭/예능" : "스케치 코미디";
+    if (!confirm(`🤖 AI가 '${genreName}' 관련 인기 채널을 찾아냅니다.\n(API 100점 소모)\n\n계속하시겠습니까?`)) return;
 
     setLoading(true);
     try {
-      const res = await discoverDatingChannels();
+      const res = await discoverDatingChannels(datingSubCategory);
       if (res.error) {
         alert("오류 발생: " + res.error);
       } else {
         alert(`🎉 성공! ${res.added}개의 새로운 채널을 발견했습니다.\n이제 자동으로 목록에 추가됩니다.`);
-        loadPopular('dating'); // 목록 새로고침
+        loadPopular('dating');
       }
     } catch (e) {
       alert("요청 실패");
@@ -131,6 +134,9 @@ export default function YoutubeBoard() {
     if (num >= 10000) return (num / 10000).toFixed(1) + '만회';
     return num.toLocaleString() + '회';
   };
+
+  // 렌더링용: 현재 서브 카테고리에 맞는 채널만 필터링
+  const filteredChannels = datingChannels.filter(ch => (ch.category || 'reality') === datingSubCategory);
 
   return (
     <div className="youtube-board">
@@ -173,45 +179,72 @@ export default function YoutubeBoard() {
         </div>
 
         {selectedCategory === 'dating' && (
-          <div className="category-control-row" style={{ marginTop: '10px', overflowX: 'auto', display: 'flex', gap: '8px', paddingBottom: '5px' }}>
+          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '12px', marginTop: '10px' }}>
 
-            {/* AI 채널 발굴 버튼 */}
-            <button
-              className="category-chip"
-              onClick={handleDiscover}
-              style={{
-                fontSize: '0.8rem',
-                padding: '4px 12px',
-                background: 'linear-gradient(45deg, #6a11cb 0%, #2575fc 100%)',
-                border: 'none',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Sparkles size={14} /> AI 채널 발굴 (+100점)
-            </button>
-
-            <div style={{ width: '1px', background: 'rgba(255,255,255,0.2)', margin: '0 4px' }}></div>
-
-            <button
-              className={`category-chip ${selectedDatingChannel === null ? 'active' : ''}`}
-              onClick={() => setSelectedDatingChannel(null)}
-              style={{ fontSize: '0.8rem', padding: '4px 12px' }}
-            >
-              전체 보기
-            </button>
-            {datingChannels.map(ch => (
+            {/* 서브 카테고리 토글 */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
               <button
-                key={ch.id}
-                className={`category-chip ${selectedDatingChannel === ch.id ? 'active' : ''}`}
-                onClick={() => setSelectedDatingChannel(ch.id)}
-                style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+                className={`category-chip ${datingSubCategory === 'reality' ? 'active' : ''}`}
+                onClick={() => { setDatingSubCategory('reality'); setSelectedDatingChannel(null); }}
+                style={{ borderRadius: '20px', padding: '6px 16px' }}
               >
-                {ch.name}
+                💑 연애 예능/코칭
               </button>
-            ))}
+              <button
+                className={`category-chip ${datingSubCategory === 'sketch' ? 'active' : ''}`}
+                onClick={() => { setDatingSubCategory('sketch'); setSelectedDatingChannel(null); }}
+                style={{ borderRadius: '20px', padding: '6px 16px' }}
+              >
+                🎭 스케치 코미디
+              </button>
+            </div>
+
+            {/* 채널 리스트 & AI 버튼 */}
+            <div className="category-control-row" style={{ overflowX: 'auto', display: 'flex', gap: '8px', paddingBottom: '5px' }}>
+
+              <button
+                className="category-chip"
+                onClick={handleDiscover}
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '4px 12px',
+                  background: 'linear-gradient(45deg, #6a11cb 0%, #2575fc 100%)',
+                  border: 'none',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Sparkles size={14} /> 채널 발굴 (+100점)
+              </button>
+
+              <div style={{ width: '1px', background: 'rgba(255,255,255,0.2)', margin: '0 4px' }}></div>
+
+              <button
+                className={`category-chip ${selectedDatingChannel === null ? 'active' : ''}`}
+                onClick={() => setSelectedDatingChannel(null)}
+                style={{ fontSize: '0.8rem', padding: '4px 12px', whiteSpace: 'nowrap' }}
+              >
+                전체 보기
+              </button>
+
+              {filteredChannels.length === 0 && (
+                <span style={{ color: '#999', fontSize: '0.8rem', padding: '6px' }}>채널이 없습니다. 발굴해보세요!</span>
+              )}
+
+              {filteredChannels.map(ch => (
+                <button
+                  key={ch.id}
+                  className={`category-chip ${selectedDatingChannel === ch.id ? 'active' : ''}`}
+                  onClick={() => setSelectedDatingChannel(ch.id)}
+                  style={{ fontSize: '0.8rem', padding: '4px 12px', whiteSpace: 'nowrap' }}
+                >
+                  {ch.name}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -238,9 +271,17 @@ export default function YoutubeBoard() {
           {videos
             .filter(v => !hideShorts || !v.isShort)
             .filter(v => {
-              if (selectedCategory === 'dating' && selectedDatingChannel) {
-                const targetName = datingChannels.find(c => c.id === selectedDatingChannel)?.name;
-                return v.channelTitle === targetName;
+              if (selectedCategory === 'dating') {
+                // 1. 서브 카테고리 필터 (영상 태그 vs 현재 탭)
+                const currentSub = datingSubCategory;
+                const videoCategory = v.category || 'reality';
+                if (videoCategory !== currentSub) return false;
+
+                // 2. 특정 채널 선택 필터
+                if (selectedDatingChannel) {
+                  const targetName = datingChannels.find(c => c.id === selectedDatingChannel)?.name;
+                  return v.channelTitle === targetName;
+                }
               }
               return true;
             })

@@ -27,20 +27,17 @@ def save_interaction_log(log_data: dict):
 def _manage_quota(cost=0):
     quota_file = os.path.join(os.path.dirname(__file__), 'youtube_quota.json')
     today = datetime.now().strftime('%Y-%m-%d')
-    limit = 10000
+    # 단순화: 파일 로드 실패시 기본값 사용
+    data = load_json_safe(quota_file) or {"date": today, "remaining": 10000, "limit": 10000}
     
-    saved_data = load_json_safe(quota_file)
-    
-    if saved_data and saved_data.get('date') == today:
-        data = saved_data
-    else:
-        data = {"date": today, "remaining": limit, "limit": limit}
+    if data.get('date') != today:
+        data = {"date": today, "remaining": 10000, "limit": 10000}
         
     if cost > 0:
-        data['remaining'] = max(0, data['remaining'] - cost)
+        data['remaining'] = max(0, int(data['remaining']) - cost)
         save_json_safe(quota_file, data)
         
-    return data['remaining'], limit
+    return data['remaining'], data['limit']
 
 def _parse_duration(duration_str):
     if not duration_str: return 0
@@ -108,7 +105,9 @@ def get_channel_rss(channel_id: str):
                 "publishedAt": published,
                 "viewCount": None, 
                 "duration": 0,
-                "isShort": False
+                "isShort": False,
+                # RSS item doesn't come with channel ID, but we know it from context
+                # "channelId": channel_id (Injected by caller)
             })
         return videos
     except Exception as e:
@@ -124,9 +123,8 @@ def get_dating_videos():
     # fallback if empty
     if not target_channels:
          target_channels = [
-            {"id": "UCEwmUXNK69iAugMEahY7glA", "name": "김달"},
-            {"id": "UCIfadKo7fcwSfgARMTz7xzA", "name": "나는 SOLO"},
-            {"id": "UC0NLUpQMEbL71-a2-vhBOKQ", "name": "하트시그널"},
+            {"id": "UCEwmUXNK69iAugMEahY7glA", "name": "김달", "category": "reality"},
+            {"id": "UCIfadKo7fcwSfgARMTz7xzA", "name": "나는 SOLO", "category": "reality"},
         ]
         
     all_videos = []
@@ -134,6 +132,7 @@ def get_dating_videos():
         vids = get_channel_rss(channel['id'])
         for v in vids:
              v['channelTitle'] = channel['name']
+             v['category'] = channel.get('category', 'reality') # 영상에도 카테고리 태깅
         all_videos.extend(vids)
     
     all_videos.sort(key=lambda x: x['publishedAt'], reverse=True)
@@ -149,14 +148,20 @@ def get_dating_videos():
         }
     }
 
-def discover_new_channels():
+def discover_new_channels(category: str = "reality"):
     """
-    AI 채널 발굴: '연애 유튜버'를 검색하여 새로운 채널을 JSON 목록에 자동 추가 (Cost: 100)
+    AI 채널 발굴: 카테고리에 맞는 연애 유튜버 검색 및 추가 (Cost: 100)
+    category: 'reality' | 'sketch'
     """
     if not API_KEY: return {"error": "API Key Missing"}
 
-    # 검색 쿼리
-    query = "연애 코칭 상담"
+    # 카테고리별 검색 쿼리
+    queries = {
+        "reality": "연애 심리 상담 코칭",
+        "sketch": "연애 공감 스케치 코미디 숏박스"
+    }
+    query = queries.get(category, "연애 유튜버")
+    
     encoded_query = urllib.parse.quote(query)
     url = f"{BASE_URL}/search?part=snippet&q={encoded_query}&maxResults=10&type=channel&key={API_KEY}"
     
@@ -165,78 +170,48 @@ def discover_new_channels():
     
     if error: return {"error": error}
     
-    # Quota 차감
     remaining, limit = _manage_quota(cost=100)
     
-    # 기존 채널 로드
     existing_channels = load_json_safe(CHANNELS_FILE) or []
     existing_ids = {ch['id'] for ch in existing_channels}
     
     added_count = 0
     
-    # 결과 파싱 및 추가
     for item in data.get('items', []):
         c_id = item['snippet']['channelId']
         c_title = item['snippet']['channelTitle']
         
         if c_id not in existing_ids:
-            existing_channels.append({"id": c_id, "name": c_title})
+            # 채널 추가 시 카테고리 명시
+            existing_channels.append({"id": c_id, "name": c_title, "category": category})
             existing_ids.add(c_id)
             added_count += 1
             
-    # 저장
     save_json_safe(CHANNELS_FILE, existing_channels)
     
     return {
         "success": True,
         "added": added_count,
-        "total": len(existing_channels),
-        "channels": existing_channels,
+        "category": category,
         "meta": {"remaining": remaining, "limit": limit}
     }
 
 def search_videos(query: str, max_results: int = 50):
-    if not API_KEY:
-        return {"error": "YouTube API 키가 없습니다."}
-
+    if not API_KEY: return {"error": "No Key"}
     encoded_query = urllib.parse.quote(query)
     url = f"{BASE_URL}/search?part=snippet&q={encoded_query}&maxResults={max_results}&type=video&key={API_KEY}"
-    
     headers = {"Referer": "http://localhost:5173"}
     data, error = safe_http_get(url, headers=headers)
-    
-    if error:
-        return {"error": error}
-        
+    if error: return {"error": error}
     remaining, limit = _manage_quota(cost=100)
-    return {
-        "items": _parse_videos(data.get('items', [])),
-        "meta": {
-            "remaining": str(remaining),
-            "limit": str(limit)
-        }
-    }
+    return {"items": _parse_videos(data.get('items', [])), "meta": {"remaining": str(remaining), "limit": str(limit)}}
 
 def get_popular_videos(max_results: int = 50, category_id: str = None):
-    if not API_KEY:
-        return {"error": "YouTube API 키가 없습니다."}
-        
+    if not API_KEY: return {"error": "No Key"}
     url = f"{BASE_URL}/videos?part=snippet,statistics,contentDetails&chart=mostPopular&maxResults={max_results}&regionCode=KR&key={API_KEY}"
-    
-    if category_id:
-        url += f"&videoCategoryId={category_id}"
-    
+    if category_id: url += f"&videoCategoryId={category_id}"
     headers = {"Referer": "http://localhost:5173"}
     data, error = safe_http_get(url, headers=headers)
-    
-    if error:
-        return {"error": error}
-        
+    if error: return {"error": error}
     remaining, limit = _manage_quota(cost=1)
-    return {
-        "items": _parse_videos(data.get('items', [])),
-        "meta": {
-            "remaining": str(remaining),
-            "limit": str(limit)
-        }
-    }
+    return {"items": _parse_videos(data.get('items', [])), "meta": {"remaining": str(remaining), "limit": str(limit)}}

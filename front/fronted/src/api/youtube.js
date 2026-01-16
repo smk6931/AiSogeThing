@@ -18,8 +18,8 @@ export const getDatingYoutube = async () => {
   return response.data;
 };
 
-export const discoverDatingChannels = async () => {
-  const response = await client.post('/api/youtube/dating/discover');
+export const discoverDatingChannels = async (category = 'reality') => {
+  const response = await client.post('/api/youtube/dating/discover', { category });
   return response.data;
 };
 
