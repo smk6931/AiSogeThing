@@ -5,10 +5,9 @@ from youtube.router import router as youtube_router
 
 app = FastAPI()
 
-# CORS 설정 (프론트엔드 5173 포트 허용)
+# CORS 설정 (프론트엔드/클라우드 허용)
 origins = [
-    "http://localhost:5173",
-    "http://localhost:5174",
+    "*"
 ]
 
 app.add_middleware(
