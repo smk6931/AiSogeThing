@@ -25,6 +25,9 @@
 3. requirements.txt로 한방에 설치
    pip install -r requirements.txt
 
+4. react module 설치
+   npm install
+
 
 [ 서버 실행 (Server Run) ]
 --------------------------------------------------------------------------------
@@ -84,6 +87,8 @@
    ssh -i "C:\Users\ssh\ssh-key-oracle.key" ubuntu@168.107.52.201
 
 2. 가상환경 활성화 (혹시 모르니)
+   cd AiSogeThing
+   
    source venv/bin/activate
 
 pkill -f uvicorn
@@ -110,6 +115,9 @@ curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 
 4. Node.js 설치
 sudo apt install -y nodejs
+
+5. GitHub Pull 프로젝트 설치 (예시)
+git clone https://github.com/username/repository.git
 
 <br>
 
