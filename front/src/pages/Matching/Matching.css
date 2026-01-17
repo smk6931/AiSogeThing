@@ -45,8 +45,24 @@
 }
 
 @media (max-width: 768px) {
+  .matching {
+    padding: 16px 12px 80px 12px;
+    /* 모바일 패딩 최적화 */
+  }
+
+  .matching__title {
+    font-size: 24px;
+    /* 모바일 타이틀 크기 축소 */
+  }
+
+  .matching__subtitle {
+    font-size: 14px;
+  }
+
   .matching__grid {
     grid-template-columns: 1fr;
+    gap: 16px;
+    /* 모바일 간격 축소 */
   }
 }
 

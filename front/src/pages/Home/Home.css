@@ -82,6 +82,21 @@
 /* 아, 사용자 요청대로 모바일도 3열 유지하되, 화면이 너무 좁으면 조정 */
 
 @media (max-width: 768px) {
+  .home__container {
+    padding: 0 8px;
+    /* 모바일 좌우 패딩 축소 */
+  }
+
+  .home__header {
+    padding: 10px 12px;
+    /* 모바일 헤더 패딩 축소 */
+  }
+
+  .home__logo {
+    font-size: 20px;
+    /* 모바일 로고 크기 축소 */
+  }
+
   .home__feed {
     gap: 2px;
     /* 모바일은 인스타처럼 간격 좁게 */

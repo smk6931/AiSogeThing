@@ -177,7 +177,29 @@
   opacity: 1;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .mypage {
+    padding: 16px 12px 80px 12px;
+  }
+
+  .mypage__profile-photo {
+    width: 100px;
+    height: 100px;
+  }
+
+  .mypage__name {
+    font-size: 20px;
+  }
+
+  .mypage__stat-value {
+    font-size: 20px;
+  }
+
+  .mypage__tab {
+    padding: 10px;
+    font-size: 14px;
+  }
+
   .mypage__grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 2px;

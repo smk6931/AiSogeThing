@@ -105,3 +105,27 @@
   align-items: center;
   justify-content: center;
 }
+
+/* ===== 모바일 반응형 ===== */
+@media (max-width: 768px) {
+  .chat {
+    padding: 16px 12px 80px 12px;
+  }
+
+  .chat__title {
+    font-size: 24px;
+  }
+
+  .chat__avatar {
+    width: 50px;
+    height: 50px;
+  }
+
+  .chat__name {
+    font-size: 15px;
+  }
+
+  .chat__message {
+    font-size: 13px;
+  }
+}
