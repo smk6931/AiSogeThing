@@ -36,4 +36,4 @@ def get_db():
 # Base.metadata에 테이블 정보가 싹 다 등록됩니다.
 
 from user.models import User
-from youtube.models import Comment, YoutubeLog
+from youtube.models import Comment, UserLog, YoutubeList
