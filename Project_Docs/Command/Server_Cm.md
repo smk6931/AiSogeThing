@@ -39,28 +39,28 @@ sudo apt install -y nodejs
 
 [ 서버 실행 명령어 (서버 접속 후 입력) ]
 
-1. 백엔드 실행 (8080포트)
+1. 백엔드 실행 (8080포트, PM2 사용)
 cd ~/AiSogeThing/back
-source ../venv/bin/activate
-nohup python -m uvicorn main:app --reload --host 0.0.0.0 --port 8080 > server.log 2>&1 &
+pm2 start "source ../venv/bin/activate && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8080" --name "backend"
 
 
-2. 프론트엔드 실행
+2. 프론트엔드 실행 (PM2 사용)
 cd ~/AiSogeThing/front
 npm install
-nohup npm run dev -- --host 0.0.0.0 --port 3000 > front.log 2>&1 &
+pm2 start "npm run dev -- --host 0.0.0.0 --port 3000" --name "frontend"
 
 
-3. 서버 로그 보기
-tail -f server.log
-tail -f front.log
+3. 서버 관리 및 로그 보기
+# 실행 목록 확인
+pm2 list
 
-4. 서버 끄기 (프로세스 kill)
-pkill -f uvicorn
-pkill -f "npm run dev"
+# 실시간 로그 보기 (나가기: Ctrl+C)
+pm2 logs
 
-sudo lsof -i :3000
-sudo kill -9 <PID>
+# 서버 끄기/재시작
+pm2 stop all      # 전체 중지
+pm2 restart all   # 전체 재시작
+pm2 delete all    # 전체 삭제
 
 0. 프론트엔드 Node.js 버전 업그레이드 (18 -> 20)
   1. 기존 버전 삭제      : sudo apt remove -y nodejs
@@ -76,3 +76,7 @@ rm -rf node_modules package-lock.json
 sudo iptables -I INPUT -p tcp --dport 3000 -j ACCEPT
 sudo iptables -I INPUT -p tcp --dport 8080 -j ACCEPT
 sudo netfilter-persistent save
+
+
+
+
