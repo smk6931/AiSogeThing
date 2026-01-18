@@ -35,3 +35,9 @@ pm2 restart frontend
 
 echo "🎉 배포 완료! (Deployment Success)"
 pm2 status
+
+
+# 실행 권한 한 번만 주고
+# 커맨드 : chmod +x Project_Docs/Server/deploy.sh
+# 바로 실행!
+# 커맨드 : ./Project_Docs/Server/deploy.sh
