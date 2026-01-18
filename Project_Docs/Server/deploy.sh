@@ -21,9 +21,9 @@ echo "🐍 [2/5] 백엔드 업데이트 (Pip & DB)..."
 cd "$BACK_DIR"
 # 가상환경 활성화 (없으면 에러 날 수 있으니 체크)
 source ../venv/bin/activate
-pip install -r requirements.txt
+pip install -r ../requirements.txt
 # DB 마이그레이션 (DB 구조 변경사항 적용)
-# alembic upgrade head 
+alembic upgrade head 
 # (아직 DB 세팅 전이면 에러 날 수 있어서 주석 처리함. 나중에 주석 해제하세요!)
 
 echo "⚛️ [3/5] 프론트엔드 패키지 설치..."
