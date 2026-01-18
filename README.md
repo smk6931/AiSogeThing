@@ -5,23 +5,33 @@
 
 ---
 
+> ### 🚧 Work In Progress (현재 개발 진행 중)
+> **이 프로젝트는 현재 활발히 개발 및 기능 고도화가 진행 중인 상태입니다.**  
+> (This project is currently under active development.)
+>
+> *   실시간으로 코드가 업데이트되므로, 간헐적인 서비스 불안정이 발생할 수 있습니다.
+> *   매일 새로운 기능이 추가되고 있으며, 상세한 개발 과정은 [Daily Log](./Project_Docs/Daily_Log)에서 확인하실 수 있습니다.
+
+---
+
 ## 🌐 Live Service
-**👉 [https://sogething.com](https://sogething.com) (현재 배포 및 운영 중)**  
-*(Oracle Cloud 서버에서 실시간으로 기능이 업데이트되고 있습니다.)*
+**👉 [https://sogething.com](https://sogething.com) (실시간 배포 서버)**  
+*(개발 중인 버전이 실시간으로 반영됩니다.)*
 
 ---
 
 ## 📅 Real-time Development Log (개발 일지)
-이 프로젝트는 **매일매일 성장**하고 있습니다. 개발자의 생생한 고민과 해결 과정이 궁금하다면 아래 링크를 확인해주세요.
+**"완성된 결과물보다 성장하는 과정에 집중합니다."**  
+개발자의 매일매일의 고민과 트러블 슈팅 과정이 궁금하다면 아래 문서를 참고해주세요.
 
-*   📂 **[Project_Docs/Daily_Log](./Project_Docs/Daily_Log)**: 일별 개발 로그 및 트러블 슈팅 내역
-*   📂 **[Project_Docs/Process](./Project_Docs/Process)**: 서버 구축, 도메인 연결, API 설계 등 기술 문서
+*   📂 **[Project_Docs/Daily_Log](./Project_Docs/Daily_Log)**: 일별 상세 개발 로그 (Error Log, Idea)
+*   📂 **[Project_Docs/Process](./Project_Docs/Process)**: 인프라 구축, 도메인 연결, 아키텍처 설계 문서
 
-**[Latest Updates]**
-*   ✅ **Infrastructure**: 오라클 클라우드 서버 구축 및 도메인 연결 (`sogething.com`)
-*   ✅ **Security**: Nginx 리버스 프록시 및 Lets Encrypt HTTPS(SSL) 적용 완료
-*   ✅ **Feature**: YouTube API 비용 절감을 위한 'RSS Seed & Harvest' 알고리즘 구현
-*   ✅ **UI/UX**: Mobile-First 반응형 디자인 및 Glassmorphism 적용
+**[Recent Milestones]**
+*   ✅ **Infrastructure**: Oracle Cloud 서버 구축 & 도메인(`sogething.com`) 연결 완료
+*   ✅ **Security**: Nginx 리버스 프록시 및 Lets Encrypt HTTPS(SSL) 보안 적용
+*   ✅ **Feature**: YouTube "RSS Seed & Harvest" 알고리즘을 통한 저비용 고효율 큐레이션 구현
+*   ✅ **UI/UX**: Mobile-First 기반 반응형 웹 디자인 적용 중
 
 ---
 
@@ -50,10 +60,10 @@
 ```bash
 AiSogeThing/
 ├── Project_Docs/
-│   ├── Daily_Log/       # 매일의 개발 기록 (Error Log, Idea)
-│   ├── Idea/            # 핵심 기능 아이디어 (YouTube RSS 전략 등)
-│   ├── Process/         # 기술 구현 가이드 (Server Setup, Domain, API Flow)
-│   └── SQL/             # DB 스키마 및 쿼리
+│   ├── Daily_Log/       # 매일의 개발 기록 (Development Journal)
+│   ├── Idea/            # 핵심 기능 기획 (Feature Ideas)
+│   ├── Process/         # 기술 구현 가이드 (Implementation Guide)
+│   └── SQL/             # DB 스키마 (Database Schema)
 ├── back/                # FastAPI Backend Server
 └── front/               # React Frontend Client
 ```
