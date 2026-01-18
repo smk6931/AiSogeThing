@@ -42,3 +42,18 @@
 5. 파일 구조
    - `back/client/youtube_rss.py`: RSS 파싱 및 로직 전담.
    - `back/data/channels/`: 사용자/주제별 채널 리스트 저장.
+
+6. [보강] 사용자별 채널 발굴 및 DB 연동 (My Interest Discovery)
+   - 개념: "AI 자동 구독 매니저"
+     - 사용자가 유튜브에 가서 일일이 채널을 찾고 구독하는 대신, "주식", "요리" 키워드만 던지면 AI가 관련 인기 채널을 찾아내어 자동으로 내 피드에 추가.
+   
+   - 데이터 확장성 (Future Work):
+     - 현재 단계: `interest_channels.json` 파일에 모든 발굴된 채널을 공용으로 저장 (MVP).
+     - 발전 단계: RDBMS (PostgreSQL/MySQL) 도입 시 `user_channel_subscriptions` 테이블 생성.
+       - 컬럼: `user_id`, `channel_id`, `channel_name`, `category_keyword`
+       - 효과: 유저 A는 "주식" 채널만 보고, 유저 B는 "게임" 채널만 보도록 개인화 가능.
+   
+   - 사용자 경험(UX):
+     - 사용자는 "발굴된 채널" 리스트를 UI에서 확인 가능.
+     - 특정 채널을 클릭하여 필터링하거나, 마음에 안 드는 채널은 삭제(구독 취소)할 수 있음.
+     - 이 모든 과정에서 동영상 시청은 RSS(무료)로 이루어짐.

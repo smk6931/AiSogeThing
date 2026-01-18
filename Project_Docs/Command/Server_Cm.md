@@ -59,6 +59,8 @@ tail -f front.log
 pkill -f uvicorn
 pkill -f "npm run dev"
 
+sudo lsof -i :3000
+sudo kill -9 <PID>
 
 0. 프론트엔드 Node.js 버전 업그레이드 (18 -> 20)
   1. 기존 버전 삭제      : sudo apt remove -y nodejs
