@@ -64,13 +64,9 @@ export default function YoutubeBoard() {
         const shortsCount = data.items.filter(v => v.isShort).length;
         const videoCount = data.items.length - shortsCount;
 
-        // 스마트 정렬
+        // 최신순 정렬 (Date 객체로 변환하여 비교)
         let sortedItems = [...data.items];
-        if (shortsCount > videoCount) {
-          sortedItems.sort((a, b) => (b.isShort === a.isShort) ? 0 : b.isShort ? 1 : -1);
-        } else {
-          sortedItems.sort((a, b) => (b.isShort === a.isShort) ? 0 : a.isShort ? 1 : -1);
-        }
+        sortedItems.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
         setVideos(sortedItems);
         if (data.meta) setQuota(data.meta);
@@ -82,6 +78,20 @@ export default function YoutubeBoard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 시간 포맷팅 (예: 2시간 전, 3일 전)
+  const formatTimeAgo = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = (now - date) / 1000; // 초 단위
+
+    if (diff < 60) return '방금 전';
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}일 전`;
+    return `${date.getMonth() + 1}월 ${date.getDate()}일`;
   };
 
   const handleSearch = async (e) => {
@@ -306,12 +316,17 @@ export default function YoutubeBoard() {
                   <h3 className="video-title">{video.title}</h3>
                   <div className="video-meta">
                     <span className="channel-name">{video.channelTitle}</span>
-                    {video.viewCount && (
-                      <span className="view-count">
-                        <Eye size={12} style={{ marginRight: '4px', display: 'inline-block' }} />
-                        {formatViewCount(video.viewCount)}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                      {video.viewCount && (
+                        <span className="view-count">
+                          <Eye size={12} style={{ marginRight: '4px' }} />
+                          {formatViewCount(video.viewCount)}
+                        </span>
+                      )}
+                      <span style={{ fontSize: '0.7rem', color: '#888' }}>
+                        {formatTimeAgo(video.publishedAt)}
                       </span>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>

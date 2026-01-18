@@ -106,6 +106,50 @@
     border-radius: 0;
     /* 모바일은 각지게 */
   }
+
+  /* 모바일 카드 헤더 최적화 */
+  .post-card__header {
+    padding: 8px;
+    /* 패딩 축소 */
+  }
+
+  .post-card__user-info {
+    gap: 6px;
+    /* 간격 축소 */
+    min-width: 0;
+    /* flex 줄바꿈 방지 */
+    flex: 1;
+  }
+
+  .post-card__avatar {
+    width: 28px;
+    /* 아바타 크기 축소 */
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .post-card__meta {
+    min-width: 0;
+    /* 텍스트 영역이 줄어들 수 있게 */
+    flex: 1;
+  }
+
+  .post-card__username {
+    font-size: 12px;
+    /* 폰트 크기 축소 */
+    white-space: nowrap;
+    /* 한 줄 유지 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* 넘치면 ... 표시 */
+  }
+
+  .post-card__location {
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 /* 태블릿/작은 PC */
