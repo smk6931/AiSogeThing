@@ -1,27 +1,86 @@
-import { createContext, useState, useContext } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
+import apiClient from '../api/client';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // 임시 로그인 상태 (초기값: null = 로그아웃 상태)
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (username) => {
-    // 임시 로그인 처리
-    setUser({
-      name: username === 'admin' ? '관리자' : '김소개', // 예시로 이름 구분
-      username: username, // 아이디 저장
-      avatar: 'https://i.pravatar.cc/150?u=me',
-      id: 'user_123'
-    });
+  // 앱 초기화 시 로컬스토리지에서 토큰/유저 정보 복원
+  useEffect(() => {
+    const storedToken = localStorage.getItem('access_token');
+    const storedUser = localStorage.getItem('user');
+
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+      // Axios 기본 헤더에 토큰 설정
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+    }
+    setLoading(false);
+  }, []);
+
+  // 회원가입 함수
+  const signup = async (email, password, nickname) => {
+    try {
+      const response = await apiClient.post('/api/auth/signup', {
+        email,
+        password,
+        nickname
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || '회원가입에 실패했습니다.';
+      return { success: false, error: errorMsg };
+    }
   };
 
+  // 로그인 함수
+  const login = async (email, password) => {
+    try {
+      // OAuth2PasswordRequestForm 형식 (username, password)
+      const formData = new URLSearchParams();
+      formData.append('username', email);
+      formData.append('password', password);
+
+      const response = await apiClient.post('/api/auth/login', formData, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+
+      const { access_token, user_id, nickname } = response.data;
+
+      // 상태 업데이트
+      setToken(access_token);
+      const userData = { id: user_id, email, nickname };
+      setUser(userData);
+
+      // 로컬스토리지 저장
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      // Axios 기본 헤더 설정
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+
+      return { success: true };
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || '로그인에 실패했습니다.';
+      return { success: false, error: errorMsg };
+    }
+  };
+
+  // 로그아웃 함수
   const logout = () => {
     setUser(null);
+    setToken(null);
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    delete apiClient.defaults.headers.common['Authorization'];
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, signup, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,93 +1,104 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import text
 import os
-from contextlib import contextmanager
 
 # ==========================================================
-#  DB 연결 설정 (SQLAlchemy Core + Raw Query Wrapper Strategy)
+#  [Async] DB 연결 설정 (SQLAlchemy Async Core)
 # ==========================================================
 
-# 1. 환경 변수에서 접속 정보 로드
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "0000")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "aisogething")
 
-SQLALCHEMY_DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# 비동기 드라이버 (postgresql+asyncpg)
+SQLALCHEMY_DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# 2. 엔진 생성 (Connection Pool 관리 위임)
-# pool_size=5 -> 기본 5개 연결 유지, max_overflow=10 -> 바쁠 때 10개 더 생성
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, 
-    pool_size=5, 
-    max_overflow=10
+# Async 엔진 생성
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_size=5,
+    max_overflow=10,
+    echo=False  # 쿼리 로그 볼거면 True
 )
 
-# 3. Base 선언 (Alembic 마이그레이션용)
+# Base 선언 (마이그레이션용)
 Base = declarative_base()
 
 
 # ==========================================================
-#  [핵심] Raw SQL 실행 래퍼 함수 (개발자 편의성 극대화)
+#  [핵심] Async Raw SQL 실행 래퍼 함수
 # ==========================================================
 
-def execute(query: str, params: dict = None):
+async def execute(query: str, params: dict = None):
     """
-    INSERT, UPDATE, DELETE 쿼리 실행 함수
-    - 트랜잭션(Commit/Rollback) 자동 처리 (engine.begin)
-    - Connection Pool 자동 관리
+    INSERT, UPDATE, DELETE 쿼리 실행 (비동기)
     """
     try:
-        with engine.begin() as conn:  # begin()은 트랜잭션 시작 -> 성공 시 자동 commit
-            result = conn.execute(text(query), params or {})
+        async with engine.begin() as conn:  # 비동기 트랜잭션 (성공 시 자동 Commit)
+            result = await conn.execute(text(query), params or {})
             return result
     except Exception as e:
         print(f"❌ execute 실패: {e}")
         raise e
 
-def fetch_one(query: str, params: dict = None) -> dict | None:
+async def fetch_one(query: str, params: dict = None) -> dict | None:
     """
-    SELECT 단건 조회 (결과를 딕셔너리로 반환)
+    SELECT 단건 조회 (비동기, Dict 반환)
     """
     try:
-        with engine.connect() as conn:
-            result = conn.execute(text(query), params or {})
-            row = result.mappings().first()  # 컬럼명:값 형태의 딕셔너리로 변환
+        async with engine.connect() as conn:
+            result = await conn.execute(text(query), params or {})
+            row = result.mappings().first()
             return dict(row) if row else None
     except Exception as e:
         print(f"❌ fetch_one 실패: {e}")
         raise e
 
-def fetch_all(query: str, params: dict = None) -> list[dict]:
+async def fetch_all(query: str, params: dict = None) -> list[dict]:
     """
-    SELECT 다건 조회 (결과 리스트 반환)
+    SELECT 다건 조회 (비동기, List[Dict] 반환)
     """
     try:
-        with engine.connect() as conn:
-            result = conn.execute(text(query), params or {})
+        async with engine.connect() as conn:
+            result = await conn.execute(text(query), params or {})
             rows = result.mappings().all()
             return [dict(row) for row in rows]
     except Exception as e:
         print(f"❌ fetch_all 실패: {e}")
         raise e
 
-# ==========================================================
-#  FastAPI 의존성 주입용 (구버전 호환성 유지)
-# ==========================================================
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def get_db():
-    """Alembic이나 구형 코드 호환용 Session Generator"""
-    db = SessionLocal()
+async def insert_and_return(query: str, params: dict = None) -> dict | None:
+    """
+    INSERT/UPDATE 후 결과 반환 (비동기, Transaction Commit 포함)
+    """
     try:
-        yield db
-    finally:
-        db.close()
-
+        async with engine.begin() as conn:
+            result = await conn.execute(text(query), params or {})
+            row = result.mappings().first()
+            return dict(row) if row else None
+    except Exception as e:
+        print(f"❌ insert_and_return 실패: {e}")
+        raise e
 
 # ==========================================================
-#  모델 Import (Alembic 인식용)
+#  [Legacy] 의존성 주입용 (비동기 세션으로 변경 필요 시 사용)
 # ==========================================================
+AsyncSessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
+
+async def get_db():
+    async with AsyncSessionLocal() as db:
+        try:
+            yield db
+        finally:
+            await db.close()
+
+# 모델 Import
 from user.models import User
 from youtube.models import Comment, UserLog, YoutubeList
