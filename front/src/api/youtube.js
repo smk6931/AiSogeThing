@@ -23,10 +23,24 @@ export const discoverDatingChannels = async (category = 'reality') => {
   return response.data;
 };
 
+
 export const logYoutubeVideo = async (videoData) => {
   try {
     await client.post('/api/youtube/log', videoData);
   } catch (error) {
     console.error('Log Error:', error);
   }
+};
+
+// =========================================================
+//  사용자 정의 관심사 (RSS) API
+// =========================================================
+export const discoverInterest = async (keyword) => {
+  const response = await client.post('/api/youtube/interest/discover', { keyword });
+  return response.data;
+};
+
+export const getInterestYoutube = async (keyword = null) => {
+  const response = await client.get('/api/youtube/interest', { params: { keyword } });
+  return response.data;
 };

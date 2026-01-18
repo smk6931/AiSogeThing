@@ -215,3 +215,98 @@ def get_popular_videos(max_results: int = 50, category_id: str = None):
     if error: return {"error": error}
     remaining, limit = _manage_quota(cost=1)
     return {"items": _parse_videos(data.get('items', [])), "meta": {"remaining": str(remaining), "limit": str(limit)}}
+
+# =========================================================
+#  사용자 정의 관심사 RSS 로직 (Cost Optimization Strategy)
+# =========================================================
+INTEREST_CHANNELS_FILE = os.path.join(os.path.dirname(__file__), 'interest_channels.json')
+
+def discover_interest_channels(keyword: str):
+    """
+    [Seed Step] 임의의 키워드로 채널을 검색하여 저장 (Cost: 100)
+    """
+    if not API_KEY: return {"error": "API Key Missing"}
+
+    # 채널 검색
+    encoded_query = urllib.parse.quote(keyword)
+    url = f"{BASE_URL}/search?part=snippet&q={encoded_query}&maxResults=5&type=channel&key={API_KEY}"
+    
+    headers = {"Referer": "http://localhost:5173"}
+    data, error = safe_http_get(url, headers=headers)
+    
+    if error: return {"error": error}
+    
+    # Quota 차감
+    remaining, limit = _manage_quota(cost=100)
+    
+    # 저장소 로드
+    existing_channels = load_json_safe(INTEREST_CHANNELS_FILE) or []
+    existing_ids = {ch['id'] for ch in existing_channels}
+    
+    added_count = 0
+    new_channels = []
+    
+    for item in data.get('items', []):
+        c_id = item['snippet']['channelId']
+        c_title = item['snippet']['channelTitle']
+        
+        # 이미 있는 채널이면 키워드 태그만 추가할 수도 있으나, 여기선 단순화하여 ID 중복만 체크
+        if c_id not in existing_ids:
+            new_ch = {
+                "id": c_id, 
+                "name": c_title, 
+                "keywords": [keyword], 
+                "addedAt": datetime.now().strftime('%Y-%m-%d')
+            }
+            existing_channels.append(new_ch)
+            existing_ids.add(c_id)
+            new_channels.append(c_title)
+            added_count += 1
+        else:
+            # 기존 채널에 키워드 태그 추가
+            for ch in existing_channels:
+                if ch['id'] == c_id:
+                    if keyword not in ch.get('keywords', []):
+                        ch.setdefault('keywords', []).append(keyword)
+
+    save_json_safe(INTEREST_CHANNELS_FILE, existing_channels)
+    
+    return {
+        "success": True,
+        "added": added_count,
+        "channels": new_channels,
+        "meta": {"remaining": remaining, "limit": limit}
+    }
+
+def get_interest_videos(target_keyword: str = None):
+    """
+    [Harvest Step] 저장된 관심 채널들의 RSS를 긁어옴 (Cost: 0)
+    target_keyword: 특정 키워드 그룹만 보고 싶을 때 사용
+    """
+    all_channels = load_json_safe(INTEREST_CHANNELS_FILE) or []
+    
+    # 필터링
+    target_channels = []
+    if target_keyword:
+        target_channels = [ch for ch in all_channels if target_keyword in ch.get('keywords', [])]
+    else:
+        target_channels = all_channels
+
+    # RSS Fetch (Parallel/Concurrent 처리는 아니지만 빠름)
+    all_videos = []
+    for channel in target_channels:
+        vids = get_channel_rss(channel['id'])
+        for v in vids:
+             v['channelTitle'] = channel['name']
+             v['tags'] = channel.get('keywords', [])
+        all_videos.extend(vids)
+    
+    # 최신순 정렬
+    all_videos.sort(key=lambda x: x['publishedAt'], reverse=True)
+    
+    # Limit to latest 100
+    return {
+        "items": all_videos[:100], 
+        "channels": target_channels,
+        "channels_count": len(target_channels)
+    }

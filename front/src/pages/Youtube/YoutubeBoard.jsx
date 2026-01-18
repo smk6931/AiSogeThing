@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, PlayCircle, Eye, Sparkles } from 'lucide-react';
-import { searchYoutube, getPopularYoutube, logYoutubeVideo, getDatingYoutube, discoverDatingChannels } from '../../api/youtube';
+import { searchYoutube, getPopularYoutube, logYoutubeVideo, getDatingYoutube, discoverDatingChannels, discoverInterest, getInterestYoutube } from '../../api/youtube';
 import YoutubePlayer from './YoutubePlayer';
 import ApiInfo from '../../components/common/ApiInfo';
 import './YoutubeBoard.css';
@@ -17,10 +17,14 @@ export default function YoutubeBoard() {
   const [datingChannels, setDatingChannels] = useState([]);
   const [selectedDatingChannel, setSelectedDatingChannel] = useState(null);
   const [datingSubCategory, setDatingSubCategory] = useState('reality'); // 'reality' | 'sketch'
+  const [customKeyword, setCustomKeyword] = useState('');
+  const [interestChannels, setInterestChannels] = useState([]);
+  const [selectedInterestChannel, setSelectedInterestChannel] = useState(null);
 
   const categories = [
     { id: null, name: '🔥 전체' },
     { id: 'dating', name: '💘 연애/코칭', special: true },
+    { id: 'custom', name: '⭐ 내 관심사', special: true },
     { id: '1', name: '🎬 애니/영화' },
     { id: '2', name: '🚗 자동차' },
     { id: '10', name: '🎵 음악' },
@@ -54,6 +58,10 @@ export default function YoutubeBoard() {
       if (categoryId === 'dating') {
         data = await getDatingYoutube();
         if (data.channels) setDatingChannels(data.channels);
+      } else if (categoryId === 'custom') {
+        // 커스텀 관심사 (RSS)
+        data = await getInterestYoutube(customKeyword || null);
+        if (data.channels) setInterestChannels(data.channels);
       } else {
         data = await getPopularYoutube(categoryId);
       }
@@ -128,6 +136,26 @@ export default function YoutubeBoard() {
       } else {
         alert(`🎉 성공! ${res.added}개의 새로운 채널을 발견했습니다.\n이제 자동으로 목록에 추가됩니다.`);
         loadPopular('dating');
+      }
+    } catch (e) {
+      alert("요청 실패");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDiscoverInterest = async () => {
+    if (!customKeyword.trim()) return alert("키워드를 입력해주세요.");
+    if (!confirm(`🤖 AI가 '${customKeyword}' 관련 인기 채널을 찾아냅니다.\n(API 100점 소모)\n\n계속하시겠습니까?`)) return;
+
+    setLoading(true);
+    try {
+      const res = await discoverInterest(customKeyword);
+      if (res.error) {
+        alert("오류 발생: " + res.error);
+      } else {
+        alert(`🎉 성공! '${customKeyword}' 관련 ${res.added}개의 채널을 발견했습니다.\n이제 평생 무료(RSS)로 구독합니다.`);
+        loadPopular('custom');
       }
     } catch (e) {
       alert("요청 실패");
@@ -258,6 +286,74 @@ export default function YoutubeBoard() {
           </div>
         )}
 
+        {selectedCategory === 'custom' && (
+          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '16px', borderRadius: '12px', marginTop: '10px' }}>
+            <h3 style={{ fontSize: '1rem', marginBottom: '8px', color: '#ffd700' }}>⭐ AI 나만의 채널 큐레이터</h3>
+            <p style={{ fontSize: '0.8rem', color: '#ccc', marginBottom: '12px' }}>
+              관심있는 키워드(예: 주식, 캠핑, 요리)를 입력하면 AI가 관련 유튜버를 찾아내어<br />
+              <b>실시간 RSS 피드(무료)</b>를 생성해줍니다.
+            </p>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="관심사 입력 (예: EPL 축구)"
+                value={customKeyword}
+                onChange={(e) => setCustomKeyword(e.target.value)}
+                style={{
+                  flex: 1,
+                  minWidth: '150px',
+                  padding: '8px 12px',
+                  borderRadius: '20px',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  background: 'rgba(255,255,255,0.1)',
+                  color: 'white'
+                }}
+              />
+              <button
+                onClick={handleDiscoverInterest}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  background: 'linear-gradient(45deg, #ff9966, #ff5e62)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer'
+                }}
+              >
+                <Sparkles size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                채널 발굴
+              </button>
+            </div>
+
+            {interestChannels.length > 0 && (
+              <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
+                <div style={{ fontSize: '0.8rem', color: '#ccc', marginBottom: '8px' }}>📺 발굴된 채널 ({interestChannels.length})</div>
+                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+                  <button
+                    className={`category-chip ${selectedInterestChannel === null ? 'active' : ''}`}
+                    onClick={() => setSelectedInterestChannel(null)}
+                    style={{ fontSize: '0.8rem', padding: '4px 12px', whiteSpace: 'nowrap' }}
+                  >
+                    전체
+                  </button>
+                  {interestChannels.map(ch => (
+                    <button
+                      key={ch.id}
+                      className={`category-chip ${selectedInterestChannel === ch.id ? 'active' : ''}`}
+                      onClick={() => setSelectedInterestChannel(ch.id)}
+                      style={{ fontSize: '0.8rem', padding: '4px 12px', whiteSpace: 'nowrap' }}
+                    >
+                      {ch.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <form onSubmit={handleSearch} className="youtube-search-bar" style={{ marginTop: '15px' }}>
           <input
             type="text"
@@ -290,6 +386,13 @@ export default function YoutubeBoard() {
                 // 2. 특정 채널 선택 필터
                 if (selectedDatingChannel) {
                   const targetName = datingChannels.find(c => c.id === selectedDatingChannel)?.name;
+                  return v.channelTitle === targetName;
+                }
+              }
+
+              if (selectedCategory === 'custom') {
+                if (selectedInterestChannel) {
+                  const targetName = interestChannels.find(c => c.id === selectedInterestChannel)?.name;
                   return v.channelTitle === targetName;
                 }
               }

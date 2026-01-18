@@ -38,3 +38,25 @@ def discover_dating_endpoint(req: DiscoverRequest):
 def log_interaction_endpoint(log: LogRequest):
     success = save_interaction_log(log.dict())
     return {"success": success}
+
+# =========================================================
+#  사용자 정의 관심사 RSS API
+# =========================================================
+from client.youtube_client import discover_interest_channels, get_interest_videos
+
+class InterestDiscoverRequest(BaseModel):
+    keyword: str
+
+@router.post("/api/youtube/interest/discover")
+def discover_interest_endpoint(req: InterestDiscoverRequest):
+    """
+    임의의 키워드로 채널 발굴 및 저장 (Cost: 100)
+    """
+    return discover_interest_channels(keyword=req.keyword)
+
+@router.get("/api/youtube/interest")
+def get_interest_endpoint(keyword: str = None):
+    """
+    저장된 관심 채널 영상들을 RSS로 가져오기 (Cost: 0)
+    """
+    return get_interest_videos(target_keyword=keyword)
