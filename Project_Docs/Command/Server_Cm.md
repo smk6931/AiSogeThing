@@ -41,7 +41,7 @@ sudo apt install -y nodejs
 
 1. 백엔드 실행 (8080포트)
 cd ~/AiSogeThing/back
-source venv/bin/activate
+source ../venv/bin/activate
 nohup python -m uvicorn main:app --reload --host 0.0.0.0 --port 8080 > server.log 2>&1 &
 
 

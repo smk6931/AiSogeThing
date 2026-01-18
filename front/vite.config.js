@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
+    port: 3000,
     allowedHosts: ['sogething.com', 'www.sogething.com', 'localhost', '127.0.0.1']
   }
 })
