@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from hotplace.router import router as hotplace_router
 from youtube.router import router as youtube_router
+from user.router import router as user_router
 
 app = FastAPI()
 
@@ -21,6 +22,7 @@ app.add_middleware(
 # 라우터 등록
 app.include_router(hotplace_router)
 app.include_router(youtube_router)
+app.include_router(user_router)
 
 @app.get("/")
 def read_root():
