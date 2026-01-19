@@ -1,15 +1,20 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from client.youtube_client import search_videos, get_popular_videos, save_interaction_log, get_dating_videos, discover_new_channels
+from typing import Annotated
+from youtube import service
+from user.router import get_current_user
+from user import models
 
 router = APIRouter()
 
-class LogRequest(BaseModel):
-    id: str
+class VideoLogSchema(BaseModel):
+    video_id: str
     title: str
-    user_id: str = "guest"
-    action: str = "click"
-    timestamp: str = None
+    description: str = None
+    thumbnail_url: str = None
+    channel_title: str = None
+
+from client.youtube_client import search_videos, get_popular_videos, get_dating_videos, discover_new_channels
 
 class DiscoverRequest(BaseModel):
     category: str = "reality" # 'reality' or 'sketch'
@@ -35,9 +40,24 @@ def discover_dating_endpoint(req: DiscoverRequest):
     return discover_new_channels(category=req.category)
 
 @router.post("/api/youtube/log")
-def log_interaction_endpoint(log: LogRequest):
-    success = save_interaction_log(log.dict())
-    return {"success": success}
+async def log_interaction_endpoint(
+    video: VideoLogSchema,
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    유튜브 시청 로그 DB 저장 (로그인 유저 전용)
+    """
+    await service.log_view(current_user["id"], video.dict())
+    return {"status": "ok"}
+
+@router.get("/api/youtube/history")
+async def get_view_history_endpoint(
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    나의 시청 기록 조회
+    """
+    return await service.get_view_history(current_user["id"])
 
 # =========================================================
 #  사용자 정의 관심사 RSS API

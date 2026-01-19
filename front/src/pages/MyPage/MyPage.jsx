@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import { Settings, Grid, Heart, LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings, Grid, Heart, LogOut, History, PlayCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { getHistory } from '../../api/youtube';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
-import AuthModal from '../../components/common/AuthModal'; // 로그인 모달 필요 시 사용
+import AuthModal from '../../components/common/AuthModal';
 import './MyPage.css';
 
 export default function MyPage() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('feed');
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [viewHistory, setViewHistory] = useState([]);
 
   // 더미 데이터 (나중에 API 연동)
   const [posts] = useState([
@@ -17,6 +19,17 @@ export default function MyPage() {
     { id: 2, image: 'https://via.placeholder.com/300/333333', likes: 32 },
     { id: 3, image: 'https://via.placeholder.com/300/1a1a1a', likes: 67 },
   ]);
+
+  // 시청 기록 조회
+  useEffect(() => {
+    if (user && activeTab === 'activity') {
+      getHistory().then(data => {
+        if (Array.isArray(data)) {
+          setViewHistory(data);
+        }
+      }).catch(err => console.error(err));
+    }
+  }, [user, activeTab]);
 
   // 비로그인 상태 처리
   if (!user) {
@@ -60,8 +73,8 @@ export default function MyPage() {
 
           <div className="mypage__stats">
             <div className="mypage__stat">
-              <div className="mypage__stat-value">0</div>
-              <div className="mypage__stat-label">게시물</div>
+              <div className="mypage__stat-value">{viewHistory.length || 0}</div>
+              <div className="mypage__stat-label">시청 기록</div>
             </div>
             <div className="mypage__stat">
               <div className="mypage__stat-value">0</div>
@@ -80,7 +93,7 @@ export default function MyPage() {
           </div>
         </Card>
 
-        {/* 탭 영역 (디자인 유지) */}
+        {/* 탭 영역 */}
         <div className="mypage__tabs">
           <button
             className={`mypage__tab ${activeTab === 'feed' ? 'active' : ''}`}
@@ -88,6 +101,13 @@ export default function MyPage() {
           >
             <Grid size={20} />
             <span>피드</span>
+          </button>
+          <button
+            className={`mypage__tab ${activeTab === 'activity' ? 'active' : ''}`}
+            onClick={() => setActiveTab('activity')}
+          >
+            <History size={20} />
+            <span>시청 기록</span>
           </button>
           <button
             className={`mypage__tab ${activeTab === 'liked' ? 'active' : ''}`}
@@ -99,7 +119,7 @@ export default function MyPage() {
         </div>
 
         <div className="mypage__grid">
-          {posts.map((post) => (
+          {activeTab === 'feed' && posts.map((post) => (
             <div key={post.id} className="mypage__post">
               <img src={post.image} alt="" className="mypage__post-image" />
               <div className="mypage__post-overlay">
@@ -108,6 +128,24 @@ export default function MyPage() {
               </div>
             </div>
           ))}
+
+          {activeTab === 'activity' && viewHistory.map((video, idx) => (
+            <div key={`${video.video_id}-${idx}`} className="mypage__post" onClick={() => window.open(`https://youtu.be/${video.video_id}`, '_blank')}>
+              <img src={video.thumbnail_url} alt={video.title} className="mypage__post-image" style={{ objectFit: 'cover' }} />
+              <div className="mypage__post-overlay">
+                <PlayCircle size={32} />
+                <span style={{ fontSize: '0.8rem', marginTop: '4px', textAlign: 'center', padding: '0 10px' }}>
+                  {video.title.length > 20 ? video.title.substring(0, 20) + '...' : video.title}
+                </span>
+              </div>
+            </div>
+          ))}
+
+          {activeTab === 'activity' && viewHistory.length === 0 && (
+            <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: '#888' }}>
+              아직 시청 기록이 없어요 😢<br /> 유튜브 라운지에서 영상을 시청해보세요!
+            </div>
+          )}
         </div>
       </div>
     </div>
