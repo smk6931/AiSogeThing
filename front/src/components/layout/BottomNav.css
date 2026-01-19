@@ -67,7 +67,6 @@
 @media (min-width: 768px) {
   .bottom-nav {
     display: block;
-    /* 숨김 해제 */
     position: fixed;
     top: 0;
     left: 0;
@@ -92,7 +91,6 @@
 
   .bottom-nav__item {
     flex-direction: row;
-    /* 아이콘-텍스트 가로 정렬 */
     width: 100%;
     padding: 16px 20px;
     border-radius: 12px;
@@ -104,7 +102,6 @@
     font-size: 16px;
   }
 
-  /* 활성화 효과 변경 */
   .bottom-nav__item--active {
     background: var(--primary-gradient);
     color: white;
@@ -113,12 +110,41 @@
 
   .bottom-nav__item--active svg {
     animation: none;
-    /* PC에서는 바운스 효과 제거 */
   }
 
-  /* 호버 효과 개선 */
   .bottom-nav__item:hover:not(.bottom-nav__item--active) {
     background: rgba(255, 255, 255, 0.05);
     transform: translateX(4px);
+  }
+}
+
+/* ==========================================================================
+   [New] 아바타 이미지 스타일 (로그인 시 마이 탭 아이콘 대체)
+   ========================================================================== */
+.bottom-nav__avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+/* 활성화 시 테두리 효과 (모바일) */
+.bottom-nav__item--active .bottom-nav__avatar {
+  border-color: var(--purple-500);
+  transform: scale(1.1);
+}
+
+/* PC 버전에서는 조금 더 크게 */
+@media (min-width: 768px) {
+  .bottom-nav__avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* PC 활성화 상태에서 테두리는 흰색으로 */
+  .bottom-nav__item--active .bottom-nav__avatar {
+    border-color: #fff;
   }
 }

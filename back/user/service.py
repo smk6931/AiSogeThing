@@ -1,6 +1,7 @@
 from user.schemas import UserCreate
 from user.auth import get_password_hash
 from core.database import execute, fetch_one, insert_and_return  # Raw SQL 래퍼 사용
+from datetime import datetime, timedelta
 
 # ========================================================
 #  User 서비스 (Raw SQL 버전)
@@ -31,3 +32,29 @@ async def create_user(user: UserCreate):
     
     # 3. 실행 및 결과 반환
     return await insert_and_return(sql, params)
+
+async def update_last_active(user_id: int):
+    """유저 마지막 활동 시간 갱신 (Heartbeat)"""
+    sql = """
+        UPDATE "user"
+        SET last_active_at = NOW()
+        WHERE id = :user_id
+    """
+    await execute(sql, {"user_id": user_id})
+
+async def count_online_users(minutes: int = 5):
+    """
+    최근 N분 내 활동 유저 수 조회
+    """
+    # Python에서 시간 계산 (DB 종속성 제거 및 안전성 확보)
+    limit_time = datetime.now() - timedelta(minutes=minutes)
+    
+    sql = """
+        SELECT COUNT(*) as count 
+        FROM "user" 
+        WHERE last_active_at >= :limit_time
+          AND is_active = true
+    """
+    
+    result = await fetch_one(sql, {"limit_time": limit_time})
+    return result["count"] if result else 0

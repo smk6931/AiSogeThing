@@ -1,8 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import { Home, Heart, MessageCircle, Users, User, MapPin, Youtube } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import './BottomNav.css';
 
 export default function BottomNav() {
+  const { user } = useAuth();
+
   const navItems = [
     { to: '/', icon: Home, label: '홈' },
     { to: '/hotplace', icon: MapPin, label: '핫플' },
@@ -18,6 +21,8 @@ export default function BottomNav() {
       <div className="bottom-nav__container">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const isMyPage = item.to === '/mypage';
+
           return (
             <NavLink
               key={item.to}
@@ -26,7 +31,15 @@ export default function BottomNav() {
                 `bottom-nav__item ${isActive ? 'bottom-nav__item--active' : ''}`
               }
             >
-              <Icon size={24} />
+              {isMyPage && user ? (
+                <img
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.nickname)}&background=667eea&color=fff&size=64`}
+                  alt={user.nickname}
+                  className="bottom-nav__avatar"
+                />
+              ) : (
+                <Icon size={24} />
+              )}
               <span className="bottom-nav__label">{item.label}</span>
             </NavLink>
           );

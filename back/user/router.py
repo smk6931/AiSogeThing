@@ -77,8 +77,32 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     user = await service.get_user_by_email(email=email)
     if user is None:
         raise credentials_exception
+        
+    # [Active 전략] API 호출 시마다 마지막 활동 시간 갱신
+    await service.update_last_active(user["id"])
+    
     return user
 
 @router.get("/me", response_model=schemas.UserResponse)
 def read_users_me(current_user: Annotated[models.User, Depends(get_current_user)]):
     return current_user
+
+# ========================================================
+#  실시간 접속자 (Heartbeat & Stats)
+# ========================================================
+
+@router.post("/heartbeat")
+async def heartbeat(current_user: Annotated[models.User, Depends(get_current_user)]):
+    """
+    [Passive 전략] 프론트엔드에서 주기적으로 호출하여 접속 유지 (Last Active 갱신)
+    이미 get_current_user에서 갱신하므로, 이 함수는 빈 껍데기만 있어도 됨.
+    """
+    return {"status": "alive", "uid": current_user["id"]}
+
+@router.get("/stats/online")
+async def get_online_stats():
+    """
+    현재 접속 중인 유저 수 조회 (최근 5분 활동)
+    """
+    count = await service.count_online_users(minutes=5)
+    return {"online_users": count}

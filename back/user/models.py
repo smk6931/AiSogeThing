@@ -12,3 +12,4 @@ class User(Base):
     is_active = Column(Boolean, default=True)                         # 계정 활성 여부
     is_superuser = Column(Boolean, default=False)                     # 관리자 여부
     created_at = Column(DateTime(timezone=True), server_default=func.now()) # 가입 일시
+    last_active_at = Column(DateTime(timezone=True), nullable=True)   # 마지막 활동 시간 (접속자 집계용)

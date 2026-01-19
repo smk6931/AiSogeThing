@@ -1,78 +1,49 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogIn, LogOut, User, Settings, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import AuthModal from '../common/AuthModal';
+import client from '../../api/client';
 import './UserStatus.css';
 
 export default function UserStatus() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const menuRef = useRef(null);
+  const { user } = useAuth();
+  const [onlineCount, setOnlineCount] = useState(0);
 
-  // 메뉴 외부 클릭 시 닫기
+  // 5초마다 접속자 수 조회 + Heartbeat 전송
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setIsOpen(false);
+    const fetchStatus = async () => {
+      try {
+        // 1. 전체 접속자 수 조회
+        const response = await client.get('/api/auth/stats/online');
+        setOnlineCount(response.data.online_users);
+
+        // 2. 로그인 상태면 Heartbeat(생존 신호) 전송
+        if (user) {
+          await client.post('/api/auth/heartbeat');
+        }
+      } catch (error) {
+        console.error('Status Error:', error);
       }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    };
 
-  if (!user) {
-    return (
-      <div className="user-status-container">
-        <button className="user-status user-status--login" onClick={() => setShowAuthModal(true)}>
-          <LogIn size={18} />
-          <span>로그인</span>
-        </button>
-        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-      </div>
-    );
-  }
+    // 최초 1회 실행
+    fetchStatus();
 
-  // 유저 아바타 (임시로 이니셜 생성)
-  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nickname)}&background=667eea&color=fff&size=128`;
+    // 5초 주기 폴링 (테스트용 짧은 주기)
+    const interval = setInterval(fetchStatus, 5000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // 천 단위 콤마 포맷팅
+  const formattedCount = onlineCount.toLocaleString();
 
   return (
-    <div className="user-status-container" ref={menuRef}>
-      <button
-        className={`user-status user-status--logged-in ${isOpen ? 'active' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <img src={avatarUrl} alt={user.nickname} className="user-status__avatar" />
-        <div className="user-status__text">
-          <span className="user-status__name">{user.nickname}</span>
-          <span className="user-status__id">@{user.email.split('@')[0]}</span>
-        </div>
-        <ChevronDown size={14} className={`user-status__arrow ${isOpen ? 'rotate' : ''}`} />
-      </button>
-
-      {/* 드롭다운 메뉴 */}
-      {isOpen && (
-        <div className="user-dropdown">
-          <div className="user-dropdown__header">
-            <span className="user-dropdown__label">내 계정</span>
-          </div>
-          <button className="user-dropdown__item" onClick={() => { navigate('/mypage'); setIsOpen(false); }}>
-            <User size={16} />
-            <span>내 프로필</span>
-          </button>
-          <button className="user-dropdown__item" onClick={() => { /* 설정 페이지 연동 */ setIsOpen(false); }}>
-            <Settings size={16} />
-            <span>개인 설정</span>
-          </button>
-          <div className="user-dropdown__divider"></div>
-          <button className="user-dropdown__item user-dropdown__item--danger" onClick={() => { logout(); setIsOpen(false); }}>
-            <LogOut size={16} />
-            <span>로그아웃</span>
-          </button>
-        </div>
-      )}
+    <div className="user-status-container">
+      <div className="online-status-badge">
+        <span className="online-status-dot"></span>
+        <span className="online-status-text">
+          <span className="online-count">{formattedCount}</span>명 접속 중
+        </span>
+      </div>
     </div>
   );
 }
