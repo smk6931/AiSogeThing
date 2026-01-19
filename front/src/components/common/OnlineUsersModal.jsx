@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, User, MessageCircle, UserPlus } from 'lucide-react';
-import client from '../../api/client';
+import userApi from '../../api/user';
 import { useAuth } from '../../context/AuthContext';
 import './OnlineUsersModal.css';
 
@@ -18,7 +18,7 @@ export default function OnlineUsersModal({ isOpen, onClose }) {
   const fetchOnlineUsers = async () => {
     try {
       setLoading(true);
-      const response = await client.get('/api/auth/stats/online-users');
+      const response = await userApi.getOnlineUsersDetail();
       setUsers(response.data.users);
     } catch (error) {
       console.error('Failed to fetch online users:', error);

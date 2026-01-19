@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import client from '../../api/client';
+import userApi from '../../api/user';
 import OnlineUsersModal from '../common/OnlineUsersModal';
 import './UserStatus.css';
 
@@ -14,12 +14,12 @@ export default function UserStatus() {
     const fetchStatus = async () => {
       try {
         // 1. 전체 접속자 수 조회
-        const response = await client.get('/api/auth/stats/online');
+        const response = await userApi.getOnlineStats();
         setOnlineCount(response.data.online_users);
 
         // 2. 로그인 상태면 Heartbeat(생존 신호) 전송
         if (user) {
-          await client.post('/api/auth/heartbeat');
+          await userApi.sendHeartbeat();
         }
       } catch (error) {
         console.error('Status Error:', error);

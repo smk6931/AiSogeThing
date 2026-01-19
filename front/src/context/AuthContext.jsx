@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import apiClient from '../api/client';
+import userApi from '../api/user';
 
 const AuthContext = createContext(null);
 
@@ -25,11 +26,7 @@ export function AuthProvider({ children }) {
   // 회원가입 함수
   const signup = async (email, password, nickname) => {
     try {
-      const response = await apiClient.post('/api/auth/signup', {
-        email,
-        password,
-        nickname
-      });
+      const response = await userApi.signup({ email, password, nickname });
       return { success: true, data: response.data };
     } catch (error) {
       const errorMsg = error.response?.data?.detail || '회원가입에 실패했습니다.';
@@ -40,15 +37,7 @@ export function AuthProvider({ children }) {
   // 로그인 함수
   const login = async (email, password) => {
     try {
-      // OAuth2PasswordRequestForm 형식 (username, password)
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
-
-      const response = await apiClient.post('/api/auth/login', formData, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-
+      const response = await userApi.login({ email, password });
       const { access_token, user_id, nickname } = response.data;
 
       // 상태 업데이트
