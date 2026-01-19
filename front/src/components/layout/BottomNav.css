@@ -12,11 +12,32 @@
 
 .bottom-nav__container {
   display: flex;
-  justify-content: space-around;
+  justify-content: flex-start;
+  /* 스크롤을 위해 왼쪽 정렬 */
   align-items: center;
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 12px 0;
+  max-width: 100%;
+  /* 전체 폭 사용 */
+  margin: 0;
+  padding: 12px 10px;
+  overflow-x: auto;
+  /* 가로 스크롤 활성화 */
+  -webkit-overflow-scrolling: touch;
+  /* 부드러운 스크롤 (iOS) */
+  gap: 4px;
+  /* 아이템 간 간격 유지 */
+}
+
+/* 스크롤바 숨기기 (Chrome, Safari, Opera) */
+.bottom-nav__container::-webkit-scrollbar {
+  display: none;
+}
+
+/* 스크롤바 숨기기 (IE, Edge, Firefox) */
+.bottom-nav__container {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .bottom-nav__item {
