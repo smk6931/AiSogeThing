@@ -1,6 +1,6 @@
 from user.schemas import UserCreate
 from user.auth import get_password_hash
-from core.database import execute, fetch_one, insert_and_return  # Raw SQL 래퍼 사용
+from core.database import execute, fetch_one, fetch_all, insert_and_return  # Raw SQL 래퍼 사용
 from datetime import datetime, timedelta
 
 # ========================================================
@@ -58,3 +58,21 @@ async def count_online_users(minutes: int = 5):
     
     result = await fetch_one(sql, {"limit_time": limit_time})
     return result["count"] if result else 0
+
+async def get_online_users_list(minutes: int = 5):
+    """
+    최근 N분 내 활동 유저 목록 조회 (닉네임, 이메일 등)
+    """
+    limit_time = datetime.now() - timedelta(minutes=minutes)
+    
+    sql = """
+        SELECT id, nickname, email, last_active_at
+        FROM "user" 
+        WHERE last_active_at >= :limit_time
+          AND is_active = true
+        ORDER BY last_active_at DESC
+        LIMIT 50
+    """
+    # 너무 많으면 UI 터지니까 일단 50명 제한
+    
+    return await fetch_all(sql, {"limit_time": limit_time})

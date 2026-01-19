@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import client from '../../api/client';
+import OnlineUsersModal from '../common/OnlineUsersModal';
 import './UserStatus.css';
 
 export default function UserStatus() {
   const { user } = useAuth();
   const [onlineCount, setOnlineCount] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 5초마다 접속자 수 조회 + Heartbeat 전송
   useEffect(() => {
@@ -37,13 +39,20 @@ export default function UserStatus() {
   const formattedCount = onlineCount.toLocaleString();
 
   return (
-    <div className="user-status-container">
-      <div className="online-status-badge">
-        <span className="online-status-dot"></span>
-        <span className="online-status-text">
-          <span className="online-count">{formattedCount}</span>명 접속 중
-        </span>
+    <>
+      <div className="user-status-container">
+        <button className="online-status-badge" onClick={() => setIsModalOpen(true)}>
+          <span className="online-status-dot"></span>
+          <span className="online-status-text">
+            <span className="online-count">{formattedCount}</span>명 접속 중
+          </span>
+        </button>
       </div>
-    </div>
+
+      <OnlineUsersModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </>
   );
 }

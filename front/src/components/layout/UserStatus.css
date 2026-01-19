@@ -1,7 +1,12 @@
 .user-status-container {
   display: flex;
   align-items: center;
-  /* 상단 헤더 우측에 위치 */
+  /* 상단 헤더 우측 고정 */
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1500;
+  /* BottomNav(1000)보다 높게 */
 }
 
 .online-status-badge {

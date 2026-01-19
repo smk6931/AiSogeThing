@@ -106,3 +106,16 @@ async def get_online_stats():
     """
     count = await service.count_online_users(minutes=5)
     return {"online_users": count}
+
+@router.get("/stats/online-users")
+async def get_online_users_detail():
+    """
+    접속 중인 유저 상세 목록 조회 (모달용)
+    """
+    users = await service.get_online_users_list(minutes=5)
+    
+    # 딕셔너리 리스트로 변환 (필요시)
+    return {
+        "count": len(users),
+        "users": users
+    }
