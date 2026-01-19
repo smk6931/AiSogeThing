@@ -119,3 +119,11 @@ async def get_online_users_detail():
         "count": len(users),
         "users": users
     }
+
+@router.post("/logout")
+async def logout(current_user: Annotated[models.User, Depends(get_current_user)]):
+    """
+    로그아웃 (서버 측 상태 오프라인으로 변경)
+    """
+    await service.mark_user_offline(current_user["id"])
+    return {"message": "Successfully logged out"}

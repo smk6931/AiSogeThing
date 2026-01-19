@@ -76,3 +76,17 @@ async def get_online_users_list(minutes: int = 5):
     # 너무 많으면 UI 터지니까 일단 50명 제한
     
     return await fetch_all(sql, {"limit_time": limit_time})
+
+async def mark_user_offline(user_id: int):
+    """
+    로그아웃 시 강제로 오프라인 처리 (시간을 과거로 돌림)
+    """
+    # 5분 조회 조건에서 즉시 빠지도록 1시간 전으로 세팅
+    past_time = datetime.now() - timedelta(hours=1)
+    
+    sql = """
+        UPDATE "user"
+        SET last_active_at = :past_time
+        WHERE id = :user_id
+    """
+    await execute(sql, {"past_time": past_time, "user_id": user_id})

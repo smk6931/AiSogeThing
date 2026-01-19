@@ -60,12 +60,22 @@ export function AuthProvider({ children }) {
   };
 
   // 로그아웃 함수
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    delete apiClient.defaults.headers.common['Authorization'];
+  const logout = async () => {
+    try {
+      // 서버에 오프라인 상태 알림
+      if (token) {
+        await userApi.logout();
+      }
+    } catch (error) {
+      console.error('Logout API Error:', error);
+    } finally {
+      // 성공 여부와 관계없이 클라이언트 로그아웃 처리
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      delete apiClient.defaults.headers.common['Authorization'];
+    }
   };
 
   return (

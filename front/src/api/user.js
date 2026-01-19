@@ -20,6 +20,11 @@ const userApi = {
     });
   },
 
+  // 로그아웃 (서버 상태 변경)
+  logout: async () => {
+    return await client.post('/api/auth/logout');
+  },
+
   // 내 정보 조회 (토큰 검증 포함)
   getMe: async () => {
     return await client.get('/api/auth/me');
