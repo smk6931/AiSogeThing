@@ -506,7 +506,6 @@ export default function YoutubeBoard() {
         )}
 
         <form onSubmit={handleSearch} className="youtube-search-bar" style={{ marginTop: '15px' }}>
-
           <input
             type="text"
             placeholder="좋아하는 영상 검색 (100점 소모)"
@@ -713,9 +712,44 @@ export default function YoutubeBoard() {
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
-              }}>
-                <div style={{ overflow: 'hidden' }}>
+                justifyContent: 'space-between',
+                cursor: 'pointer', // 클릭 가능 표시
+                transition: 'background 0.2s'
+              }}
+                className="sidebar-item"
+                onClick={async () => {
+                  // 클릭 시 해당 채널 영상 로드 (RSS)
+                  setLoading(true);
+                  try {
+                    // getAdhocRssVideos는 배열을 받음
+                    const data = await getAdhocRssVideos([{ id: ch.channel_id, name: ch.name }]);
+
+                    if (data.items) {
+                      const sorted = data.items.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+                      setVideos(sorted);
+                      setShowSidebar(false); // 사이드바 닫기
+                      setSelectedCategory('custom'); // 영상 그리드 뷰로 전환
+
+                      // 핵심 수정: 필터링을 위해 선택된 채널 ID 설정 (null이면 필터링 없이 다 보임, 여기선 명확히 지정)
+                      setSelectedInterestChannel(ch.channel_id);
+
+                      // 칩 UI 갱신을 위해 interestChannels에 이 채널이 없다면 임시로 추가해줄 수도 있음
+                      // 하지만 복잡해지니 일단 필터만 맞춤
+
+                      alert(`📺 '${ch.name}' 채널의 최신 영상을 불러왔습니다.`);
+                    } else {
+                      alert("영상을 불러올 수 없습니다.");
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              >
+                <div style={{ overflow: 'hidden', pointerEvents: 'none' }}> {/* 텍스트 클릭 통과 */}
                   <div style={{ fontWeight: 'bold', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>
                     {ch.name}
                   </div>
