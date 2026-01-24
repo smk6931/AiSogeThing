@@ -32,6 +32,17 @@ class YoutubeList(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now()) # 수집일
 
 
+class YoutubeChannel(Base):
+    """(검색 캐싱용) 수집된 유튜브 채널 정보"""
+    __tablename__ = "youtube_channels"
+
+    id = Column(Integer, primary_key=True, index=True)
+    channel_id = Column(String, unique=True, index=True, nullable=False) # 유튜브 채널 ID
+    name = Column(String, nullable=False)                                # 채널명
+    keywords = Column(Text, nullable=True)                               # 발견된 키워드 (JSON String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class UserLog(Base):
     """유저 통합 활동 로그 (클릭, 좋아요, 조회 등)"""
     __tablename__ = "user_logs"

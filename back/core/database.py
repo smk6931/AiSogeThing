@@ -2,6 +2,14 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy import text
 import os
+from dotenv import load_dotenv
+
+# .env 파일 로드 (프로젝트 루트 또는 back 폴더에서 찾기)
+env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')  # back/core/../../.env
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+else:
+    load_dotenv()  # 현재 디렉토리에서 찾기
 
 # ==========================================================
 #  [Async] DB 연결 설정 (SQLAlchemy Async Core)
@@ -15,6 +23,9 @@ DB_NAME = os.getenv("DB_NAME", "aisogething")
 
 # 비동기 드라이버 (postgresql+asyncpg)
 SQLALCHEMY_DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# 디버깅: 연결 정보 출력 (비밀번호 제외)
+print(f"🔌 DB 연결 정보: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 
 # Async 엔진 생성
 engine = create_async_engine(

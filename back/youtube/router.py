@@ -68,15 +68,94 @@ class InterestDiscoverRequest(BaseModel):
     keyword: str
 
 @router.post("/api/youtube/interest/discover")
-def discover_interest_endpoint(req: InterestDiscoverRequest):
+async def discover_interest_endpoint(
+    req: InterestDiscoverRequest,
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
     """
-    임의의 키워드로 채널 발굴 및 저장 (Cost: 100)
+    임의의 키워드로 채널 발굴 및 DB 저장 (Cost: 100)
+    1. 유튜브 API로 채널 검색 (Client)
+    2. 검색된 채널을 DB에 저장 및 구독 (Service)
     """
-    return discover_interest_channels(keyword=req.keyword)
+    # 1. 채널 발굴 (API Call)
+    result = discover_interest_channels(keyword=req.keyword)
+    
+    if result.get("error"):
+        return result
+
+    found_channels = result.get("found_channels", [])
+    
+    # 2. DB 저장 및 구독 (DB Transaction)
+    saved_count = 0
+    for ch in found_channels:
+        # Client는 id, name, keyword 구조로 줌
+        await service.subscribe_channel(
+            user_id=current_user["id"], 
+            channel_data=ch, 
+            keyword=req.keyword
+        )
+        saved_count += 1
+
+    return {
+        "success": True,
+        "added": saved_count,
+        "channels": [ch['name'] for ch in found_channels],
+        "meta": result.get("meta")
+    }
 
 @router.get("/api/youtube/interest")
-def get_interest_endpoint(keyword: str = None):
+async def get_interest_endpoint(
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    keyword: str = None
+):
     """
-    저장된 관심 채널 영상들을 RSS로 가져오기 (Cost: 0)
+    내 구독 채널의 RSS 영상 가져오기 (Cost: 0)
+    1. DB에서 내가 구독한 채널 목록 조회 (Service)
+    2. RSS로 최신 영상 긁어오기 (Client)
     """
-    return get_interest_videos(target_keyword=keyword)
+    # 1. 내 채널 조회 (DB)
+    my_channels = await service.get_my_channels(user_id=current_user["id"])
+    
+    if not my_channels:
+        return {"items": [], "channels": [], "message": "구독한 채널이 없습니다."}
+
+    # 2. 영상 긁어오기 (RSS)
+    return get_interest_videos(target_keyword=keyword, my_channels=my_channels)
+
+
+class SubscribeRequest(BaseModel):
+    channel_id: str
+    channel_name: str
+
+@router.post("/api/youtube/interest/subscribe")
+async def subscribe_channel_endpoint(
+    req: SubscribeRequest,
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    개별 채널 구독 추가 (영상 카드에서 직접 구독)
+    """
+    # service.subscribe_channel은 channel_data dict를 기대함
+    channel_data = {
+        "id": req.channel_id,
+        "title": req.channel_name
+    }
+    return await service.subscribe_channel(
+        user_id=current_user["id"],
+        channel_data=channel_data,
+        keyword="Direct Subscribe" # 직접 구독 표기
+    )
+
+class UnsubscribeRequest(BaseModel):
+    channel_id: str
+
+@router.post("/api/youtube/interest/unsubscribe")
+async def unsubscribe_channel_endpoint(
+    req: UnsubscribeRequest,
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    채널 구독 취소
+    """
+    await service.unsubscribe_channel(user_id=current_user["id"], channel_id=req.channel_id)
+    return {"success": True, "message": "구독이 취소되었습니다."}

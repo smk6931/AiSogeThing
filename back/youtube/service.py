@@ -40,7 +40,6 @@ async def log_view(user_id: int, video_data: dict):
         )
 
     # 2. 유저 로그 저장
-    # 2. 유저 로그 저장
     await execute(
         """
         INSERT INTO user_logs (user_id, content_type, content_id, action)
@@ -75,3 +74,102 @@ async def get_view_history(user_id: int, limit: int = 20):
         LIMIT :limit
     """
     return await fetch_all(sql, {"user_id": user_id, "limit": limit})
+
+
+# ========================================================
+#  [New] 채널 구독 및 개인화 서비스
+# ========================================================
+
+async def subscribe_channel(user_id: int, channel_data: dict, keyword: str = ""):
+    """
+    채널 구독 및 정보 캐싱
+    1. YoutubeChannel 테이블에 채널 정보 저장 (없으면 Insert, 있으면 Skip/Update)
+    2. UserLog 테이블에 구독 기록 저장 (중복 방지)
+    """
+    # 데이터 표준화
+    channel_id = channel_data.get("id") or channel_data.get("channelId")
+    channel_name = channel_data.get("title") or channel_data.get("channelTitle") or channel_data.get("name")
+    
+    if not channel_id or not channel_name:
+        return {"error": "Invalid channel data"}
+
+    # 1. 채널 테이블 확인 및 캐싱
+    check_ch_sql = "SELECT id, keywords FROM youtube_channels WHERE channel_id = :cid"
+    existing_ch = await fetch_one(check_ch_sql, {"cid": channel_id})
+
+    if not existing_ch:
+        # 신규 채널 등록 (키워드도 함께 저장)
+        await execute(
+            """
+            INSERT INTO youtube_channels (channel_id, name, keywords)
+            VALUES (:cid, :name, :kw)
+            """,
+            {
+                "cid": channel_id,
+                "name": channel_name,
+                "kw": keyword
+            }
+        )
+    else:
+        # 기존 채널이면 pass (추후 키워드 업데이트 로직 추가 가능)
+        pass
+
+    # 2. 유저 구독 로그 저장 (이미 구독했는지 확인)
+    check_sub_sql = """
+        SELECT id FROM user_logs 
+        WHERE user_id = :uid 
+          AND content_type = 'youtube_channel' 
+          AND content_id = :cid 
+          AND action = 'subscribe'
+    """
+    is_subscribed = await fetch_one(check_sub_sql, {"uid": user_id, "cid": channel_id})
+
+    if not is_subscribed:
+        await execute(
+            """
+            INSERT INTO user_logs (user_id, content_type, content_id, action)
+            VALUES (:uid, 'youtube_channel', :cid, 'subscribe')
+            """,
+            {
+                "uid": user_id, 
+                "cid": channel_id
+            }
+        )
+        return {"status": "subscribed", "message": f"'{channel_name}' 채널을 구독했습니다."}
+    
+    return {"status": "already_subscribed", "message": "이미 구독중인 채널입니다."}
+
+
+async def get_my_channels(user_id: int):
+    """
+    내가 구독한 채널 목록 조회 (최신순)
+    """
+    sql = """
+        SELECT 
+            c.channel_id,
+            c.name,
+            c.keywords,
+            ul.created_at as subscribed_at
+        FROM user_logs ul
+        JOIN youtube_channels c ON ul.content_id = c.channel_id
+        WHERE ul.user_id = :uid
+          AND ul.content_type = 'youtube_channel'
+          AND ul.action = 'subscribe'
+        ORDER BY ul.created_at DESC
+    """
+    return await fetch_all(sql, {"uid": user_id})
+
+
+async def unsubscribe_channel(user_id: int, channel_id: str):
+    """
+    구독 취소 (UserLog에서 제거)
+    """
+    # 물리적 삭제 (구독 상태 해제)
+    sql = """
+        DELETE FROM user_logs 
+        WHERE user_id = :uid 
+          AND content_type = 'youtube_channel' 
+          AND content_id = :cid 
+          AND action = 'subscribe'
+    """
+    await execute(sql, {"uid": user_id, "cid": channel_id})

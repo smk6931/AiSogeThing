@@ -70,6 +70,7 @@ def _parse_videos(items):
             "description": snippet.get('description'),
             "thumbnail": snippet.get('thumbnails', {}).get('medium', {}).get('url'),
             "channelTitle": snippet.get('channelTitle'),
+            "channelId": snippet.get('channelId'),  # 채널 ID 추가 (구독 기능용)
             "publishedAt": snippet.get('publishedAt'),
             "viewCount": statistics.get('viewCount'),
             "duration": duration_sec,
@@ -221,9 +222,56 @@ def get_popular_videos(max_results: int = 50, category_id: str = None):
 # =========================================================
 INTEREST_CHANNELS_FILE = os.path.join(os.path.dirname(__file__), 'interest_channels.json')
 
+def get_interest_videos(target_keyword: str = None, my_channels: list = None):
+    """
+    [Harvest Step] 채널 리스트를 받아서 RSS를 긁어옴 (Cost: 0)
+    my_channels: [{"channel_id": "...", "name": "...", "keywords": "..."}, ...] (DB에서 온 데이터)
+    """
+    # DB 연동 전 하위 호환성 (파일 로드) - my_channels가 없으면 파일에서 읽음
+    if my_channels is None:
+        all_channels = load_json_safe(INTEREST_CHANNELS_FILE) or []
+    else:
+        # DB 데이터 포맷을 클라이언트 포맷으로 매핑
+        all_channels = []
+        for ch in my_channels:
+            # DB 모델 -> Dict 변환 가정
+            all_channels.append({
+                "id": ch.get("channel_id"), 
+                "name": ch.get("name"), 
+                "keywords": ch.get("keywords", "").split(",") if isinstance(ch.get("keywords"), str) else []
+            })
+    
+    # 필터링
+    target_channels = []
+    if target_keyword:
+        target_channels = [ch for ch in all_channels if target_keyword in ch.get('keywords', [])]
+    else:
+        target_channels = all_channels
+
+    # RSS Fetch (Sequential)
+    all_videos = []
+    for channel in target_channels:
+        vids = get_channel_rss(channel['id'])
+        for v in vids:
+             v['channelTitle'] = channel['name']
+             v['channelId'] = channel['id'] # 채널 ID 주입 (프론트 필터링 및 구독용)
+             v['tags'] = channel.get('keywords', [])
+        all_videos.extend(vids)
+    
+    # 최신순 정렬
+    all_videos.sort(key=lambda x: x['publishedAt'], reverse=True)
+    
+    # Limit to latest 100
+    return {
+        "items": all_videos[:100], 
+        "channels": target_channels,
+        "channels_count": len(target_channels)
+    }
+
 def discover_interest_channels(keyword: str):
     """
-    [Seed Step] 임의의 키워드로 채널을 검색하여 저장 (Cost: 100)
+    [Seed Step] 임의의 키워드로 채널을 검색 (Cost: 100)
+    반환된 채널 리스트를 Router에서 DB에 저장해야 함.
     """
     if not API_KEY: return {"error": "API Key Missing"}
 
@@ -239,74 +287,24 @@ def discover_interest_channels(keyword: str):
     # Quota 차감
     remaining, limit = _manage_quota(cost=100)
     
-    # 저장소 로드
-    existing_channels = load_json_safe(INTEREST_CHANNELS_FILE) or []
-    existing_ids = {ch['id'] for ch in existing_channels}
-    
-    added_count = 0
-    new_channels = []
+    found_channels = []
     
     for item in data.get('items', []):
         c_id = item['snippet']['channelId']
         c_title = item['snippet']['channelTitle']
         
-        # 이미 있는 채널이면 키워드 태그만 추가할 수도 있으나, 여기선 단순화하여 ID 중복만 체크
-        if c_id not in existing_ids:
-            new_ch = {
-                "id": c_id, 
-                "name": c_title, 
-                "keywords": [keyword], 
-                "addedAt": datetime.now().strftime('%Y-%m-%d')
-            }
-            existing_channels.append(new_ch)
-            existing_ids.add(c_id)
-            new_channels.append(c_title)
-            added_count += 1
-        else:
-            # 기존 채널에 키워드 태그 추가
-            for ch in existing_channels:
-                if ch['id'] == c_id:
-                    if keyword not in ch.get('keywords', []):
-                        ch.setdefault('keywords', []).append(keyword)
-
-    save_json_safe(INTEREST_CHANNELS_FILE, existing_channels)
+        found_channels.append({
+            "id": c_id,
+            "name": c_title,
+            "keyword": keyword
+        })
+        
+    # (선택) 로직 검증용 파일 저장도 유지할거면 여기서 수행
+    # save_json_safe(INTEREST_CHANNELS_FILE, ...) 
     
     return {
         "success": True,
-        "added": added_count,
-        "channels": new_channels,
+        "added": len(found_channels),
+        "found_channels": found_channels, # 이 데이터를 Router가 받아서 DB에 저장
         "meta": {"remaining": remaining, "limit": limit}
-    }
-
-def get_interest_videos(target_keyword: str = None):
-    """
-    [Harvest Step] 저장된 관심 채널들의 RSS를 긁어옴 (Cost: 0)
-    target_keyword: 특정 키워드 그룹만 보고 싶을 때 사용
-    """
-    all_channels = load_json_safe(INTEREST_CHANNELS_FILE) or []
-    
-    # 필터링
-    target_channels = []
-    if target_keyword:
-        target_channels = [ch for ch in all_channels if target_keyword in ch.get('keywords', [])]
-    else:
-        target_channels = all_channels
-
-    # RSS Fetch (Parallel/Concurrent 처리는 아니지만 빠름)
-    all_videos = []
-    for channel in target_channels:
-        vids = get_channel_rss(channel['id'])
-        for v in vids:
-             v['channelTitle'] = channel['name']
-             v['tags'] = channel.get('keywords', [])
-        all_videos.extend(vids)
-    
-    # 최신순 정렬
-    all_videos.sort(key=lambda x: x['publishedAt'], reverse=True)
-    
-    # Limit to latest 100
-    return {
-        "items": all_videos[:100], 
-        "channels": target_channels,
-        "channels_count": len(target_channels)
     }

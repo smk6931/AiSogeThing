@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, PlayCircle, Eye, Sparkles } from 'lucide-react';
-import { searchYoutube, getPopularYoutube, logYoutubeVideo, getDatingYoutube, discoverDatingChannels, discoverInterest, getInterestYoutube } from '../../api/youtube';
+import { Search, PlayCircle, Eye, Sparkles, XCircle, PlusCircle } from 'lucide-react';
+import { searchYoutube, getPopularYoutube, logYoutubeVideo, getDatingYoutube, discoverDatingChannels, discoverInterest, getInterestYoutube, subscribeChannel, unsubscribeChannel } from '../../api/youtube';
 import YoutubePlayer from './YoutubePlayer';
 import ApiInfo from '../../components/common/ApiInfo';
 import './YoutubeBoard.css';
@@ -161,6 +161,36 @@ export default function YoutubeBoard() {
       alert("요청 실패");
     } finally {
       setLoading(false);
+    }
+  };
+
+
+  const handleSubscribe = async (e, video) => {
+    e.stopPropagation();
+    if (!video.channelId) return alert("채널 정보를 알 수 없어 구독할 수 없습니다.");
+
+    if (!confirm(`'${video.channelTitle}' 채널을 구독하시겠습니까?`)) return;
+
+    try {
+      await subscribeChannel(video.channelId, video.channelTitle);
+      alert("✅ 구독 완료! '내 관심사' 탭이 곧 갱신됩니다.");
+      if (selectedCategory === 'custom') loadPopular('custom');
+    } catch (err) {
+      alert("구독 실패: 이미 구독중이거나 오류 발생.");
+    }
+  };
+
+  const handleUnsubscribe = async (e, channelId, channelName) => {
+    e.stopPropagation();
+    if (!confirm(`💔 '${channelName}' 구독을 취소하시겠습니까?`)) return;
+
+    try {
+      await unsubscribeChannel(channelId);
+      alert("✅ 구독 취소 완료");
+      if (selectedInterestChannel === channelId) setSelectedInterestChannel(null);
+      loadPopular('custom');
+    } catch (err) {
+      alert("취소 실패");
     }
   };
 
@@ -339,14 +369,20 @@ export default function YoutubeBoard() {
                     전체
                   </button>
                   {interestChannels.map(ch => (
-                    <button
-                      key={ch.id}
-                      className={`category-chip ${selectedInterestChannel === ch.id ? 'active' : ''}`}
-                      onClick={() => setSelectedInterestChannel(ch.id)}
-                      style={{ fontSize: '0.8rem', padding: '4px 12px', whiteSpace: 'nowrap' }}
-                    >
-                      {ch.name}
-                    </button>
+                    <div key={ch.id} style={{ position: 'relative', display: 'inline-block' }}>
+                      <button
+                        className={`category-chip ${selectedInterestChannel === ch.id ? 'active' : ''}`}
+                        onClick={() => setSelectedInterestChannel(ch.id)}
+                        style={{ fontSize: '0.8rem', padding: '4px 28px 4px 12px', whiteSpace: 'nowrap' }}
+                      >
+                        {ch.name}
+                      </button>
+                      <XCircle
+                        size={14}
+                        style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', opacity: 0.7 }}
+                        onClick={(e) => handleUnsubscribe(e, ch.id, ch.name)}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -392,8 +428,8 @@ export default function YoutubeBoard() {
 
               if (selectedCategory === 'custom') {
                 if (selectedInterestChannel) {
-                  const targetName = interestChannels.find(c => c.id === selectedInterestChannel)?.name;
-                  return v.channelTitle === targetName;
+                  // ID로 정확하게 비교 (데이터에 channelId가 포함됨)
+                  return v.channelId === selectedInterestChannel;
                 }
               }
               return true;
@@ -418,7 +454,27 @@ export default function YoutubeBoard() {
                 <div className="video-info">
                   <h3 className="video-title">{video.title}</h3>
                   <div className="video-meta">
-                    <span className="channel-name">{video.channelTitle}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span className="channel-name">{video.channelTitle}</span>
+                      {/* 구독하지 않은 채널이면 + 버튼 표시 (단, interestChannels가 로드된 상태여야 함) */}
+                      {selectedCategory === 'custom' && !interestChannels.some(ch => ch.name === video.channelTitle) && (
+                        <PlusCircle
+                          size={14}
+                          color="#4cd137"
+                          style={{ cursor: 'pointer' }}
+                          onClick={(e) => handleSubscribe(e, video)}
+                        />
+                      )}
+                      {/* 검색 탭 등 다른 곳에서도 구독 가능하게 확장 가능 */}
+                      {selectedCategory !== 'custom' && selectedCategory !== 'dating' && !interestChannels.some(ch => ch.name === video.channelTitle) && (
+                        <PlusCircle
+                          size={14}
+                          color="#4cd137"
+                          style={{ cursor: 'pointer' }}
+                          onClick={(e) => handleSubscribe(e, video)}
+                        />
+                      )}
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
                       {video.viewCount && (
                         <span className="view-count">

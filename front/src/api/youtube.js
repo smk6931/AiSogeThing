@@ -53,6 +53,17 @@ export const logYoutubeVideo = async (video) => {
   }
 };
 
+// 3. 개별 채널 구독 & 취소
+export const subscribeChannel = async (channel_id, channel_name) => {
+  const response = await client.post('/api/youtube/interest/subscribe', { channel_id, channel_name });
+  return response.data;
+};
+
+export const unsubscribeChannel = async (channel_id) => {
+  const response = await client.post('/api/youtube/interest/unsubscribe', { channel_id });
+  return response.data;
+};
+
 // =========================================================
 //  사용자 정의 관심사 (RSS) API
 // =========================================================

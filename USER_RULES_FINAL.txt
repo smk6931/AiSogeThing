@@ -1,0 +1,57 @@
+# AiSogeThing 개발 규칙
+
+## 1. 모듈 설치: requirements.txt 필수
+패키지 설치 시 반드시 다음 순서로 진행:
+1. requirements.txt에 패키지 추가 (버전 명시)
+2. pip install -r requirements.txt 명령어 제공
+
+❌ 금지: pip install 패키지명 (단독 설치)
+✅ 필수: requirements.txt 추가 → pip install -r requirements.txt
+
+## 2. 명령어 직접 실행 금지
+다음 작업은 절대 직접 실행하지 말고, 사용자가 복사할 수 있는 명령어 텍스트로만 제공:
+- pip install, npm install (패키지 설치)
+- .env 파일 수정 (환경 설정)
+- SSH 접속, 서버 명령어
+- alembic upgrade/revision (DB 마이그레이션)
+- docker run/stop (컨테이너 실행)
+- git commit/push (Git 작업)
+- 폴더 생성, 파일 삭제
+
+직접 실행 가능:
+- 코드 파일 읽기/편집 (.py, .jsx, .js, .md)
+- 에러 분석 및 디버깅
+- 코드 검색 (grep, codebase_search)
+
+명령어 제공 시 반드시 포함:
+- 명령어 텍스트 (복사 가능)
+- 실행 위치 (디렉토리)
+- 실행 전 조건 (가상환경 활성화 등)
+- 예상 결과
+
+## 3. 아키텍처: Package by Feature
+금지: routers/, services/, schemas/ 같은 기술 계층별 폴더
+필수: user/, youtube/ 같은 기능별 폴더에 router.py, service.py, schemas.py, models.py 모두 포함
+마인드셋: "특정 기능을 수정할 때, 해당 도메인 폴더 하나만 열면 모든 게 다 있어야 한다"
+
+## 4. 문서 작성: 마크다운 금지
+Project_Docs와 Daily_Log는 마크다운 문법(#, **, []) 절대 사용 금지
+구분선(===, ---), 공백, 들여쓰기, 번호(1.)만 사용
+파일명: YYYY-MM-DD 형식
+데일리 로그: 하나의 파일에 오전/오후 누적 작성
+
+## 5. 코딩 스타일
+- 모듈화: 하나의 파일에 여러 역할 금지, 기능별 분리
+- React: 긴 코드는 기능별 컴포넌트로 분리
+- DB: 긴 텍스트는 String 대신 Text 타입 사용
+- Asyncio: 동기 함수 호출 시 loop.run_in_executor 사용
+- JSON 처리: utils/json_ops.py 모듈 사용
+
+## 6. 소통 규칙
+- 에러 발생 시: "무엇이 문제였는지" 기술적 설명 필수
+- 수정 전: "어디를 왜 고치는지" 설명
+- 수정 후: "어떤 결과가 예상되는지" 요약
+
+## 7. 가상환경 (Windows)
+- Python 명령어: .\venv\Scripts\python main.py
+- Alembic: python -m alembic 또는 .\venv\Scripts\alembic
