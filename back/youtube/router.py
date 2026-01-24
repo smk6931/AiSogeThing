@@ -41,6 +41,11 @@ def discover_dating_endpoint(req: DiscoverRequest):
     """
     return discover_new_channels(category=req.category)
 
+class VideoTimeSchema(BaseModel):
+    log_id: int
+    watched: int
+    total: int
+
 @router.post("/api/youtube/log")
 async def log_interaction_endpoint(
     video: VideoLogSchema,
@@ -49,8 +54,18 @@ async def log_interaction_endpoint(
     """
     유튜브 시청 로그 DB 저장 (로그인 유저 전용)
     """
-    await service.log_view(current_user["id"], video.dict())
-    return {"status": "ok"}
+    result = await service.log_view(current_user["id"], video.dict())
+    return result
+
+@router.post("/api/youtube/log/time")
+async def update_time_endpoint(
+    data: VideoTimeSchema,
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    시청 시간 업데이트 (종료 시점)
+    """
+    return await service.update_video_time(data.log_id, data.watched, data.total)
 
 @router.get("/api/youtube/history")
 async def get_view_history_endpoint(

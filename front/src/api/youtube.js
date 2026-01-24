@@ -35,9 +35,8 @@ export const discoverDatingChannels = async (category = 'reality') => {
   return response.data;
 };
 
-// 1. 시청 로그 저장 (클릭 시 호출)
+// 1. 시청 로그 저장 (클릭 시 호출) -> log_id 반환됨
 export const logYoutubeVideo = async (video) => {
-  // video 객체 구조 분해 및 안전한 Payload 생성
   const payload = {
     video_id: video.id,
     title: video.title,
@@ -47,9 +46,23 @@ export const logYoutubeVideo = async (video) => {
   };
 
   try {
-    await client.post('/api/youtube/log', payload);
+    const response = await client.post('/api/youtube/log', payload);
+    return response.data; // { status: "logged", log_id: 123 }
   } catch (error) {
     console.error('Log Error:', error);
+    return null;
+  }
+};
+
+export const updateWatchTime = async (logId, watched, total) => {
+  try {
+    await client.post('/api/youtube/log/time', {
+      log_id: logId,
+      watched: Math.floor(watched),
+      total: Math.floor(total)
+    });
+  } catch (e) {
+    console.error("Time update failed", e);
   }
 };
 

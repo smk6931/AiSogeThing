@@ -37,35 +37,47 @@ async def log_view(user_id: int, video_data: dict):
             }
         )
 
-    # 2. 이미 본 영상인지 체크 (중복 방지)
-    check_viewed_sql = """
-        SELECT id FROM user_logs
-        WHERE user_id = :user_id 
-          AND content_id = :video_id
-          AND content_type = 'youtube'
-          AND action = 'view'
-        LIMIT 1
-    """
-    already_viewed = await fetch_one(check_viewed_sql, {"user_id": user_id, "video_id": video_id})
+    # 2. 영상 시청 기록 생성 (중복 체크 없이 매번 쌓음 -> 시청 세션 기록)
+    # 다만, 너무 많은 로그가 쌓이는 걸 방지하려면 "오늘 본 건 업데이트" 식으로 할 수 있으나
+    # 사용자가 "얼마나 관심 있었나"를 매번 측정하려면 매 시청마다 기록하는 게 맞음.
     
-    if already_viewed:
-        # 이미 본 적 있으면 저장 안 함 (기록 보존)
-        return {"status": "skipped", "message": "Already viewed"}
+    # Insert 하고 ID 반환
+    # (주의: execute()는 보통 id 반환을 안 할 수 있음. insert_and_return 사용 필요하거나, 
+    #  user_logs가 id(Auto Increment)를 가지므로 returning 구문 사용)
+    
+    sql = """
+        INSERT INTO user_logs (user_id, content_type, content_id, action, metadata_json, created_at)
+        VALUES (:user_id, 'youtube', :video_id, 'view', :meta, NOW())
+        RETURNING id
+    """
+    # 초기 메타데이터 (0초 시청)
+    meta = json.dumps({"watched": 0, "total": 0})
+    
+    # insert_and_return 함수가 id를 반환한다고 가정 (core.database 확인 필요하지만 없으면 fetch_one으로)
+    # fetch_one으로 RETURNING id를 잡는 게 확실함.
+    log_record = await fetch_one(sql, {
+        "user_id": user_id, 
+        "video_id": video_id, 
+        "meta": meta
+    })
+    
+    return {"status": "logged", "log_id": log_record["id"]}
 
-    # 3. 새로운 시청 기록 저장
-    await execute(
-        """
-        INSERT INTO user_logs (user_id, content_type, content_id, action)
-        VALUES (:user_id, :content_type, :video_id, :action)
-        """,
-        {
-            "user_id": user_id, 
-            "content_type": "youtube", 
-            "video_id": video_id, 
-            "action": "view"
-        }
-    )
-    return {"status": "logged"}
+
+async def update_video_time(log_id: int, watched: int, total: int):
+    """
+    시청 시간 업데이트 (영상 종료/이탈 시 호출)
+    """
+    # 기존 메타데이터 조회 후 업데이트 또는 덮어쓰기
+    meta = json.dumps({"watched": watched, "total": total})
+    
+    sql = """
+        UPDATE user_logs 
+        SET metadata_json = :meta 
+        WHERE id = :log_id
+    """
+    await execute(sql, {"meta": meta, "log_id": log_id})
+    return {"status": "updated", "watched": watched}
 
 
 async def get_view_history(user_id: int, limit: int = 20):
