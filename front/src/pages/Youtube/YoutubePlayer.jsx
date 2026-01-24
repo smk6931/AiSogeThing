@@ -15,29 +15,34 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
 
   // 마우스 휠 이벤트 (PC용) + 터치 이벤트 (모바일용)
   useEffect(() => {
+    // 1. 바디 스크롤 잠금 (모달 뒤 배경 움직임 방지)
+    document.body.style.overflow = 'hidden';
+
     let touchStartY = 0;
     let touchStartTime = 0;
 
     const handleWheel = (e) => {
       // 휠을 아래로(deltaY > 0) + 로딩 아님
       if (e.deltaY > 50 && !nextLoading) {
+        // 모달 내부 스크롤 방지
         e.preventDefault();
         loadNextVideo();
       }
     };
 
     const handleTouchStart = (e) => {
-      // iframe 위에서 터치해도 감지되도록
       touchStartY = e.touches[0].clientY;
       touchStartTime = Date.now();
     };
 
     const handleTouchMove = (e) => {
-      // 수직 스크롤 방지 (유튜브 쇼츠처럼)
+      // 터치 무브 시 기본 스크롤(새로고침 등) 방지
       const touchCurrentY = e.touches[0].clientY;
       const diff = touchStartY - touchCurrentY;
-      if (Math.abs(diff) > 30) {
-        e.preventDefault(); // 기본 스크롤 방지
+
+      // 수직 움직임이 감지되면 기본 동작 차단
+      if (Math.abs(diff) > 10) {
+        if (e.cancelable) e.preventDefault();
       }
     };
 
@@ -47,20 +52,30 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
       const diff = touchStartY - touchEndY; // 양수 = 위로 스와이프
       const duration = touchEndTime - touchStartTime;
 
-      // 위로 스와이프 (diff > 80) + 빠른 동작 (< 500ms) + 로딩 아님
-      if (diff > 80 && duration < 500 && !nextLoading) {
+      // 위로 스와이프 (diff > 50) + 적당한 속도 + 로딩 아님
+      if (diff > 50 && duration < 800 && !nextLoading) {
         loadNextVideo();
       }
     };
 
+    // contentRef 대신 window나 overlay에 붙이면 좋지만, 
+    // iframe 이벤트 캡처를 위해 Capture Phase를 사용할 수도 있음.
+    // 여기서는 contentRef에 붙이되, overlay 영역까지 커버하도록 CSS 조정 필요
     const container = contentRef.current;
+
+    // window에 붙여서 iframe 밖에서의 터치를 확실히 잡음 (모달 오버레이 영역 등)
+    // 단, iframe 내부는 여전히 잡기 어려울 수 있음
     if (container) {
       container.addEventListener('wheel', handleWheel, { passive: false });
       container.addEventListener('touchstart', handleTouchStart, { passive: false });
       container.addEventListener('touchmove', handleTouchMove, { passive: false });
       container.addEventListener('touchend', handleTouchEnd, { passive: false });
     }
+
     return () => {
+      // 클린업: 스크롤 잠금 해제
+      document.body.style.overflow = 'unset';
+
       if (container) {
         container.removeEventListener('wheel', handleWheel);
         container.removeEventListener('touchstart', handleTouchStart);
@@ -68,7 +83,7 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
         container.removeEventListener('touchend', handleTouchEnd);
       }
     };
-  }, [nextLoading]); // currentVideoId 의존성 제거 (불필요한 재등록 방지)
+  }, [nextLoading]);
 
   const loadNextVideo = async () => {
     setNextLoading(true);
