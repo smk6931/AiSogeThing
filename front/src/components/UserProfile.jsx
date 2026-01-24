@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, Heart, Target, X } from 'lucide-react';
+import { Eye, Heart, Target, X, Clock } from 'lucide-react';
 import userApi from '../api/user';
 import ChannelVideoModal from './ChannelVideoModal';
 import './UserProfile.css';
@@ -177,29 +177,59 @@ export default function UserProfile({ userId, onClose }) {
                   <p style={{ textAlign: 'center', color: '#888' }}>시청 기록이 없습니다.</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {history.map((item, idx) => (
-                      <div key={idx} style={{
-                        display: 'flex',
-                        gap: '10px',
-                        background: 'rgba(255,255,255,0.05)',
-                        padding: '10px',
-                        borderRadius: '8px'
-                      }}>
-                        <img
-                          src={item.thumbnail_url}
-                          alt={item.title}
-                          style={{ width: '120px', height: '68px', borderRadius: '4px', objectFit: 'cover' }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '5px' }}>
-                            {item.title}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: '#888' }}>
-                            {item.channel_title} • {new Date(item.viewed_at).toLocaleString()}
+                    {history.map((item, idx) => {
+                      // 시청 시간 포맷팅 (초 -> 분:초)
+                      const watchedSec = item.watched_seconds || 0;
+                      const minutes = Math.floor(watchedSec / 60);
+                      const seconds = watchedSec % 60;
+                      const timeDisplay = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                      // 몰입도 계산 (10분/600초 기준, 0~100%)
+                      const maxSeconds = 600;
+                      const intensity = Math.min((watchedSec / maxSeconds) * 100, 100);
+
+                      // 색상 강도 (연한 초록 -> 진한 초록)
+                      const bgColor = `rgba(46, 213, 115, ${0.1 + (intensity / 100) * 0.4})`;
+
+                      return (
+                        <div key={idx} style={{
+                          display: 'flex',
+                          gap: '10px',
+                          background: bgColor,
+                          padding: '10px',
+                          borderRadius: '8px',
+                          border: `1px solid rgba(46, 213, 115, ${0.2 + (intensity / 100) * 0.3})`,
+                          transition: 'all 0.2s'
+                        }}>
+                          <img
+                            src={item.thumbnail_url}
+                            alt={item.title}
+                            style={{ width: '120px', height: '68px', borderRadius: '4px', objectFit: 'cover' }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '5px' }}>
+                              {item.title}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '5px' }}>
+                              {item.channel_title} • {new Date(item.viewed_at).toLocaleString()}
+                            </div>
+                            {/* 시청 시간 표시 */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.75rem',
+                              color: intensity > 50 ? '#2ed573' : '#95afc0',
+                              fontWeight: 'bold'
+                            }}>
+                              <Clock size={14} />
+                              <span>{timeDisplay}</span>
+                              {intensity > 70 && <span style={{ marginLeft: '4px' }}>🔥</span>}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

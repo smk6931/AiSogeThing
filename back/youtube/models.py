@@ -27,6 +27,7 @@ class YoutubeList(Base):
     channel_title = Column(String, nullable=True)                       # 채널명
     tags = Column(Text, nullable=True)                                  # 태그
     duration = Column(String, nullable=True)                            # 길이
+    is_short = Column(Integer, nullable=True)                           # 쇼츠 여부 (1: 쇼츠, 0: 일반, NULL: 미확인)
     view_count = Column(Integer, nullable=True)                         # 조회수
     published_at = Column(DateTime(timezone=True), nullable=True)       # 업로드일
     created_at = Column(DateTime(timezone=True), server_default=func.now()) # 수집일
@@ -58,18 +59,16 @@ class UserLog(Base):
 
 class UserYoutubeLog(Base):
     """
-    [New] 유튜브 시청 상세 로그 (시청 시간, 진행률 포함)
-    UserLog 테이블의 'youtube' & 'view' 역할을 대체하며 상세 데이터를 저장함.
+    [New] 유튜브 시청 로그 (시청 시간 기록)
+    UserLog 테이블의 'youtube' & 'view' 역할을 대체하며 시청 시간을 저장함.
     """
     __tablename__ = "user_youtube_logs"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
-    video_id = Column(String, nullable=False, index=True) # youtube_list.video_id
+    video_id = Column(String, nullable=False, index=True)
     
-    watched_seconds = Column(Integer, default=0)
-    total_seconds = Column(Integer, default=0)
-    progress_percent = Column(Float, default=0.0)
+    watched_seconds = Column(Integer, default=0)  # 실제 시청 시간 (초)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

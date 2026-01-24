@@ -54,12 +54,11 @@ export const logYoutubeVideo = async (video) => {
   }
 };
 
-export const updateWatchTime = async (logId, watched, total) => {
+export const updateWatchTime = async (logId, watched) => {
   try {
     await client.post('/api/youtube/log/time', {
       log_id: logId,
-      watched: Math.floor(watched),
-      total: Math.floor(total)
+      watched: Math.floor(watched)
     });
   } catch (e) {
     console.error("Time update failed", e);

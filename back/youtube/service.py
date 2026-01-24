@@ -22,10 +22,14 @@ async def log_view(user_id: int, video_data: dict):
     existing_video = await fetch_one(check_sql, {"video_id": video_id})
 
     if not existing_video:
+        # duration 파싱해서 is_short 판별 (60초 이하)
+        duration = video_data.get("duration", 0)  # 초 단위
+        is_short = 1 if (duration > 0 and duration <= 60) else 0
+        
         await execute(
             """
-            INSERT INTO youtube_list (video_id, title, description, thumbnail_url, channel_title, published_at)
-            VALUES (:video_id, :title, :description, :thumbnail_url, :channel_title, :published_at)
+            INSERT INTO youtube_list (video_id, title, description, thumbnail_url, channel_title, duration, is_short, published_at)
+            VALUES (:video_id, :title, :description, :thumbnail_url, :channel_title, :duration, :is_short, :published_at)
             """,
             {
                 "video_id": video_id,
@@ -33,17 +37,18 @@ async def log_view(user_id: int, video_data: dict):
                 "description": video_data.get("description", ""),
                 "thumbnail_url": video_data.get("thumbnail_url", ""),
                 "channel_title": video_data.get("channel_title", ""),
+                "duration": str(duration) if duration else None,
+                "is_short": is_short,
                 "published_at": None
             }
         )
 
     # 2. 영상 시청 기록 생성 (UserYoutubeLog)
-    # 별도 테이블에 상세 정보를 저장함 (중복 체크 없이 세션별 저장)
     sql = """
         INSERT INTO user_youtube_logs 
-            (user_id, video_id, watched_seconds, total_seconds, progress_percent, created_at, updated_at)
+            (user_id, video_id, watched_seconds, created_at, updated_at)
         VALUES 
-            (:user_id, :video_id, 0, 0, 0.0, NOW(), NOW())
+            (:user_id, :video_id, 0, NOW(), NOW())
         RETURNING id
     """
     
@@ -55,26 +60,19 @@ async def log_view(user_id: int, video_data: dict):
     return {"status": "logged", "log_id": log_record["id"]}
 
 
-async def update_video_time(log_id: int, watched: int, total: int):
+async def update_video_time(log_id: int, watched: int, total: int = None):
     """
     시청 시간 업데이트 (영상 종료/이탈 시 호출)
+    total 파라미터는 호환성을 위해 유지하지만 사용하지 않음
     """
-    # 퍼센트 계산
-    percent = 0.0
-    if total > 0:
-        percent = round((watched / total) * 100, 2)
-        if percent > 100: percent = 100.0
-
     sql = """
         UPDATE user_youtube_logs 
-        SET watched_seconds = :w, 
-            total_seconds = :t, 
-            progress_percent = :p,
+        SET watched_seconds = :w,
             updated_at = NOW()
         WHERE id = :log_id
     """
-    await execute(sql, {"w": watched, "t": total, "p": percent, "log_id": log_id})
-    return {"status": "updated", "watched": watched, "percent": percent}
+    await execute(sql, {"w": watched, "log_id": log_id})
+    return {"status": "updated", "watched": watched}
 
 
 async def get_view_history(user_id: int, limit: int = 20):
@@ -86,7 +84,6 @@ async def get_view_history(user_id: int, limit: int = 20):
             ul.created_at as viewed_at,
             ul.updated_at as last_viewed_at,
             ul.watched_seconds,
-            ul.progress_percent,
             y.video_id,
             y.title,
             y.thumbnail_url,

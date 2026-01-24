@@ -158,7 +158,7 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     stopInterval();
     if (currentLogIdRef.current && watchTimeRef.current > 0) {
       // 비동기로 전송 (await 안 함)
-      updateWatchTime(currentLogIdRef.current, watchTimeRef.current, totalDurationRef.current);
+      updateWatchTime(currentLogIdRef.current, watchTimeRef.current);
     }
     currentLogIdRef.current = null;
     watchTimeRef.current = 0;

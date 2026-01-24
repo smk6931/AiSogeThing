@@ -103,6 +103,9 @@ AsyncSessionLocal = sessionmaker(
     expire_on_commit=False
 )
 
+# 스크립트에서 사용할 수 있도록 별칭 제공
+async_session_factory = AsyncSessionLocal
+
 async def get_db():
     async with AsyncSessionLocal() as db:
         try:
