@@ -87,3 +87,9 @@ export const getMySubscriptions = async () => {
   const response = await client.get('/api/youtube/my-subscriptions');
   return response.data;
 };
+
+// 5. 랜덤 추천 (무한 스크롤용)
+export const getRandomVideo = async () => {
+  const response = await client.get('/api/youtube/recommend/random');
+  return response.data;
+};

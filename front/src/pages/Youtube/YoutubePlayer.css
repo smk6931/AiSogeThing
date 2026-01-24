@@ -68,3 +68,69 @@
     opacity: 1;
   }
 }
+
+/* 다음 영상 로딩 오버레이 */
+.next-video-loader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(5px);
+}
+
+.spinner-icon {
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+  color: #ff4757;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 스크롤 힌트 */
+.scroll-hint {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.85rem;
+  pointer-events: none;
+  width: 100%;
+  text-align: center;
+}
+
+.bounce-icon {
+  animation: bounce 1.5s infinite;
+  margin-top: 5px;
+}
+
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(10px);
+  }
+}

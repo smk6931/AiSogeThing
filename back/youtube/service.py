@@ -173,3 +173,16 @@ async def unsubscribe_channel(user_id: int, channel_id: str):
           AND action = 'subscribe'
     """
     await execute(sql, {"uid": user_id, "cid": channel_id})
+
+async def get_random_video():
+    """
+    DB에 저장된 영상 중 랜덤으로 1개를 가져옴 (쇼츠 감성 무한 스크롤용)
+    """
+    # PostgreSQL의 RANDOM() 함수 사용
+    sql = """
+        SELECT video_id, title, thumbnail_url, channel_title, description
+        FROM youtube_list
+        ORDER BY RANDOM()
+        LIMIT 1
+    """
+    return await fetch_one(sql)

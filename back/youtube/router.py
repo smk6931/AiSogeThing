@@ -221,3 +221,15 @@ async def get_user_subscriptions_endpoint(
 
     channels = await service.get_my_channels(user_id=target_user["id"])
     return {"success": True, "channels": channels}
+
+@router.get("/api/youtube/recommend/random")
+async def get_random_video_endpoint(
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    랜덤 비디오 추천 (무한 스크롤용)
+    """
+    video = await service.get_random_video()
+    if not video:
+        raise HTTPException(status_code=404, detail="저장된 영상이 없습니다.")
+    return {"success": True, "video": video}
