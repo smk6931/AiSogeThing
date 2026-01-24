@@ -13,8 +13,10 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     setCurrentVideoId(initialVideoId);
   }, [initialVideoId]);
 
-  // 마우스 휠 이벤트 (PC용)
+  // 마우스 휠 이벤트 (PC용) + 터치 이벤트 (모바일용)
   useEffect(() => {
+    let touchStartY = 0;
+
     const handleWheel = (e) => {
       // 휠을 아래로(deltaY > 0) + 로딩 아님
       if (e.deltaY > 50 && !nextLoading) {
@@ -22,12 +24,32 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
       }
     };
 
+    const handleTouchStart = (e) => {
+      touchStartY = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e) => {
+      const touchEndY = e.changedTouches[0].clientY;
+      const diff = touchStartY - touchEndY;
+
+      // 아래로 스와이프 (diff > 100) + 로딩 아님
+      if (diff > 100 && !nextLoading) {
+        loadNextVideo();
+      }
+    };
+
     const container = contentRef.current;
     if (container) {
       container.addEventListener('wheel', handleWheel);
+      container.addEventListener('touchstart', handleTouchStart);
+      container.addEventListener('touchend', handleTouchEnd);
     }
     return () => {
-      if (container) container.removeEventListener('wheel', handleWheel);
+      if (container) {
+        container.removeEventListener('wheel', handleWheel);
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchend', handleTouchEnd);
+      }
     };
   }, [currentVideoId, nextLoading]); // currentVideoId가 바뀌면 리스너 갱신
 

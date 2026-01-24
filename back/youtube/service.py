@@ -11,19 +11,17 @@ async def log_view(user_id: int, video_data: dict):
     """
     유튜브 시청 로그 저장 + 영상 메타데이터 저장 (Upsert 개념)
     1. YoutubeList에 영상 정보가 없으면 저장 (Source of Truth)
-    2. UserLog에 시청 기록 저장
+    2. UserLog에 시청 기록 저장 (이미 본 적 있으면 Skip)
     """
     video_id = video_data.get("video_id")
     if not video_id:
         return
 
-    # 1. 영상 메타데이터 저장 (이미 있으면 패스 - 중복 방지)
-    # Postgres의 ON CONFLICT DO NOTHING을 쓰면 좋지만, 여기선 간단히 SELECT 후 INSERT
+    # 1. 영상 메타데이터 저장 (이미 있으면 패스)
     check_sql = "SELECT id FROM youtube_list WHERE video_id = :video_id"
     existing_video = await fetch_one(check_sql, {"video_id": video_id})
 
     if not existing_video:
-        # 1. 영상 메타데이터 저장 (직관적으로 SQL + 파라미터 결합)
         await execute(
             """
             INSERT INTO youtube_list (video_id, title, description, thumbnail_url, channel_title, published_at)
@@ -39,7 +37,22 @@ async def log_view(user_id: int, video_data: dict):
             }
         )
 
-    # 2. 유저 로그 저장
+    # 2. 이미 본 영상인지 체크 (중복 방지)
+    check_viewed_sql = """
+        SELECT id FROM user_logs
+        WHERE user_id = :user_id 
+          AND content_id = :video_id
+          AND content_type = 'youtube'
+          AND action = 'view'
+        LIMIT 1
+    """
+    already_viewed = await fetch_one(check_viewed_sql, {"user_id": user_id, "video_id": video_id})
+    
+    if already_viewed:
+        # 이미 본 적 있으면 저장 안 함 (기록 보존)
+        return {"status": "skipped", "message": "Already viewed"}
+
+    # 3. 새로운 시청 기록 저장
     await execute(
         """
         INSERT INTO user_logs (user_id, content_type, content_id, action)
@@ -52,6 +65,7 @@ async def log_view(user_id: int, video_data: dict):
             "action": "view"
         }
     )
+    return {"status": "logged"}
 
 
 async def get_view_history(user_id: int, limit: int = 20):
