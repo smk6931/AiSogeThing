@@ -22,16 +22,16 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
   const [btnOpacity, setBtnOpacity] = useState(1);
   const opacityTimerRef = useRef(null);
 
-  // 버튼 일시적 노출 함수 (3초 뒤 숨김)
+  // 버튼 일시적 노출 함수 (1초 뒤 숨김)
   const showButtonTemporarily = () => {
     setBtnOpacity(1);
     // 기존 타이머 클리어
     if (opacityTimerRef.current) clearTimeout(opacityTimerRef.current);
 
-    // 3초 뒤 다시 숨김
+    // 1초 뒤 무조건 숨김 (투명화)
     opacityTimerRef.current = setTimeout(() => {
       setBtnOpacity(0);
-    }, 3000);
+    }, 1000);
   };
 
   // 1. YouTube API 스크립트 로드 (최초 1회)
