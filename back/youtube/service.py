@@ -37,28 +37,19 @@ async def log_view(user_id: int, video_data: dict):
             }
         )
 
-    # 2. 영상 시청 기록 생성 (중복 체크 없이 매번 쌓음 -> 시청 세션 기록)
-    # 다만, 너무 많은 로그가 쌓이는 걸 방지하려면 "오늘 본 건 업데이트" 식으로 할 수 있으나
-    # 사용자가 "얼마나 관심 있었나"를 매번 측정하려면 매 시청마다 기록하는 게 맞음.
-    
-    # Insert 하고 ID 반환
-    # (주의: execute()는 보통 id 반환을 안 할 수 있음. insert_and_return 사용 필요하거나, 
-    #  user_logs가 id(Auto Increment)를 가지므로 returning 구문 사용)
-    
+    # 2. 영상 시청 기록 생성 (UserYoutubeLog)
+    # 별도 테이블에 상세 정보를 저장함 (중복 체크 없이 세션별 저장)
     sql = """
-        INSERT INTO user_logs (user_id, content_type, content_id, action, metadata_json, created_at)
-        VALUES (:user_id, 'youtube', :video_id, 'view', :meta, NOW())
+        INSERT INTO user_youtube_logs 
+            (user_id, video_id, watched_seconds, total_seconds, progress_percent, created_at, updated_at)
+        VALUES 
+            (:user_id, :video_id, 0, 0, 0.0, NOW(), NOW())
         RETURNING id
     """
-    # 초기 메타데이터 (0초 시청)
-    meta = json.dumps({"watched": 0, "total": 0})
     
-    # insert_and_return 함수가 id를 반환한다고 가정 (core.database 확인 필요하지만 없으면 fetch_one으로)
-    # fetch_one으로 RETURNING id를 잡는 게 확실함.
     log_record = await fetch_one(sql, {
         "user_id": user_id, 
-        "video_id": video_id, 
-        "meta": meta
+        "video_id": video_id
     })
     
     return {"status": "logged", "log_id": log_record["id"]}
@@ -68,16 +59,22 @@ async def update_video_time(log_id: int, watched: int, total: int):
     """
     시청 시간 업데이트 (영상 종료/이탈 시 호출)
     """
-    # 기존 메타데이터 조회 후 업데이트 또는 덮어쓰기
-    meta = json.dumps({"watched": watched, "total": total})
-    
+    # 퍼센트 계산
+    percent = 0.0
+    if total > 0:
+        percent = round((watched / total) * 100, 2)
+        if percent > 100: percent = 100.0
+
     sql = """
-        UPDATE user_logs 
-        SET metadata_json = :meta 
+        UPDATE user_youtube_logs 
+        SET watched_seconds = :w, 
+            total_seconds = :t, 
+            progress_percent = :p,
+            updated_at = NOW()
         WHERE id = :log_id
     """
-    await execute(sql, {"meta": meta, "log_id": log_id})
-    return {"status": "updated", "watched": watched}
+    await execute(sql, {"w": watched, "t": total, "p": percent, "log_id": log_id})
+    return {"status": "updated", "watched": watched, "percent": percent}
 
 
 async def get_view_history(user_id: int, limit: int = 20):
@@ -87,16 +84,17 @@ async def get_view_history(user_id: int, limit: int = 20):
     sql = """
         SELECT 
             ul.created_at as viewed_at,
+            ul.updated_at as last_viewed_at,
+            ul.watched_seconds,
+            ul.progress_percent,
             y.video_id,
             y.title,
             y.thumbnail_url,
             y.channel_title
-        FROM user_logs ul
-        JOIN youtube_list y ON ul.content_id = y.video_id
+        FROM user_youtube_logs ul
+        JOIN youtube_list y ON ul.video_id = y.video_id
         WHERE ul.user_id = :user_id 
-          AND ul.content_type = 'youtube' 
-          AND ul.action = 'view'
-        ORDER BY ul.created_at DESC
+        ORDER BY ul.updated_at DESC
         LIMIT :limit
     """
     return await fetch_all(sql, {"user_id": user_id, "limit": limit})
