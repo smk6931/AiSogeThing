@@ -53,24 +53,19 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     if (window.YT && window.YT.Player) {
       loadPlayer(currentVideoId);
     }
-
-    return () => {
-      stopTracking(); // 컴포넌트 언마운트 시 추적 종료 및 저장
-    };
   }, []);
 
-  // 2. 비디오 ID 변경 감지 -> 플레이어 로드/갱신
+  // 2. 비디오 ID 변경 감지 -> 플레이어 로드/갱신 및 버튼 숨김 예약
   useEffect(() => {
     if (currentVideoId && window.YT && window.YT.Player) {
       loadPlayer(currentVideoId);
     }
-  }, [currentVideoId]);
 
-  // 영상 변경 시 자동 노출
-  useEffect(() => {
+    // 영상이 바뀌면 무조건 버튼이 잠깐 보였다가(1초) 사라져야 함
     showButtonTemporarily();
+
     return () => {
-      if (opacityTimerRef.current) clearTimeout(opacityTimerRef.current);
+      stopTracking(); // 컴포넌트 언마운트/변경 시 추적 종료
     };
   }, [currentVideoId]);
 
