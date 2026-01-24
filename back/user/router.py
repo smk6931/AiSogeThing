@@ -127,3 +127,30 @@ async def logout(current_user: Annotated[models.User, Depends(get_current_user)]
     """
     await service.mark_user_offline(current_user["id"])
     return {"message": "Successfully logged out"}
+
+# ========================================================
+#  사용자 프로필 조회 (Public)
+# ========================================================
+@router.get("/profile/{user_uuid}")
+async def get_user_profile(
+    user_uuid: str,
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    특정 사용자의 프로필 정보 조회 (로그인 필수)
+    - 닉네임, 가입일, 마지막 활동 시간 등
+    - user_uuid: UUID 포맷 스트링
+    """
+    # UUID로 조회
+    user = await service.get_user_by_uuid(user_uuid)
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    
+    # 민감 정보 제외하고 반환
+    return {
+        "id": user["id"],
+        "nickname": user["nickname"],
+        "email": user["email"],  # 필요 시 제거 가능
+        "created_at": user.get("created_at"),
+        "last_active": user.get("last_active")
+    }

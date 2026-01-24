@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Annotated
 from youtube import service
+from user import service as user_service # UUID 조회를 위해 추가
 from user.router import get_current_user
 from user import models
 
 router = APIRouter()
+
 
 class VideoLogSchema(BaseModel):
     video_id: str
@@ -183,4 +185,39 @@ async def get_my_subscriptions_endpoint(
     내 구독 리스트 조회 (채널 정보 포함)
     """
     channels = await service.get_my_channels(user_id=current_user["id"])
+    return {"success": True, "channels": channels}
+
+# ========================================================
+#  Public Profile APIs (다른 사용자 정보 조회)
+# ========================================================
+@router.get("/api/youtube/user/{user_uuid}/history")
+async def get_user_history_endpoint(
+    user_uuid: str,
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    특정 사용자의 시청 기록 조회 (로그인 필수)
+    - user_uuid: UUID string
+    """
+    target_user = await user_service.get_user_by_uuid(user_uuid)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+        
+    history = await service.get_view_history(user_id=target_user["id"], limit=20)
+    return {"success": True, "history": history}
+
+@router.get("/api/youtube/user/{user_uuid}/subscriptions")
+async def get_user_subscriptions_endpoint(
+    user_uuid: str,
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    특정 사용자의 구독 채널 리스트 조회 (로그인 필수)
+    - user_uuid: UUID string
+    """
+    target_user = await user_service.get_user_by_uuid(user_uuid)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+
+    channels = await service.get_my_channels(user_id=target_user["id"])
     return {"success": True, "channels": channels}

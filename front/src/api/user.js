@@ -43,6 +43,22 @@ const userApi = {
   // 생존 신호 전송 (Heartbeat)
   sendHeartbeat: async () => {
     return await client.post('/api/auth/heartbeat');
+  },
+
+  // ========== 사용자 프로필 조회 (Public) ==========
+  // 특정 사용자 프로필 정보 조회
+  getUserProfile: async (userId) => {
+    return await client.get(`/api/auth/profile/${userId}`);
+  },
+
+  // 특정 사용자 시청 기록 조회
+  getUserHistory: async (userId) => {
+    return await client.get(`/api/youtube/user/${userId}/history`);
+  },
+
+  // 특정 사용자 구독 채널 조회
+  getUserSubscriptions: async (userId) => {
+    return await client.get(`/api/youtube/user/${userId}/subscriptions`);
   }
 };
 

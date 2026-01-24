@@ -1,11 +1,15 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.sql import func
 from core.database import Base
+import uuid
 
 class User(Base):
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True, index=True)
+    # 보안: 외부 노출용 랜덤 식별자 (PK 노출 방지)
+    uuid = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
+    
     email = Column(String, unique=True, index=True, nullable=False)   # 이메일 (로그인 ID)
     hashed_password = Column(String, nullable=False)                  # 암호화된 비밀번호
     nickname = Column(String, nullable=True)                          # 닉네임

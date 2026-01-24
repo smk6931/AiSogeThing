@@ -77,11 +77,13 @@
   justify-content: space-between;
   padding: 10px 14px;
   border-radius: 12px;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
-.user-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+.user-item.clickable:hover {
+  background: rgba(108, 92, 231, 0.15);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2);
 }
 
 .user-item.me {
