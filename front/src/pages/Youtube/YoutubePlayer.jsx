@@ -20,6 +20,7 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
 
     let touchStartY = 0;
     let touchStartTime = 0;
+    const container = contentRef.current;
 
     const handleWheel = (e) => {
       // 휠을 아래로(deltaY > 0) + 로딩 아님
@@ -33,16 +34,22 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     const handleTouchStart = (e) => {
       touchStartY = e.touches[0].clientY;
       touchStartTime = Date.now();
+      if (container) container.style.transition = 'none'; // 드래그 중엔 애니메이션 끔
     };
 
     const handleTouchMove = (e) => {
-      // 터치 무브 시 기본 스크롤(새로고침 등) 방지
       const touchCurrentY = e.touches[0].clientY;
-      const diff = touchStartY - touchCurrentY;
+      const diff = touchStartY - touchCurrentY; // 양수: 위로 드래그
 
       // 수직 움직임이 감지되면 기본 동작 차단
       if (Math.abs(diff) > 10) {
         if (e.cancelable) e.preventDefault();
+
+        // 시각적 피드백: 위로 드래그 시 화면을 살짝 올림 (최대 100px)
+        if (diff > 0 && container) {
+          const moveY = Math.min(diff, 100);
+          container.style.transform = `translateY(${-moveY}px)`;
+        }
       }
     };
 
@@ -52,19 +59,19 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
       const diff = touchStartY - touchEndY; // 양수 = 위로 스와이프
       const duration = touchEndTime - touchStartTime;
 
-      // 위로 스와이프 (diff > 50) + 적당한 속도 + 로딩 아님
-      if (diff > 50 && duration < 800 && !nextLoading) {
+      // 원위치 복귀 애니메이션
+      if (container) {
+        container.style.transition = 'transform 0.3s ease-out';
+        container.style.transform = ''; // 원래 위치로
+      }
+
+      // 위로 스와이프 (diff > 80) + 적당한 속도 + 로딩 아님
+      if (diff > 80 && duration < 800 && !nextLoading) {
         loadNextVideo();
       }
     };
 
-    // contentRef 대신 window나 overlay에 붙이면 좋지만, 
-    // iframe 이벤트 캡처를 위해 Capture Phase를 사용할 수도 있음.
-    // 여기서는 contentRef에 붙이되, overlay 영역까지 커버하도록 CSS 조정 필요
-    const container = contentRef.current;
-
-    // window에 붙여서 iframe 밖에서의 터치를 확실히 잡음 (모달 오버레이 영역 등)
-    // 단, iframe 내부는 여전히 잡기 어려울 수 있음
+    // window에 붙여서 iframe 밖에서의 터치를 확실히 잡음
     if (container) {
       container.addEventListener('wheel', handleWheel, { passive: false });
       container.addEventListener('touchstart', handleTouchStart, { passive: false });
