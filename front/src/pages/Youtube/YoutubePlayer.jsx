@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, ChevronDown, Loader } from 'lucide-react';
-import { getRandomVideo, logYoutubeVideo } from '../../api/youtube'; // API import
-import './YoutubePlayer.css';
-
-import { useState, useEffect, useRef } from 'react';
-import { X, ChevronDown, Loader } from 'lucide-react';
 import { getRandomVideo, logYoutubeVideo, updateWatchTime } from '../../api/youtube';
 import './YoutubePlayer.css';
 
