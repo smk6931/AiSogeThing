@@ -18,26 +18,15 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
   const totalDurationRef = useRef(0);  // 영상 전체 길이
   const intervalRef = useRef(null);    // 시간 측정 타이머
 
-  // 버튼 투명도 제어
-  const [btnOpacity, setBtnOpacity] = useState(1);
-  const opacityTimerRef = useRef(null);
+  // 최초 힌트 제어 (처음에만 보여주고 끌 것)
+  const [showHint, setShowHint] = useState(true);
 
-  // 버튼 일시적 노출 함수 (1초 뒤 숨김)
-  const showButtonTemporarily = () => {
-    setBtnOpacity(1);
-    // 기존 타이머 클리어
-    if (opacityTimerRef.current) clearTimeout(opacityTimerRef.current);
-
-    // 1초 뒤 무조건 숨김 (투명화)
-    opacityTimerRef.current = setTimeout(() => {
-      setBtnOpacity(0);
-    }, 1000);
-  };
-
-  // 1. YouTube API 스크립트 로드 (최초 1회) & **최초 버튼 노출**
+  // 1. YouTube API 스크립트 로드 (최초 1회)
   useEffect(() => {
-    // 최초 실행 시에만 버튼 잠깐 보여줌
-    showButtonTemporarily();
+    // 힌트는 2초 뒤에 사라짐 (한 번만)
+    const hintTimer = setTimeout(() => {
+      setShowHint(false);
+    }, 2500);
 
     if (!ytApiLoaded) {
       const tag = document.createElement('script');
@@ -56,29 +45,20 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     if (window.YT && window.YT.Player) {
       loadPlayer(currentVideoId);
     }
+
+    return () => clearTimeout(hintTimer);
   }, []);
 
   // 2. 비디오 ID 변경 감지 -> 플레이어 로드/갱신
-  // (여기서는 버튼을 보여주지 않음! 사용자가 누를 때만 보여줌)
   useEffect(() => {
     if (currentVideoId && window.YT && window.YT.Player) {
       loadPlayer(currentVideoId);
     }
-
     return () => {
       stopTracking(); // 컴포넌트 언마운트/변경 시 추적 종료
     };
   }, [currentVideoId]);
 
-  // 마우스가 버튼 위에 있을 땐 계속 보여줌
-  const handleButtonEnter = () => {
-    setBtnOpacity(1);
-    if (opacityTimerRef.current) clearTimeout(opacityTimerRef.current);
-  };
-
-  const handleButtonLeave = () => {
-    showButtonTemporarily(); // 떠나면 3초 카운트다운 시작
-  };
 
   // 플레이어 로드/큐잉
   const loadPlayer = (videoId) => {
@@ -187,7 +167,6 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
   // 다음 영상 로드
   const loadNextVideo = async () => {
     setNextLoading(true);
-    // 버튼 자동 노출 제거 (클릭 이벤트에서만 노출됨)
     try {
       const res = await getRandomVideo();
       if (res.success && res.video) {
@@ -228,22 +207,24 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
           <div id="youtube-player-div" ref={containerRef}></div>
         </div>
 
+        {/* 우측 투명 터치 영역 (다음 영상 넘기기) */}
         {!nextLoading && (
-          <button
-            className="next-video-btn"
+          <div
+            className="next-video-touch-area"
             onClick={(e) => {
               e.stopPropagation();
-              showButtonTemporarily(); // 클릭 시에도 잠깐 보여줌 (피드백)
               loadNextVideo();
             }}
-            onMouseEnter={handleButtonEnter}
-            onMouseLeave={handleButtonLeave}
-            onTouchEnd={showButtonTemporarily} // 모바일 터치 시 다시 활성화
-            style={{ opacity: btnOpacity }}
-            title="다음 영상"
+            title="다음 영상 (화면 우측 클릭)"
           >
-            <ChevronDown size={28} style={{ transform: 'rotate(-90deg)' }} />
-          </button>
+            {/* 처음에만 보이는 힌트 */}
+            {showHint && (
+              <div className="next-video-hint">
+                <span>👉</span>
+                <span className="hint-text">다음 영상</span>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

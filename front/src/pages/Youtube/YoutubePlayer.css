@@ -126,57 +126,75 @@
 }
 
 /* =========================================
-   다음 영상 버튼 (우측 하단 플로팅)
+   우측 투명 터치 영역 (다음 영상 넘기기)
    ========================================= */
-.next-video-btn {
+.next-video-touch-area {
   position: absolute;
-  /* 영상 컨트롤러 방해 안 받게 약간 더 위로 */
-  bottom: 25px;
-  right: 15px;
+  top: 0;
+  right: 0;
+  width: 15%;
+  /* 화면 우측 15% 영역 */
+  min-width: 60px;
+  /* 너무 좁지 않게 최소폭 보장 */
+  height: 100%;
 
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-
-  background: rgba(0, 0, 0, 0.4);
-  /* 평소에는 어둡게 */
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  /* 투명하지만 클릭 가능 */
+  background: transparent;
+  cursor: pointer;
+  z-index: 200;
+  /* iframe보다 위 */
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  cursor: pointer;
-  z-index: 200;
-  /* iframe보다 위 */
-  backdrop-filter: blur(4px);
-
-  /* 부드러운 사라짐 효과 (JS에서 opacity 조절) */
-  transition: opacity 1.5s ease-out, transform 0.2s, background 0.2s;
+  /* 모바일 터치 하이라이트 제거 */
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 투명해져도 호버하면 다시 보여주기 (PC) */
-.next-video-btn:hover {
-  opacity: 1 !important;
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.1);
+/* 마우스를 올렸을 때 희미하게 보이게 할지 여부 (선택) */
+.next-video-touch-area:hover {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.3), transparent);
 }
 
-.next-video-btn:active {
-  transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.5);
+/* 힌트 아이콘/텍스트 (처음에만 보임) */
+.next-video-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  animation: slideInRight 0.5s ease-out;
+  pointer-events: none;
+  /* 힌트는 클릭 방해 X */
 }
 
-/* 모바일 조정 */
+.hint-text {
+  font-size: 0.8rem;
+  margin-top: 5px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @media (max-width: 768px) {
-  .next-video-btn {
-    bottom: 20px;
-    right: 10px;
-    width: 48px;
-    height: 48px;
-
-    /* 모바일에서는 hover 없음, 투명해도 클릭 가능 */
-    -webkit-tap-highlight-color: transparent;
+  .next-video-touch-area {
+    width: 20%;
+    /* 모바일은 조금 더 넓게 */
+    min-width: 70px;
   }
 }
