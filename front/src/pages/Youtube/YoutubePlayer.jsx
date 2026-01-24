@@ -34,8 +34,11 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     }, 1000);
   };
 
-  // 1. YouTube API 스크립트 로드 (최초 1회)
+  // 1. YouTube API 스크립트 로드 (최초 1회) & **최초 버튼 노출**
   useEffect(() => {
+    // 최초 실행 시에만 버튼 잠깐 보여줌
+    showButtonTemporarily();
+
     if (!ytApiLoaded) {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
@@ -55,14 +58,12 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     }
   }, []);
 
-  // 2. 비디오 ID 변경 감지 -> 플레이어 로드/갱신 및 버튼 숨김 예약
+  // 2. 비디오 ID 변경 감지 -> 플레이어 로드/갱신
+  // (여기서는 버튼을 보여주지 않음! 사용자가 누를 때만 보여줌)
   useEffect(() => {
     if (currentVideoId && window.YT && window.YT.Player) {
       loadPlayer(currentVideoId);
     }
-
-    // 영상이 바뀌면 무조건 버튼이 잠깐 보였다가(1초) 사라져야 함
-    showButtonTemporarily();
 
     return () => {
       stopTracking(); // 컴포넌트 언마운트/변경 시 추적 종료
@@ -186,7 +187,7 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
   // 다음 영상 로드
   const loadNextVideo = async () => {
     setNextLoading(true);
-    showButtonTemporarily(); // 로딩 중 다시 보여줌
+    // 버튼 자동 노출 제거 (클릭 이벤트에서만 노출됨)
     try {
       const res = await getRandomVideo();
       if (res.success && res.video) {
@@ -230,7 +231,11 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
         {!nextLoading && (
           <button
             className="next-video-btn"
-            onClick={(e) => { e.stopPropagation(); loadNextVideo(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              showButtonTemporarily(); // 클릭 시에도 잠깐 보여줌 (피드백)
+              loadNextVideo();
+            }}
             onMouseEnter={handleButtonEnter}
             onMouseLeave={handleButtonLeave}
             onTouchEnd={showButtonTemporarily} // 모바일 터치 시 다시 활성화
