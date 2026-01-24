@@ -103,19 +103,9 @@
 }
 
 /* 스크롤 힌트 */
+/* 스크롤 힌트 (이제 숨김 처리) */
 .scroll-hint {
-  position: absolute;
-  bottom: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: rgba(255, 255, 255, 0.7);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 0.85rem;
-  pointer-events: none;
-  width: 100%;
-  text-align: center;
+  display: none !important;
 }
 
 .bounce-icon {
@@ -133,4 +123,42 @@
   50% {
     transform: translateY(10px);
   }
+}
+
+/* =========================================
+   새로운 스와이프 핸들바 (모바일 터치용)
+   ========================================= */
+.swipe-handle-area {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  /* 터치 영역을 매우 크게 확보 (하단 20% 정도) */
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* 텍스트는 아래쪽에 */
+  align-items: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding-bottom: 25px;
+  cursor: grab;
+  z-index: 200;
+  /* iframe보다 무조건 위! */
+  touch-action: none;
+  /* 브라우저 기본 스크롤 차단 */
+  pointer-events: auto;
+  /* 터치 이벤트 수신 */
+}
+
+.swipe-bar-indicator {
+  width: 60px;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 3px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }

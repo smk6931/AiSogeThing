@@ -162,9 +162,51 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
           ></iframe>
         </div>
 
+        {/* 하단 스와이프 전용 핸들바 (UX 명확성 + 터치 오류 해결) */}
+        <div
+          className="swipe-handle-area"
+          onTouchStart={(e) => {
+            // 이벤트 전파 중단 (부모 핸들러와 충돌 방지)
+            e.stopPropagation();
+            // 여기서 직접 터치 로직 처리
+            const startY = e.touches[0].clientY;
+            const startTime = Date.now();
+
+            const handleTouchMove = (moveEvent) => {
+              const currentY = moveEvent.touches[0].clientY;
+              const diff = startY - currentY;
+              if (diff > 0) {
+                e.target.style.transform = `translateY(${-Math.min(diff, 50)}px)`;
+              }
+            };
+
+            const handleTouchEnd = (endEvent) => {
+              const endY = endEvent.changedTouches[0].clientY;
+              const duration = Date.now() - startTime;
+              const diff = startY - endY;
+
+              e.target.style.transform = ''; // 원위치
+
+              // 위로 슥 올림 (감도 50px)
+              if (diff > 50 && duration < 800) {
+                loadNextVideo();
+              }
+
+              window.removeEventListener('touchmove', handleTouchMove);
+              window.removeEventListener('touchend', handleTouchEnd);
+            };
+
+            window.addEventListener('touchmove', handleTouchMove);
+            window.addEventListener('touchend', handleTouchEnd);
+          }}
+        >
+          <div className="swipe-bar-indicator"></div>
+          <span>위로 올려 다음 영상 👆</span>
+        </div>
+
         {/* 안내 텍스트 (PC/모바일 공통) */}
         <div className="scroll-hint">
-          <span>� 스와이프하여 다음 영상</span>
+          <span>👆 스와이프하여 다음 영상</span>
           <ChevronDown size={20} className="bounce-icon" />
         </div>
       </div>
