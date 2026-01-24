@@ -126,20 +126,21 @@
 }
 
 /* =========================================
-   다음 영상 버튼 (우측 플로팅)
+   다음 영상 버튼 (우측 하단 플로팅)
    ========================================= */
 .next-video-btn {
   position: absolute;
-  top: 50%;
+  /* 영상 컨트롤러 방해 안 받게 약간 더 위로 */
+  bottom: 25px;
   right: 15px;
-  /* 화면 오른쪽 여백 */
-  transform: translateY(-50%);
 
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+
+  background: rgba(0, 0, 0, 0.4);
+  /* 평소에는 어둡게 */
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
 
   display: flex;
@@ -147,27 +148,35 @@
   justify-content: center;
 
   cursor: pointer;
-  z-index: 100;
-  backdrop-filter: blur(5px);
-  transition: all 0.2s ease;
+  z-index: 200;
+  /* iframe보다 위 */
+  backdrop-filter: blur(4px);
+
+  /* 부드러운 사라짐 효과 (JS에서 opacity 조절) */
+  transition: opacity 1.5s ease-out, transform 0.2s, background 0.2s;
 }
 
+/* 투명해져도 호버하면 다시 보여주기 (PC) */
 .next-video-btn:hover {
-  background: rgba(255, 255, 255, 0.4);
-  transform: translateY(-50%) scale(1.1);
+  opacity: 1 !important;
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
 }
 
 .next-video-btn:active {
-  transform: translateY(-50%) scale(0.95);
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.5);
 }
 
-/* 모바일에서는 버튼 크기와 위치 조정 */
+/* 모바일 조정 */
 @media (max-width: 768px) {
   .next-video-btn {
-    width: 60px;
-    height: 60px;
+    bottom: 20px;
     right: 10px;
-    background: rgba(0, 0, 0, 0.4);
-    /* 모바일에선 좀 더 진하게 */
+    width: 48px;
+    height: 48px;
+
+    /* 모바일에서는 hover 없음, 투명해도 클릭 가능 */
+    -webkit-tap-highlight-color: transparent;
   }
 }

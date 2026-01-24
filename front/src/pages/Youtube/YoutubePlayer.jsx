@@ -13,30 +13,34 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     setCurrentVideoId(initialVideoId);
   }, [initialVideoId]);
 
+  // 버튼 투명도 제어 (초기 1 -> 2초 뒤 0)
+  const [btnOpacity, setBtnOpacity] = useState(1);
+
+  // 영상 ID가 바뀔 때마다 버튼을 다시 보여줌
+  useEffect(() => {
+    setBtnOpacity(1);
+    const timer = setTimeout(() => {
+      setBtnOpacity(0); // 2초 뒤 투명화 (클릭은 가능)
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [currentVideoId]);
+
   // 다음 영상 로드 함수
   const loadNextVideo = async () => {
     setNextLoading(true);
+    setBtnOpacity(1); // 로딩 중에는 다시 보여줌
     try {
       const res = await getRandomVideo();
       if (res.success && res.video) {
-        // 부드러운 전환을 위해 약간의 딜레이
         setTimeout(() => {
           setCurrentVideoId(res.video.video_id);
           setNextLoading(false);
-
-          // 로그 저장 (선택)
-          logYoutubeVideo({
-            id: res.video.video_id,
-            title: res.video.title,
-            thumbnail: res.video.thumbnail_url,
-            channelTitle: res.video.channel_title
-          });
+          // 로그 저장 생략
         }, 500);
       } else {
         setNextLoading(false);
       }
     } catch (error) {
-      console.error("다음 영상 로드 실패:", error);
       setNextLoading(false);
     }
   };
@@ -73,7 +77,7 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
           ></iframe>
         </div>
 
-        {/* 심플한 다음 영상 버튼 (우측 플로팅) */}
+        {/* 심플한 다음 영상 버튼 (우측 하단 + 자동 숨김) */}
         {!nextLoading && (
           <button
             className="next-video-btn"
@@ -81,9 +85,10 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
               e.stopPropagation();
               loadNextVideo();
             }}
-            title="다음 영상"
+            style={{ opacity: btnOpacity }}
+            title="다음 영상 (클릭)"
           >
-            <ChevronDown size={32} style={{ transform: 'rotate(-90deg)' }} />
+            <ChevronDown size={28} style={{ transform: 'rotate(-90deg)' }} />
           </button>
         )}
       </div>
