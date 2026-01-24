@@ -270,41 +270,47 @@ def get_interest_videos(target_keyword: str = None, my_channels: list = None):
 
 def discover_interest_channels(keyword: str):
     """
-    [Seed Step] 임의의 키워드로 채널을 검색 (Cost: 100)
-    반환된 채널 리스트를 Router에서 DB에 저장해야 함.
+    [Seed Step] 키워드로 채널 발굴 + 활동 여부 검증 (RSS Check)
+    Cost: 100 (Search API) + 0 (RSS Check)
+    목표: '영상 있는' 알짜 채널 15개를 꽉 채워서 반환
     """
     if not API_KEY: return {"error": "API Key Missing"}
 
-    # 채널 검색
+    # 1. 넉넉하게 검색 (최대 50개) - 어차피 100점 똑같음
     encoded_query = urllib.parse.quote(keyword)
-    url = f"{BASE_URL}/search?part=snippet&q={encoded_query}&maxResults=5&type=channel&key={API_KEY}"
+    url = f"{BASE_URL}/search?part=snippet&q={encoded_query}&maxResults=50&type=channel&key={API_KEY}"
     
     headers = {"Referer": "http://localhost:5173"}
     data, error = safe_http_get(url, headers=headers)
     
     if error: return {"error": error}
     
-    # Quota 차감
     remaining, limit = _manage_quota(cost=100)
     
-    found_channels = []
+    # 2. RSS 검증 및 필터링
+    valid_channels = []
+    target_count = 15  # 목표 채널 수
     
     for item in data.get('items', []):
+        if len(valid_channels) >= target_count:
+            break
+            
         c_id = item['snippet']['channelId']
         c_title = item['snippet']['channelTitle']
         
-        found_channels.append({
-            "id": c_id,
-            "name": c_title,
-            "keyword": keyword
-        })
-        
-    # (선택) 로직 검증용 파일 저장도 유지할거면 여기서 수행
-    # save_json_safe(INTEREST_CHANNELS_FILE, ...) 
-    
+        # RSS 찔러보기 (영상 있는지 확인)
+        rss_videos = get_channel_rss(c_id)
+        if rss_videos and len(rss_videos) > 0:
+            valid_channels.append({
+                "id": c_id,
+                "name": c_title,
+                "keyword": keyword
+            })
+            
     return {
         "success": True,
-        "added": len(found_channels),
-        "found_channels": found_channels, # 이 데이터를 Router가 받아서 DB에 저장
+        "added": len(valid_channels),
+        "found_count": len(valid_channels),
+        "found_channels": valid_channels,
         "meta": {"remaining": remaining, "limit": limit}
     }

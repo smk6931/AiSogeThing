@@ -85,21 +85,13 @@ async def discover_interest_endpoint(
 
     found_channels = result.get("found_channels", [])
     
-    # 2. DB 저장 및 구독 (DB Transaction)
-    saved_count = 0
-    for ch in found_channels:
-        # Client는 id, name, keyword 구조로 줌
-        await service.subscribe_channel(
-            user_id=current_user["id"], 
-            channel_data=ch, 
-            keyword=req.keyword
-        )
-        saved_count += 1
-
+    # 2. 결과 반환 (자동 구독 안 함!)
+    # 클라이언트가 리스트를 보고 선택해서 구독하도록 변경됨
     return {
         "success": True,
-        "added": saved_count,
-        "channels": [ch['name'] for ch in found_channels],
+        "added": 0, # 자동 추가 없음
+        "found_count": len(found_channels),
+        "channels": found_channels, # 상세 정보 포함 반환
         "meta": result.get("meta")
     }
 
@@ -146,6 +138,29 @@ async def subscribe_channel_endpoint(
         keyword="Direct Subscribe" # 직접 구독 표기
     )
 
+class RssRequest(BaseModel):
+    channels: list[dict] # [{id: '...', name: '...'}, ...]
+
+@router.post("/api/youtube/interest/rss")
+def get_rss_videos_endpoint(req: RssRequest):
+    """
+    특정 채널 리스트에 대한 RSS 영상 가져오기 (DB와 무관)
+    발굴된 채널들의 영상을 미리보기 위해 사용
+    """
+    # client.get_interest_videos는 my_channels 리스트 포맷을 기대함
+    # [{channel_id: '...', name: '...'}, ...]
+    
+    # 입력 데이터 포맷 맞추기 (Client 쪽에서 id나 channel_id로 줄 수 있으므로)
+    # get_interest_videos 내부 로직: channel['channel_id'] 사용
+    formatted_channels = []
+    for ch in req.channels:
+        cid = ch.get('id') or ch.get('channel_id')
+        name = ch.get('name') or ch.get('title')
+        if cid:
+            formatted_channels.append({"channel_id": cid, "name": name})
+
+    return get_interest_videos(target_keyword=None, my_channels=formatted_channels)
+
 class UnsubscribeRequest(BaseModel):
     channel_id: str
 
@@ -159,3 +174,13 @@ async def unsubscribe_channel_endpoint(
     """
     await service.unsubscribe_channel(user_id=current_user["id"], channel_id=req.channel_id)
     return {"success": True, "message": "구독이 취소되었습니다."}
+
+@router.get("/api/youtube/my-subscriptions")
+async def get_my_subscriptions_endpoint(
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    내 구독 리스트 조회 (채널 정보 포함)
+    """
+    channels = await service.get_my_channels(user_id=current_user["id"])
+    return {"success": True, "channels": channels}

@@ -76,3 +76,14 @@ export const getInterestYoutube = async (keyword = null) => {
   const response = await client.get('/api/youtube/interest', { params: { keyword } });
   return response.data;
 };
+
+export const getAdhocRssVideos = async (channels) => {
+  const response = await client.post('/api/youtube/interest/rss', { channels });
+  return response.data;
+};
+
+// 4. 내 구독 리스트 조회
+export const getMySubscriptions = async () => {
+  const response = await client.get('/api/youtube/my-subscriptions');
+  return response.data;
+};

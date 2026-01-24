@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, PlayCircle, Eye, Sparkles, XCircle, PlusCircle } from 'lucide-react';
-import { searchYoutube, getPopularYoutube, logYoutubeVideo, getDatingYoutube, discoverDatingChannels, discoverInterest, getInterestYoutube, subscribeChannel, unsubscribeChannel } from '../../api/youtube';
+import { searchYoutube, getPopularYoutube, logYoutubeVideo, getDatingYoutube, discoverDatingChannels, discoverInterest, getInterestYoutube, subscribeChannel, unsubscribeChannel, getMySubscriptions, getAdhocRssVideos } from '../../api/youtube';
 import YoutubePlayer from './YoutubePlayer';
 import ApiInfo from '../../components/common/ApiInfo';
 import './YoutubeBoard.css';
@@ -20,11 +20,14 @@ export default function YoutubeBoard() {
   const [customKeyword, setCustomKeyword] = useState('');
   const [interestChannels, setInterestChannels] = useState([]);
   const [selectedInterestChannel, setSelectedInterestChannel] = useState(null);
+  const [mySubscriptions, setMySubscriptions] = useState([]);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   const categories = [
     { id: null, name: '🔥 전체' },
     { id: 'dating', name: '💘 연애/코칭', special: true },
     { id: 'custom', name: '⭐ 내 관심사', special: true },
+    { id: 'my-subs', name: '❤️ 내 구독', special: true },
     { id: '1', name: '🎬 애니/영화' },
     { id: '2', name: '🚗 자동차' },
     { id: '10', name: '🎵 음악' },
@@ -62,6 +65,13 @@ export default function YoutubeBoard() {
         // 커스텀 관심사 (RSS)
         data = await getInterestYoutube(customKeyword || null);
         if (data.channels) setInterestChannels(data.channels);
+      } else if (categoryId === 'my-subs') {
+        // 내 구독 리스트
+        const subsData = await getMySubscriptions();
+        if (subsData.success && subsData.channels) {
+          setMySubscriptions(subsData.channels);
+          return; // 영상 목록은 표시하지 않고 채널만 표시
+        }
       } else {
         data = await getPopularYoutube(categoryId);
       }
@@ -154,16 +164,69 @@ export default function YoutubeBoard() {
       if (res.error) {
         alert("오류 발생: " + res.error);
       } else {
-        alert(`🎉 성공! '${customKeyword}' 관련 ${res.added}개의 채널을 발견했습니다.\n이제 평생 무료(RSS)로 구독합니다.`);
-        loadPopular('custom');
+        // DB 저장 없이 바로 결과 표시
+        const found = res.channels || [];
+        // 발굴된 채널들의 영상 가져오기 (RSS)
+        try {
+          const videoData = await getAdhocRssVideos(found);
+          if (videoData.items && videoData.items.length > 0) {
+            // 1. 실제로 영상이 있는 채널 ID만 추출 (Set으로 중복 제거)
+            const activeIds = new Set(videoData.items.map(v => v.channelId));
+
+            // 2. 영상이 있는 채널만 남김 (필터링)
+            const activeChannels = found.filter(ch => activeIds.has(ch.id));
+            setInterestChannels(activeChannels);
+
+            // 3. 최신순 정렬 및 영상 표시
+            const sorted = videoData.items.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+            setVideos(sorted);
+
+            // 4. 결과 리포트 (필터링 된 경우 사용자에게 알림)
+            const removedCount = found.length - activeChannels.length;
+            if (removedCount > 0) {
+              // 토스트 메시지나 콘솔로 알림 (여기선 alert 내용 수정 대신 콘솔에만 남김)
+              console.log(`🧹 활동 없는 채널 ${removedCount}개를 자동으로 제외했습니다.`);
+            }
+          } else {
+            setInterestChannels([]); // 영상 하나도 없으면 싹 비움
+            alert("😔 최근 활동이 있는 채널을 찾지 못했습니다. 다른 키워드로 시도해보세요.");
+          }
+        } catch (rssError) {
+          console.error("RSS Load Error:", rssError);
+        }
       }
     } catch (e) {
       alert("요청 실패");
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
+
+  /* 구독 리스트 로드 함수 */
+  const loadSubscriptions = async () => {
+    try {
+      const res = await getMySubscriptions();
+      if (res.success) {
+        setMySubscriptions(res.channels);
+        // 구독 리스트가 있으면 interestChannels에도 반영 (구독 버튼 상태 갱신용)
+        setInterestChannels(prev => {
+          // 기존 목록에 구독 정보 머지할 수도 있지만, 여기서는 단순 리스트 갱신
+          return prev;
+        });
+      }
+    } catch (e) {
+      console.error("구독 로드 실패", e);
+    }
+  };
+
+  useEffect(() => {
+    loadPopular(null);
+    loadSubscriptions(); // 초기 로딩 시 내 구독 리스트 가져오기
+  }, []);
+
+  // ... (기존 loadPopular 등) ...
 
   const handleSubscribe = async (e, video) => {
     e.stopPropagation();
@@ -173,8 +236,8 @@ export default function YoutubeBoard() {
 
     try {
       await subscribeChannel(video.channelId, video.channelTitle);
-      alert("✅ 구독 완료! '내 관심사' 탭이 곧 갱신됩니다.");
-      if (selectedCategory === 'custom') loadPopular('custom');
+      // alert("✅ 구독 완료! 사이드바에서 확인할 수 있습니다."); -> 연속 구독 위해 알림 제거
+      loadSubscriptions(); // 사이드바 리스트 갱신 & 버튼 UI 자동 변경
     } catch (err) {
       alert("구독 실패: 이미 구독중이거나 오류 발생.");
     }
@@ -186,9 +249,8 @@ export default function YoutubeBoard() {
 
     try {
       await unsubscribeChannel(channelId);
-      alert("✅ 구독 취소 완료");
-      if (selectedInterestChannel === channelId) setSelectedInterestChannel(null);
-      loadPopular('custom');
+      // alert("✅ 구독 취소 완료"); -> 알림 제거
+      loadSubscriptions(); // 사이드바 리스트 갱신 & 버튼 UI 자동 변경
     } catch (err) {
       alert("취소 실패");
     }
@@ -390,7 +452,61 @@ export default function YoutubeBoard() {
           </div>
         )}
 
+        {selectedCategory === 'my-subs' && (
+          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '16px', borderRadius: '12px', marginTop: '10px' }}>
+            <h3 style={{ fontSize: '1rem', marginBottom: '12px', color: '#ffd700' }}>❤️ 내가 구독한 채널</h3>
+            {mySubscriptions.length === 0 ? (
+              <p style={{ fontSize: '0.9rem', color: '#ccc', textAlign: 'center', padding: '20px' }}>
+                아직 구독한 채널이 없습니다.<br />
+                발굴 탭에서 관심있는 채널을 구독해보세요!
+              </p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr)))', gap: '12px' }}>
+                {mySubscriptions.map(ch => (
+                  <div
+                    key={ch.channel_id}
+                    style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '4px' }}>{ch.name}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#888', marginBottom: '8px' }}>
+                      구독일: {new Date(ch.subscribed_at).toLocaleDateString()}
+                    </div>
+                    {ch.keywords && (
+                      <div style={{ fontSize: '0.7rem', color: '#ffd700' }}>
+                        🏷️ {ch.keywords}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => window.open(`https://www.youtube.com/channel/${ch.channel_id}`, '_blank')}
+                      style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '6px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: '#ff0000',
+                        color: 'white',
+                        fontSize: '0.75rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      채널 방문
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <form onSubmit={handleSearch} className="youtube-search-bar" style={{ marginTop: '15px' }}>
+
           <input
             type="text"
             placeholder="좋아하는 영상 검색 (100점 소모)"
@@ -456,24 +572,6 @@ export default function YoutubeBoard() {
                   <div className="video-meta">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span className="channel-name">{video.channelTitle}</span>
-                      {/* 구독하지 않은 채널이면 + 버튼 표시 (단, interestChannels가 로드된 상태여야 함) */}
-                      {selectedCategory === 'custom' && !interestChannels.some(ch => ch.name === video.channelTitle) && (
-                        <PlusCircle
-                          size={14}
-                          color="#4cd137"
-                          style={{ cursor: 'pointer' }}
-                          onClick={(e) => handleSubscribe(e, video)}
-                        />
-                      )}
-                      {/* 검색 탭 등 다른 곳에서도 구독 가능하게 확장 가능 */}
-                      {selectedCategory !== 'custom' && selectedCategory !== 'dating' && !interestChannels.some(ch => ch.name === video.channelTitle) && (
-                        <PlusCircle
-                          size={14}
-                          color="#4cd137"
-                          style={{ cursor: 'pointer' }}
-                          onClick={(e) => handleSubscribe(e, video)}
-                        />
-                      )}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
                       {video.viewCount && (
@@ -487,6 +585,61 @@ export default function YoutubeBoard() {
                       </span>
                     </div>
                   </div>
+
+                  {/* 구독 버튼 (카드 하단에 눈에 띄게 배치) */}
+                  {!mySubscriptions.some(ch => ch.channel_id === video.channelId) && (
+                    <button
+                      onClick={(e) => handleSubscribe(e, video)}
+                      style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'linear-gradient(45deg, #4cd137, #44bd32)',
+                        color: 'white',
+                        fontSize: '0.85rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <PlusCircle size={16} /> 구독하기
+                    </button>
+                  )}
+                  {mySubscriptions.some(ch => ch.channel_id === video.channelId) && (
+                    <button
+                      onClick={(e) => handleUnsubscribe(e, video.channelId, video.channelTitle)}
+                      style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'rgba(255,255,255,0.1)',
+                        color: '#aaa',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.innerText = "💔 구독 취소";
+                        e.currentTarget.style.background = "#ff4757";
+                        e.currentTarget.style.color = "white";
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.innerText = "✓ 구독 중";
+                        e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                        e.currentTarget.style.color = "#aaa";
+                      }}
+                    >
+                      ✓ 구독 중
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -499,6 +652,89 @@ export default function YoutubeBoard() {
           onClose={() => setSelectedVideo(null)}
         />
       )}
+
+      {/* --- 우측 하단 플로팅 버튼 (사이드바 토글) --- */}
+      <button
+        onClick={() => setShowSidebar(!showSidebar)}
+        style={{
+          position: 'fixed',
+          bottom: '30px',
+          right: '30px',
+          zIndex: 1000,
+          background: showSidebar ? '#ff6b6b' : '#6c5ce7',
+          color: 'white',
+          border: 'none',
+          borderRadius: '50%',
+          width: '60px',
+          height: '60px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.3s ease'
+        }}
+      >
+        {showSidebar ? <XCircle size={30} /> : <div style={{ fontSize: '24px' }}>❤️</div>}
+      </button>
+
+      {/* --- 내 구독 사이드바 (Sliding Panel) --- */}
+      <div
+        className={`subscription-sidebar ${showSidebar ? 'open' : ''}`}
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: showSidebar ? 0 : '-320px', // 토글 애니메이션
+          width: '320px',
+          height: '100vh',
+          background: '#1e1e2e',
+          boxShadow: '-5px 0 15px rgba(0,0,0,0.5)',
+          padding: '20px',
+          zIndex: 999,
+          transition: 'right 0.3s ease-in-out',
+          overflowY: 'auto'
+        }}
+      >
+        <h3 style={{ marginTop: '40px', marginBottom: '20px', color: '#ff6b6b', borderBottom: '1px solid #333', paddingBottom: '10px' }}>
+          ❤️ 내 구독 리스트 ({mySubscriptions.length})
+        </h3>
+
+        {mySubscriptions.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#666', marginTop: '50px' }}>
+            <p>구독한 채널이 없습니다.</p>
+            <p style={{ fontSize: '0.8rem', marginTop: '10px' }}>관심사 탭에서 채널을 발굴하고<br />구독 버튼을 눌러보세요!</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {mySubscriptions.map(ch => (
+              <div key={ch.channel_id} style={{
+                background: 'rgba(255,255,255,0.05)',
+                padding: '12px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>
+                    {ch.name}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#888' }}>
+                    {new Date(ch.subscribed_at).toLocaleDateString()} 구독
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => handleUnsubscribe(e, ch.channel_id, ch.name)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff4757' }}
+                  title="구독 취소"
+                >
+                  <XCircle size={18} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
