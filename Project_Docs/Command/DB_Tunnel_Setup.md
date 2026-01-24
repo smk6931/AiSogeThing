@@ -12,6 +12,8 @@
 
 ssh -i "C:\Users\ssh\ssh-key-oracle.key" -L 5433:localhost:5432 -N ubuntu@168.107.52.201
 
+ssh -i "C:\Users\ssh\ssh-key-oracle.key" -L 5433:127.0.0.1:5432 -N ubuntu@168.107.52.201
+
 * 설명:
   - -L 5433:localhost:5432: 로컬 5433 포트를 서버의 localhost:5432로 포워딩
   - -N: 명령어 실행 없이 터널만 유지

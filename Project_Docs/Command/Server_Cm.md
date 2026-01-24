@@ -50,13 +50,11 @@ npm install
 4-1. 백엔드 실행 (8080 포트)
 cd ~/AiSogeThing/back
 pm2 start "source ../venv/bin/activate && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8080" --name "backend"
-
-http://168.107.52.201:8080/docs
+http://168.107.52.201:8080
 
 4-2. 프론트엔드 실행 (3000 포트)
 cd ~/AiSogeThing/front
 pm2 start "npm run dev -- --host 0.0.0.0 --port 3000" --name "frontend"
-
 http://168.107.52.201:3000
 
 [ 5. PM2 관리 명령어 ]

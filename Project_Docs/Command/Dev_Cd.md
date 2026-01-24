@@ -31,10 +31,14 @@
 
 [ 로컬 서버 실행 (Server Run) ]
 --------------------------------------------------------------------------------
-3. Next.js (Frontend)
+
+1. Python 가상환경 활성화
+   .\venv\Scripts\activate
+
+2. Next.js (Frontend)
    npm run dev
 
-4. FastAPI (Uvicorn)
+3. FastAPI (Uvicorn)
    python -m uvicorn main:app --reload --port 8001
 
 [ Git (자주 쓰는 명령어) ]
