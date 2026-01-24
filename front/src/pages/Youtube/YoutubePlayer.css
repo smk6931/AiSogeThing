@@ -8,15 +8,18 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 5000;
+  /* ChannelVideoModal(4000)보다 높게 */
   backdrop-filter: blur(5px);
   animation: fadeIn 0.2s ease-out;
 }
 
 .youtube-modal-content {
   position: relative;
-  width: 90%;
-  max-width: 900px;
+  width: 95%;
+  /* 더 넓게 */
+  max-width: 1200px;
+  /* PC에서 시원하게 보이도록 */
   background: black;
   border-radius: 12px;
   overflow: hidden;
