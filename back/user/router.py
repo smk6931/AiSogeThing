@@ -120,6 +120,17 @@ async def get_online_users_detail():
         "users": users
     }
 
+@router.get("/stats/all-users")
+async def get_all_users_detail():
+    """
+    전체 유저 목록 조회 (모달용 - 전체 탭)
+    """
+    users = await service.get_all_users_list(limit=50)
+    return {
+        "count": len(users),
+        "users": users
+    }
+
 @router.post("/logout")
 async def logout(current_user: Annotated[models.User, Depends(get_current_user)]):
     """

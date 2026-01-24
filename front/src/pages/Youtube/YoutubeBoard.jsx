@@ -27,7 +27,6 @@ export default function YoutubeBoard() {
     { id: null, name: '🔥 전체' },
     { id: 'dating', name: '💘 연애/코칭', special: true },
     { id: 'custom', name: '⭐ 내 관심사', special: true },
-    { id: 'my-subs', name: '❤️ 내 구독', special: true },
     { id: '1', name: '🎬 애니/영화' },
     { id: '2', name: '🚗 자동차' },
     { id: '10', name: '🎵 음악' },
@@ -65,13 +64,6 @@ export default function YoutubeBoard() {
         // 커스텀 관심사 (RSS)
         data = await getInterestYoutube(customKeyword || null);
         if (data.channels) setInterestChannels(data.channels);
-      } else if (categoryId === 'my-subs') {
-        // 내 구독 리스트
-        const subsData = await getMySubscriptions();
-        if (subsData.success && subsData.channels) {
-          setMySubscriptions(subsData.channels);
-          return; // 영상 목록은 표시하지 않고 채널만 표시
-        }
       } else {
         data = await getPopularYoutube(categoryId);
       }
@@ -419,91 +411,9 @@ export default function YoutubeBoard() {
               </button>
             </div>
 
-            {interestChannels.length > 0 && (
-              <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
-                <div style={{ fontSize: '0.8rem', color: '#ccc', marginBottom: '8px' }}>📺 발굴된 채널 ({interestChannels.length})</div>
-                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-                  <button
-                    className={`category-chip ${selectedInterestChannel === null ? 'active' : ''}`}
-                    onClick={() => setSelectedInterestChannel(null)}
-                    style={{ fontSize: '0.8rem', padding: '4px 12px', whiteSpace: 'nowrap' }}
-                  >
-                    전체
-                  </button>
-                  {interestChannels.map(ch => (
-                    <div key={ch.id} style={{ position: 'relative', display: 'inline-block' }}>
-                      <button
-                        className={`category-chip ${selectedInterestChannel === ch.id ? 'active' : ''}`}
-                        onClick={() => setSelectedInterestChannel(ch.id)}
-                        style={{ fontSize: '0.8rem', padding: '4px 28px 4px 12px', whiteSpace: 'nowrap' }}
-                      >
-                        {ch.name}
-                      </button>
-                      <XCircle
-                        size={14}
-                        style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', opacity: 0.7 }}
-                        onClick={(e) => handleUnsubscribe(e, ch.id, ch.name)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
-        {selectedCategory === 'my-subs' && (
-          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '16px', borderRadius: '12px', marginTop: '10px' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: '12px', color: '#ffd700' }}>❤️ 내가 구독한 채널</h3>
-            {mySubscriptions.length === 0 ? (
-              <p style={{ fontSize: '0.9rem', color: '#ccc', textAlign: 'center', padding: '20px' }}>
-                아직 구독한 채널이 없습니다.<br />
-                발굴 탭에서 관심있는 채널을 구독해보세요!
-              </p>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr)))', gap: '12px' }}>
-                {mySubscriptions.map(ch => (
-                  <div
-                    key={ch.channel_id}
-                    style={{
-                      background: 'rgba(255,255,255,0.05)',
-                      borderRadius: '12px',
-                      padding: '12px',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '4px' }}>{ch.name}</div>
-                    <div style={{ fontSize: '0.7rem', color: '#888', marginBottom: '8px' }}>
-                      구독일: {new Date(ch.subscribed_at).toLocaleDateString()}
-                    </div>
-                    {ch.keywords && (
-                      <div style={{ fontSize: '0.7rem', color: '#ffd700' }}>
-                        🏷️ {ch.keywords}
-                      </div>
-                    )}
-                    <button
-                      onClick={() => window.open(`https://www.youtube.com/channel/${ch.channel_id}`, '_blank')}
-                      style={{
-                        marginTop: '8px',
-                        width: '100%',
-                        padding: '6px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: '#ff0000',
-                        color: 'white',
-                        fontSize: '0.75rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      채널 방문
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         <form onSubmit={handleSearch} className="youtube-search-bar" style={{ marginTop: '15px' }}>
           <input

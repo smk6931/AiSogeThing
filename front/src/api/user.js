@@ -40,6 +40,11 @@ const userApi = {
     return await client.get('/api/auth/stats/online-users');
   },
 
+  // 전체 유저 리스트 조회
+  getAllUsers: async () => {
+    return await client.get('/api/auth/stats/all-users');
+  },
+
   // 생존 신호 전송 (Heartbeat)
   sendHeartbeat: async () => {
     return await client.post('/api/auth/heartbeat');

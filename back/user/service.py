@@ -93,6 +93,19 @@ async def get_online_users_list(minutes: int = 5):
     
     return await fetch_all(sql, {"limit_time": limit_time})
 
+async def get_all_users_list(limit: int = 50):
+    """
+    전체 유저 목록 조회 (최근 활동순, 오프라인 포함)
+    """
+    sql = """
+        SELECT id, uuid, nickname, email, last_active_at, created_at
+        FROM "user" 
+        WHERE is_active = true
+        ORDER BY COALESCE(last_active_at, created_at) DESC
+        LIMIT :limit
+    """
+    return await fetch_all(sql, {"limit": limit})
+
 async def mark_user_offline(user_id: int):
     """
     로그아웃 시 강제로 오프라인 처리 (시간을 과거로 돌림)
