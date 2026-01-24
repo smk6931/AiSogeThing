@@ -126,39 +126,48 @@
 }
 
 /* =========================================
-   새로운 스와이프 핸들바 (모바일 터치용)
+   다음 영상 버튼 (우측 플로팅)
    ========================================= */
-.swipe-handle-area {
+.next-video-btn {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
-  /* 터치 영역을 매우 크게 확보 (하단 20% 정도) */
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+  top: 50%;
+  right: 15px;
+  /* 화면 오른쪽 여백 */
+  transform: translateY(-50%);
+
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  /* 텍스트는 아래쪽에 */
   align-items: center;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-  font-weight: 600;
-  padding-bottom: 25px;
-  cursor: grab;
-  z-index: 200;
-  /* iframe보다 무조건 위! */
-  touch-action: none;
-  /* 브라우저 기본 스크롤 차단 */
-  pointer-events: auto;
-  /* 터치 이벤트 수신 */
+  justify-content: center;
+
+  cursor: pointer;
+  z-index: 100;
+  backdrop-filter: blur(5px);
+  transition: all 0.2s ease;
 }
 
-.swipe-bar-indicator {
-  width: 60px;
-  height: 6px;
-  background-color: rgba(255, 255, 255, 0.6);
-  border-radius: 3px;
-  margin-bottom: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+.next-video-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.next-video-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* 모바일에서는 버튼 크기와 위치 조정 */
+@media (max-width: 768px) {
+  .next-video-btn {
+    width: 60px;
+    height: 60px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.4);
+    /* 모바일에선 좀 더 진하게 */
+  }
 }
