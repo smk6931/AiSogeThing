@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // 상위폴더 경로 읽어오기 env
+  envDir: '../',
   plugins: [react()],
   server: {
     host: '0.0.0.0',
