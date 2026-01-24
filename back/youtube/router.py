@@ -44,7 +44,7 @@ def discover_dating_endpoint(req: DiscoverRequest):
 class VideoTimeSchema(BaseModel):
     log_id: int
     watched: int
-    total: int
+    total: int | None = None
 
 @router.post("/api/youtube/log")
 async def log_interaction_endpoint(

@@ -68,7 +68,7 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     // 시청 시작 (새 로그 생성)
     startTracking(videoId);
 
-    if (playerRef.current) {
+    if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
       // 이미 플레이어가 있으면 영상 로드
       playerRef.current.loadVideoById(videoId);
     } else {
