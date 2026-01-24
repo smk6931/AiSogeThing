@@ -57,6 +57,8 @@ export default function OnlineUsersModal({ isOpen, onClose }) {
             ) : (
               <div className="user-list">
                 {users.map((u) => {
+                  // 디버깅: 데이터 확인
+                  // console.log("User Item:", u); 
                   const isMe = currentUser && currentUser.user_id === u.id;
                   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nickname)}&background=667eea&color=fff&size=64`;
 
