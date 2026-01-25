@@ -13,12 +13,9 @@ import os
 # ===========================================================================
 from dotenv import load_dotenv
 
-# 1. 루트 경로의 .env 로드 (back 폴더 기준 상위 상위)
-env_path = os.path.join(os.getcwd(), '..', '.env') # cwd는 보통 back 폴더임 (alembic 실행 위치에 따라 다름)
-if not os.path.exists(env_path):
-    # 만약 cwd가 프로젝트 루트라면
-    env_path = os.path.join(os.getcwd(), '.env')
-
+# 1. 루트 경로의 .env 로드 (절대 경로)
+env_path = r"c:/GitHub/AiSogeThing/.env"
+print(f"📄 Loading .env from: {env_path}")
 load_dotenv(env_path)
 
 sys.path.append(os.getcwd())

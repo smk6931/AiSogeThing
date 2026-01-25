@@ -53,10 +53,10 @@ async def ensure_video_metadata(video_id: str, video_data: dict):
         ch_id = (video_data.get("channel_id") or "")[:100]
         
         # [New] 벡터 임베딩 생성 (Title + Description + Tags + Channel)
-        from core.embedding import get_embedding
+        from client.openai_client import get_embedding_openai
         tags_str = video_data.get("tags") or ""
         text_content = f"{title} {ch_title} {tags_str} {desc[:500]}"
-        embedding = await get_embedding(text_content)
+        embedding = await get_embedding_openai(text_content)
 
         await execute(
             """
@@ -659,8 +659,8 @@ async def add_channel(channel_id: str, name: str, keywords: str = None, category
         
         # 임베딩 생성 (Update시에도 정보가 바뀌면 갱신)
         text_content = f"{name} {keywords or ''} {category or ''} {description or ''}"
-        from core.embedding import get_embedding
-        embedding = await get_embedding(text_content)
+        from client.openai_client import get_embedding_openai
+        embedding = await get_embedding_openai(text_content)
 
         await execute(update_sql, {
             "cid": channel_id, 
@@ -674,8 +674,8 @@ async def add_channel(channel_id: str, name: str, keywords: str = None, category
     else:
         # Insert
         text_content = f"{name} {keywords or ''} {category or ''} {description or ''}"
-        from core.embedding import get_embedding
-        embedding = await get_embedding(text_content)
+        from client.openai_client import get_embedding_openai
+        embedding = await get_embedding_openai(text_content)
         
         insert_sql = """
             INSERT INTO youtube_channels (channel_id, name, keywords, category, thumbnail_url, description, embedding, created_at)
