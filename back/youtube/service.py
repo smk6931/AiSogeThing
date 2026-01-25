@@ -1,7 +1,10 @@
 from core.database import execute, fetch_one, fetch_all, insert_and_return
 from youtube import models
 import json
+from client.youtube_client import get_popular_videos
 from datetime import datetime
+from utils.safe_ops import safe_execute
+
 
 # ========================================================
 #  유튜브 시청 기록 및 로그 서비스
@@ -207,3 +210,217 @@ async def get_random_video():
         LIMIT 1
     """
     return await fetch_one(sql)
+
+async def collect_global_trends():
+    """
+    [CRON] 글로벌 인기 영상 대량 수집 (All-in-One 전략)
+    KR, US, JP 등 주요 국가의 카테고리별 인기 영상을 긁어서 DB에 저장.
+    Cost: API 호출 1회당 50개 영상 메타데이터(태그,길이,조회수) 획득 (가성비 최강)
+    """
+    target_countries = ['KR', 'US', 'JP']
+    # None(전체), 10(음악), 20(게임), 24(엔터), 17(스포츠), 25(뉴스)
+    target_categories = [None, '10', '20', '24'] 
+    
+    total_processed = 0
+    new_videos = 0
+    
+    print(f"🌍 [Collector] Starting global trend collection...")
+    
+    for country in target_countries:
+        for category in target_categories:
+            next_page_token = None
+            
+            # 카테고리당 최대 4페이지 (약 200개) 스캔
+            for page in range(4):
+                with safe_execute(f"Collection Error ({country}-{category})"):
+                    res = get_popular_videos(
+                        max_results=50, 
+                        region_code=country, 
+                        category_id=category, 
+                        page_token=next_page_token
+                    )
+                    
+                    if "error" in res:
+                        print(f"❌ API Error ({country}-{category}): {res['error']}")
+                        break
+                        
+                    items = res.get("items", [])
+                    if not items: break
+                    
+                    for item in items:
+                        vid = item['id']
+                        
+                        # 이미 있는지 확인
+                        check_sql = "SELECT id FROM youtube_list WHERE video_id = :vid"
+                        existing = await fetch_one(check_sql, {"vid": vid})
+                        
+                        tags_str = ",".join(item.get('tags', [])) if item.get('tags') else ""
+                        duration = str(item['duration'])
+                        is_short = 1 if (item['duration'] and item['duration'] <= 60) else 0
+                        
+                        # 날짜 파싱 (ISO 8601 -> datetime)
+                        pub_dt = None
+                        if item.get('publishedAt'):
+                            try:
+                                pub_dt = datetime.fromisoformat(item['publishedAt'].replace('Z', '+00:00'))
+                            except ValueError:
+                                pub_dt = datetime.now() # 파싱 실패 시 현재 시간
+
+                        if not existing:
+                            # 신규 저장
+                            insert_sql = """
+                                INSERT INTO youtube_list 
+                                (video_id, title, description, thumbnail_url, channel_title, channel_id, tags, duration, is_short, view_count, published_at, country_code, category_id)
+                                VALUES 
+                                (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :tags, :dur, :short, :views, :pub, :cc, :cat)
+                            """
+                            await execute(insert_sql, {
+                                "vid": vid,
+                                "title": item['title'],
+                                "desc": item['description'][:500] if item.get('description') else "", # 너무 길면 자름
+                                "thumb": item['thumbnail'],
+                                "ch_title": item['channelTitle'],
+                                "ch_id": item['channelId'],
+                                "tags": tags_str,
+                                "dur": duration,
+                                "short": is_short,
+                                "views": int(item['viewCount']) if item['viewCount'] else 0,
+                                "pub": pub_dt,
+                                "cc": country,
+                                "cat": item.get('categoryId')
+                            })
+                            new_videos += 1
+                        else:
+                            # 업데이트 (국가 정보 등 갱신)
+                            update_sql = """
+                                UPDATE youtube_list 
+                                SET view_count = :views,
+                                    tags = COALESCE(NULLIF(tags, ''), :tags),
+                                    duration = COALESCE(duration, :dur),
+                                    is_short = COALESCE(is_short, :short),
+                                    country_code = COALESCE(country_code, :cc),
+                                    category_id = COALESCE(category_id, :cat)
+                                WHERE video_id = :vid
+                            """
+                            await execute(update_sql, {
+                                "views": int(item['viewCount']) if item['viewCount'] else 0,
+                                "tags": tags_str,
+                                "dur": duration,
+                                "short": is_short,
+                                "vid": vid,
+                                "cc": country,
+                                "cat": item.get('categoryId')
+                            })
+                            
+                        total_processed += 1
+                        
+                    next_page_token = res.get("nextPageToken")
+                    if not next_page_token: break
+                    
+    print(f"🏁 [Collector] Finished. Scanned: {total_processed}, New: {new_videos}")
+    return {"status": "success", "processed": total_processed, "new": new_videos}
+
+async def collect_trend_one(country: str, category: str = None):
+    """
+    [Admin] 특정 국가/카테고리만 콕 집어서 수집 (200개)
+    Cost: 약 4 Unit
+    """
+    total_processed = 0
+    new_videos = 0
+    next_page_token = None
+    
+    # category가 'null' 문자열로 오면 None으로 변환
+    if category == 'null' or category == 'undefined':
+        category = None
+        
+    print(f"🎯 [Collector-One] Start {country} - {category}")
+
+    # 최대 4페이지 (약 200개) 스캔
+    for page in range(4):
+        with safe_execute(f"Collection Error ({country}-{category})"):
+            res = get_popular_videos(
+                max_results=50, 
+                region_code=country, 
+                category_id=category, 
+                page_token=next_page_token
+            )
+            
+            if "error" in res:
+                print(f"❌ API Error ({country}-{category}): {res['error']}")
+                break
+                
+            items = res.get("items", [])
+            if not items: break
+            
+            for item in items:
+                vid = item['id']
+                
+                # 이미 있는지 확인
+                check_sql = "SELECT id FROM youtube_list WHERE video_id = :vid"
+                existing = await fetch_one(check_sql, {"vid": vid})
+                
+                tags_str = ",".join(item.get('tags', [])) if item.get('tags') else ""
+                duration = str(item['duration'])
+                is_short = 1 if (item['duration'] and item['duration'] <= 60) else 0
+                
+                # 날짜 파싱 (ISO 8601 -> datetime)
+                pub_dt = None
+                if item.get('publishedAt'):
+                    try:
+                        pub_dt = datetime.fromisoformat(item['publishedAt'].replace('Z', '+00:00'))
+                    except ValueError:
+                        pub_dt = datetime.now()
+
+                if not existing:
+                    # 신규 저장
+                    insert_sql = """
+                        INSERT INTO youtube_list 
+                        (video_id, title, description, thumbnail_url, channel_title, channel_id, tags, duration, is_short, view_count, published_at, country_code, category_id)
+                        VALUES 
+                        (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :tags, :dur, :short, :views, :pub, :cc, :cat)
+                    """
+                    await execute(insert_sql, {
+                        "vid": vid,
+                        "title": item['title'],
+                        "desc": item['description'][:500] if item.get('description') else "", # 너무 길면 자름
+                        "thumb": item['thumbnail'],
+                        "ch_title": item['channelTitle'],
+                        "ch_id": item['channelId'],
+                        "tags": tags_str,
+                        "dur": duration,
+                        "short": is_short,
+                        "views": int(item['viewCount']) if item['viewCount'] else 0,
+                        "pub": pub_dt,
+                        "cc": country,
+                        "cat": item.get('categoryId')
+                    })
+                    new_videos += 1
+                else:
+                    # 업데이트
+                    update_sql = """
+                        UPDATE youtube_list 
+                        SET view_count = :views,
+                            tags = COALESCE(NULLIF(tags, ''), :tags),
+                            duration = COALESCE(duration, :dur),
+                            is_short = COALESCE(is_short, :short),
+                            country_code = COALESCE(country_code, :cc),
+                            category_id = COALESCE(category_id, :cat)
+                        WHERE video_id = :vid
+                    """
+                    await execute(update_sql, {
+                        "views": int(item['viewCount']) if item['viewCount'] else 0,
+                        "tags": tags_str,
+                        "dur": duration,
+                        "short": is_short,
+                        "vid": vid,
+                        "cc": country,
+                        "cat": item.get('categoryId')
+                    })
+                    
+                total_processed += 1
+                
+            next_page_token = res.get("nextPageToken")
+            if not next_page_token: break
+            
+    print(f"✅ [Collector-One] Finished. Scanned: {total_processed}, New: {new_videos}")
+    return {"status": "success", "processed": total_processed, "new": new_videos}

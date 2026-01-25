@@ -3,6 +3,7 @@ import { Search, PlayCircle, Eye, Sparkles, XCircle, PlusCircle } from 'lucide-r
 import { searchYoutube, getPopularYoutube, logYoutubeVideo, getDatingYoutube, discoverDatingChannels, discoverInterest, getInterestYoutube, subscribeChannel, unsubscribeChannel, getMySubscriptions, getAdhocRssVideos } from '../../api/youtube';
 import YoutubePlayer from './YoutubePlayer';
 import ApiInfo from '../../components/common/ApiInfo';
+import GlobalCollector from '../../components/GlobalCollector';
 import './YoutubeBoard.css';
 
 export default function YoutubeBoard() {
@@ -586,6 +587,9 @@ export default function YoutubeBoard() {
       >
         {showSidebar ? <XCircle size={30} /> : <div style={{ fontSize: '24px' }}>❤️</div>}
       </button>
+
+      {/* --- 관리자 수집기 --- */}
+      <GlobalCollector />
 
       {/* --- 내 구독 사이드바 (Sliding Panel) --- */}
       <div

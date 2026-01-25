@@ -71,6 +71,8 @@ def _parse_videos(items):
             "thumbnail": snippet.get('thumbnails', {}).get('medium', {}).get('url'),
             "channelTitle": snippet.get('channelTitle'),
             "channelId": snippet.get('channelId'),  # 채널 ID 추가 (구독 기능용)
+            "categoryId": snippet.get('categoryId'), # 카테고리 ID 추가
+            "tags": snippet.get('tags', []),        # 태그 추가 (취향 분석용)
             "publishedAt": snippet.get('publishedAt'),
             "viewCount": statistics.get('viewCount'),
             "duration": duration_sec,
@@ -207,15 +209,28 @@ def search_videos(query: str, max_results: int = 50):
     remaining, limit = _manage_quota(cost=100)
     return {"items": _parse_videos(data.get('items', [])), "meta": {"remaining": str(remaining), "limit": str(limit)}}
 
-def get_popular_videos(max_results: int = 50, category_id: str = None):
+def get_popular_videos(max_results: int = 50, category_id: str = None, region_code: str = 'KR', page_token: str = None):
     if not API_KEY: return {"error": "No Key"}
-    url = f"{BASE_URL}/videos?part=snippet,statistics,contentDetails&chart=mostPopular&maxResults={max_results}&regionCode=KR&key={API_KEY}"
-    if category_id: url += f"&videoCategoryId={category_id}"
+    
+    url = f"{BASE_URL}/videos?part=snippet,statistics,contentDetails&chart=mostPopular&maxResults={max_results}&regionCode={region_code}&key={API_KEY}"
+    
+    if category_id: 
+        url += f"&videoCategoryId={category_id}"
+    if page_token:
+        url += f"&pageToken={page_token}"
+        
     headers = {"Referer": "http://localhost:5173"}
     data, error = safe_http_get(url, headers=headers)
+    
     if error: return {"error": error}
+    
     remaining, limit = _manage_quota(cost=1)
-    return {"items": _parse_videos(data.get('items', [])), "meta": {"remaining": str(remaining), "limit": str(limit)}}
+    
+    return {
+        "items": _parse_videos(data.get('items', [])), 
+        "nextPageToken": data.get('nextPageToken'), # 다음 페이지 토큰
+        "meta": {"remaining": str(remaining), "limit": str(limit)}
+    }
 
 # =========================================================
 #  사용자 정의 관심사 RSS 로직 (Cost Optimization Strategy)

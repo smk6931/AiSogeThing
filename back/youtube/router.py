@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Annotated
 from youtube import service
@@ -248,3 +248,24 @@ async def get_random_video_endpoint(
     if not video:
         raise HTTPException(status_code=404, detail="저장된 영상이 없습니다.")
     return {"success": True, "video": video}
+
+@router.post("/api/youtube/admin/collect")
+async def collect_global_trends_endpoint(background_tasks: BackgroundTasks):
+    """
+    [Admin] 글로벌 인기 영상 수집기 실행
+    백그라운드에서 실행되므로 요청은 즉시 반환됨.
+    """
+    background_tasks.add_task(service.collect_global_trends)
+    return {"status": "started", "message": "Global trend collection started in background."}
+
+class CollectSpecificRequest(BaseModel):
+    country: str
+    category: str | None = None
+
+@router.post("/api/youtube/admin/collect-one")
+async def collect_one_trend_endpoint(req: CollectSpecificRequest, background_tasks: BackgroundTasks):
+    """
+    [Admin] 특정 국가/카테고리 수집 (점진적 수집)
+    """
+    background_tasks.add_task(service.collect_trend_one, req.country, req.category)
+    return {"status": "started", "message": f"Collect {req.country} - {req.category} started."}

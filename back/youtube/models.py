@@ -25,6 +25,9 @@ class YoutubeList(Base):
     description = Column(Text, nullable=True)                           # 설명
     thumbnail_url = Column(String, nullable=True)                       # 썸네일
     channel_title = Column(String, nullable=True)                       # 채널명
+    channel_id = Column(String, nullable=True)                          # 채널 ID
+    country_code = Column(String, nullable=True)                        # 수집 국가 (KR, US 등)
+    category_id = Column(String, nullable=True)                         # 카테고리 ID (10, 20 등)
     tags = Column(Text, nullable=True)                                  # 태그
     duration = Column(String, nullable=True)                            # 길이
     is_short = Column(Integer, nullable=True)                           # 쇼츠 여부 (1: 쇼츠, 0: 일반, NULL: 미확인)

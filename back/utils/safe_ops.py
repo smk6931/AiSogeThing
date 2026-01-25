@@ -54,3 +54,18 @@ def safe_http_get(url: str, headers: dict = None) -> tuple[dict, str]:
             return None, f"API 호출 실패: {response.status_code}, 상세: {response.text}"
     except Exception as e:
         return None, f"네트워크 오류: {str(e)}"
+
+from contextlib import contextmanager
+
+@contextmanager
+def safe_execute(error_msg="An error occurred"):
+    """
+    [Context Manager] 실행 중 예외가 발생해도 프로그램이 죽지 않도록 방어.
+    Usage:
+        with safe_execute("Description"):
+            ... risky code ...
+    """
+    try:
+        yield
+    except Exception as e:
+        print(f"⚠️ {error_msg}: {e}")
