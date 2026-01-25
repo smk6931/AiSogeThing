@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { Bot } from 'lucide-react';
 import userApi from '../../api/user';
 import OnlineUsersModal from '../common/OnlineUsersModal';
+import ChatbotWidget from '../ChatbotWidget';
 import './UserStatus.css';
 
 export default function UserStatus() {
   const { user } = useAuth();
   const [onlineCount, setOnlineCount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
   // 5초마다 접속자 수 조회 + Heartbeat 전송
   useEffect(() => {
@@ -47,12 +50,29 @@ export default function UserStatus() {
             <span className="online-count">{formattedCount}</span>명 접속 중
           </span>
         </button>
+
+        {/* AI 챗봇 아이콘 버튼 */}
+        <button
+          className="ai-chatbot-icon-btn"
+          onClick={() => setIsChatbotOpen(true)}
+          title="AI 도우미"
+        >
+          <Bot size={20} />
+        </button>
       </div>
 
       <OnlineUsersModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
+
+      {/* 챗봇 모달 */}
+      {isChatbotOpen && (
+        <ChatbotWidget
+          isOpen={isChatbotOpen}
+          onClose={() => setIsChatbotOpen(false)}
+        />
+      )}
     </>
   );
 }

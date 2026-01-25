@@ -18,7 +18,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <div className="app">
-          {/* 전역 미니 프로필 (로그인 상태) */}
+          {/* 전역 미니 프로필 (로그인 상태) + AI 챗봇 */}
           <UserStatus />
 
           <Routes>
