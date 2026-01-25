@@ -159,7 +159,7 @@ async def discover_channels_by_keyword(keyword: str):
     
     # 1. 유튜브에서 채널 검색 (RSS 검증된 알짜 채널)
     from client.youtube_client import discover_interest_channels
-    # 동기 함수라 safe_execute 필요 없으나, 블로킹 방지 위해 run_in_executor 권장되나 여기선 그냥 호출 (관리자용이므로)
+    # 단일 키워드 1회 검색 (Cost: 100)
     result = discover_interest_channels(keyword)
     
     if "error" in result:
@@ -168,39 +168,46 @@ async def discover_channels_by_keyword(keyword: str):
     channels = result.get("found_channels", [])[:30] # 상위 30개 제한
     print(f"📦 [Discovery] Found {len(channels)} validated channels.")
     
-    # 2. 임베딩 생성 준비
+    if not channels:
+         return {"message": "No channels found."}
+
+    # 2. 임베딩 생성 (Batch)
     texts = []
     for ch in channels:
         name = ch.get("name", "")
         desc = (ch.get("description") or "")[:300]
-        # 키워드도 포함
+        # 키워드 맥락 포함
         text = f"{name} {keyword} {desc}"
         texts.append(text)
         
-    # 3. 임베딩 생성
     from client.openai_client import get_embeddings_batch_openai
-    embeddings = await get_embeddings_batch_openai(texts)
+    try:
+        embeddings = await get_embeddings_batch_openai(texts)
+    except Exception as e:
+        print(f"❌ Embedding Gen Failed: {e}")
+        embeddings = [None] * len(channels)
     
-    if not embeddings:
-        return {"error": "Failed to generate embeddings"}
-        
-    # 4. DB 저장
+    # 3. DB 저장
     saved_count = 0
     for i, ch in enumerate(channels):
         try:
+            # 기본 SQL 준비
             sql = """
                 INSERT INTO youtube_channels (channel_id, name, keywords, category, thumbnail_url, description, embedding, created_at, updated_at)
                 VALUES (:cid, :name, :kw, :cat, :thumb, :desc, CAST(:embed AS vector), NOW(), NOW())
                 ON CONFLICT (channel_id) DO UPDATE SET
                     name = EXCLUDED.name,
-                    keywords = EXCLUDED.keywords,
+                    keywords = CASE 
+                        WHEN youtube_channels.keywords IS NULL OR youtube_channels.keywords = '' THEN EXCLUDED.keywords
+                        ELSE youtube_channels.keywords || ',' || EXCLUDED.keywords 
+                    END,
                     description = COALESCE(EXCLUDED.description, youtube_channels.description),
                     thumbnail_url = EXCLUDED.thumbnail_url,
-                    embedding = EXCLUDED.embedding,
+                    embedding = COALESCE(EXCLUDED.embedding, youtube_channels.embedding),
                     updated_at = NOW()
             """
             
-            vec = embeddings[i]
+            vec = embeddings[i] if embeddings and i < len(embeddings) else None
             vec_str = str(vec) if vec else None
             
             await execute(sql, {

@@ -1,27 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Tag, TrendingUp, Calendar } from 'lucide-react';
-import { getChannelsList, subscribeChannel, unsubscribeChannel } from '../../api/channelsApi';
+import React, { useState } from 'react';
+import { Search, Tag } from 'lucide-react';
+import { subscribeChannel, unsubscribeChannel } from '../../api/channelsApi';
+import searchAPI from '../../api/search';
 import './ChannelExplorer.css';
 
 export default function ChannelExplorer({ onChannelClick }) {
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
+  const [query, setQuery] = useState('');
+  const [searchIntent, setSearchIntent] = useState('');
 
-  useEffect(() => {
-    loadChannels();
-  }, [search, category]);
+  const handleSearch = async () => {
+    if (!query.trim()) return;
 
-  const loadChannels = async () => {
     setLoading(true);
     try {
-      const data = await getChannelsList({ search, category, limit: 50 });
-      setChannels(data.channels || []);
+      const data = await searchAPI.searchChannels(query);
+      setChannels(data.results || []);
+      setSearchIntent(data.intent);
+      console.log(`🔍 [SmartSearch] Intent: ${data.intent}, Results: ${data.results?.length || 0}`);
     } catch (error) {
-      console.error('Failed to load channels:', error);
+      console.error('Failed to search channels:', error);
+      setChannels([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
   };
 
@@ -32,39 +40,45 @@ export default function ChannelExplorer({ onChannelClick }) {
       } else {
         await subscribeChannel(channel.channel_id, channel.name);
       }
-      // Reload to update subscription status
-      loadChannels();
+      alert('구독 완료! 재검색하여 최신 상태를 확인하세요.');
     } catch (error) {
       console.error('Subscribe failed:', error);
     }
   };
 
+  const intentLabels = {
+    keyword: '🔍 키워드 검색',
+    personalized: '🎯 개인화 추천',
+    similar: '✨ 유사 콘텐츠',
+    analyze: '📊 성향 분석'
+  };
+
   return (
     <div className="channel-explorer">
-      {/* Search & Filter Bar */}
+      {/* Search Bar */}
       <div className="explorer-header">
         <div className="search-box">
           <Search size={20} className="search-icon" />
           <input
             type="text"
-            placeholder="채널명, 키워드로 검색..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            placeholder="채널 검색 (예: 추천해줘, 한문철, 한문철이랑 비슷한)"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyPress={handleKeyPress}
             className="search-input"
           />
+          <button className="search-btn" onClick={handleSearch} disabled={loading}>
+            {loading ? '검색중...' : '검색'}
+          </button>
         </div>
 
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="category-select"
-        >
-          <option value="">모든 카테고리</option>
-          <option value="Gaming">게임</option>
-          <option value="Music">음악</option>
-          <option value="Education">교육</option>
-          <option value="Entertainment">엔터테인먼트</option>
-        </select>
+        {/* Intent Badge */}
+        {searchIntent && (
+          <div className="intent-badge">
+            {intentLabels[searchIntent]}
+            <span className="result-count"> ({channels.length}개 결과)</span>
+          </div>
+        )}
       </div>
 
       {/* Channel Grid */}
@@ -72,16 +86,18 @@ export default function ChannelExplorer({ onChannelClick }) {
         {loading ? (
           <div className="loading-message">채널을 불러오는 중...</div>
         ) : channels.length === 0 ? (
-          <div className="empty-message">채널이 없습니다. 🔍</div>
+          <div className="empty-message">
+            검색어를 입력해보세요! 🔍
+            <br />
+            <small>예: "추천해줘", "한문철", "한문철이랑 비슷한"</small>
+          </div>
         ) : (
           channels.map((channel) => (
             <div key={channel.channel_id} className="channel-card">
-              {/* Channel Thumbnail/Profile */}
               <div className="channel-avatar">
                 {channel.name.charAt(0).toUpperCase()}
               </div>
 
-              {/* Channel Info */}
               <div className="channel-info">
                 <h3 className="channel-name" onClick={() => onChannelClick(channel)}>
                   {channel.name}
@@ -110,7 +126,6 @@ export default function ChannelExplorer({ onChannelClick }) {
                 )}
               </div>
 
-              {/* Subscribe Button */}
               <button
                 className={`subscribe-btn ${channel.is_subscribed ? 'subscribed' : ''}`}
                 onClick={() => handleSubscribe(channel)}

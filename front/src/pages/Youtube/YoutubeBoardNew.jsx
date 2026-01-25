@@ -4,15 +4,16 @@ import { getVideosFeed, getChannelsList, subscribeChannel, unsubscribeChannel } 
 import { getAdhocRssVideos } from '../../api/youtube';
 import YoutubePlayer from './YoutubePlayer';
 import GlobalCollector from '../../components/GlobalCollector';
+import ChannelExplorer from './ChannelExplorer';
 import './YoutubeBoardNew.css';
 
 export default function YoutubeBoard() {
-  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'channels' (2개만)
+  const [activeTab, setActiveTab] = useState('videos');
   const [selectedVideo, setSelectedVideo] = useState(null);
 
   return (
     <div className="youtube-main-container">
-      {/* Tab Switcher (2개만) */}
+      {/* Tab Switcher */}
       <div className="main-tab-switcher">
         <button
           className={`main-tab ${activeTab === 'videos' ? 'active' : ''}`}
@@ -34,7 +35,7 @@ export default function YoutubeBoard() {
         {activeTab === 'videos' ? (
           <VideoBrowser onVideoClick={setSelectedVideo} />
         ) : (
-          <ChannelManager />
+          <ChannelExplorer onChannelClick={(ch) => console.log('Channel clicked:', ch)} />
         )}
       </div>
 

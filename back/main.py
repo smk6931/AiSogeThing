@@ -5,6 +5,7 @@ from youtube.router import router as youtube_router
 from user.router import router as user_router
 from chatbot.router import router as chatbot_router
 from admin.router import router as admin_router
+from search.router import router as search_router
 
 app = FastAPI()
 
@@ -30,6 +31,7 @@ app.include_router(youtube_router)
 app.include_router(user_router)
 app.include_router(chatbot_router)
 app.include_router(admin_router)
+app.include_router(search_router)  # 스마트 검색 추가
 
 @app.get("/")
 def read_root():

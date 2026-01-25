@@ -415,13 +415,19 @@ async def collect_global_trends():
                             except ValueError:
                                 pub_dt = datetime.now() # 파싱 실패 시 현재 시간
 
+                        # 임베딩 생성 (Title + Channel + Tags + Desc)
+                        from client.openai_client import get_embedding_openai
+                        text_content = f"{item['title']} {item['channelTitle']} {tags_str} {item.get('description', '')[:300]}"
+                        embedding = await get_embedding_openai(text_content)
+                        embedding_str = str(embedding) if embedding else None
+
                         if not existing:
                             # 신규 저장
                             insert_sql = """
                                 INSERT INTO youtube_list 
-                                (video_id, title, description, thumbnail_url, channel_title, channel_id, tags, duration, is_short, view_count, published_at, country_code, category_id)
+                                (video_id, title, description, thumbnail_url, channel_title, channel_id, tags, duration, is_short, view_count, published_at, country_code, category_id, embedding, created_at)
                                 VALUES 
-                                (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :tags, :dur, :short, :views, :pub, :cc, :cat)
+                                (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :tags, :dur, :short, :views, :pub, :cc, :cat, CAST(:embed AS vector), NOW())
                             """
                             await execute(insert_sql, {
                                 "vid": vid,
@@ -436,11 +442,13 @@ async def collect_global_trends():
                                 "views": int(item['viewCount']) if item['viewCount'] else 0,
                                 "pub": pub_dt,
                                 "cc": country,
-                                "cat": item.get('categoryId')
+                                "cat": item.get('categoryId'),
+                                "embed": embedding_str
                             })
                             new_videos += 1
                         else:
                             # 업데이트 (국가 정보 등 갱신)
+                            # 임베딩은 이미 있으면 굳이 업데이트 안 함 (비용 절약) - 필요하면 COALESCE 사용
                             update_sql = """
                                 UPDATE youtube_list 
                                 SET view_count = :views,
@@ -448,7 +456,8 @@ async def collect_global_trends():
                                     duration = COALESCE(duration, :dur),
                                     is_short = COALESCE(is_short, :short),
                                     country_code = COALESCE(country_code, :cc),
-                                    category_id = COALESCE(category_id, :cat)
+                                    category_id = COALESCE(category_id, :cat),
+                                    embedding = COALESCE(embedding, CAST(:embed AS vector)) 
                                 WHERE video_id = :vid
                             """
                             await execute(update_sql, {
@@ -458,7 +467,8 @@ async def collect_global_trends():
                                 "short": is_short,
                                 "vid": vid,
                                 "cc": country,
-                                "cat": item.get('categoryId')
+                                "cat": item.get('categoryId'),
+                                "embed": embedding_str
                             })
                             
                         total_processed += 1
@@ -521,17 +531,24 @@ async def collect_trend_one(country: str, category: str = None):
                         pub_dt = datetime.now()
 
                     if not existing:
+                        # 임베딩 생성 (Title + Channel + Tags + Desc)
+                        from client.openai_client import get_embedding_openai
+                        text_content = f"{item['title']} {item['channelTitle']} {tags_str} {item.get('description', '')[:300]}"
+                        embedding = await get_embedding_openai(text_content)
+                        embedding_str = str(embedding) if embedding else None
+
                         # 신규/업데이트 (Upsert) + 중복체크 로그
                         upsert_sql = """
                             INSERT INTO youtube_list 
-                            (video_id, title, description, thumbnail_url, channel_title, channel_id, tags, duration, is_short, view_count, published_at, country_code, category_id)
+                            (video_id, title, description, thumbnail_url, channel_title, channel_id, tags, duration, is_short, view_count, published_at, country_code, category_id, embedding, created_at)
                             VALUES 
-                            (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :tags, :dur, :short, :views, :pub, :cc, :cat)
+                            (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :tags, :dur, :short, :views, :pub, :cc, :cat, CAST(:embed AS vector), NOW())
                             ON CONFLICT (video_id) DO UPDATE SET
                                 view_count = EXCLUDED.view_count,
                                 title = EXCLUDED.title,
                                 description = EXCLUDED.description,
                                 thumbnail_url = EXCLUDED.thumbnail_url,
+                                embedding = COALESCE(youtube_list.embedding, EXCLUDED.embedding),
                                 updated_at = NOW()
                             RETURNING (xmax::text = '0') as is_new
                         """
@@ -548,7 +565,8 @@ async def collect_trend_one(country: str, category: str = None):
                             "views": int(item['viewCount']) if item['viewCount'] else 0,
                             "pub": pub_dt,
                             "cc": country,
-                            "cat": item.get('categoryId')
+                            "cat": item.get('categoryId'),
+                            "embed": embedding_str
                         })
                         
                         if result and result.get('is_new'):
@@ -556,7 +574,18 @@ async def collect_trend_one(country: str, category: str = None):
                         else:
                             print(f"⚠️ [Duplicate] Video {vid} already exists. Updated info.")
                 else:
-                    # 업데이트
+                    # 업데이트 시에도 임베딩 없으면 추가
+                    embedding_str = None
+                    # 임베딩이 없는 경우에만 API 호출 (비용 절약)
+                    check_embed_sql = "SELECT embedding FROM youtube_list WHERE video_id = :vid"
+                    curr = await fetch_one(check_embed_sql, {"vid": vid})
+                    
+                    if not curr or not curr['embedding']:
+                         from client.openai_client import get_embedding_openai
+                         text_content = f"{item['title']} {item['channelTitle']} {tags_str} {item.get('description', '')[:300]}"
+                         embedding = await get_embedding_openai(text_content)
+                         embedding_str = str(embedding) if embedding else None
+
                     update_sql = """
                         UPDATE youtube_list 
                         SET view_count = :views,
@@ -564,7 +593,8 @@ async def collect_trend_one(country: str, category: str = None):
                             duration = COALESCE(duration, :dur),
                             is_short = COALESCE(is_short, :short),
                             country_code = COALESCE(country_code, :cc),
-                            category_id = COALESCE(category_id, :cat)
+                            category_id = COALESCE(category_id, :cat),
+                            embedding = COALESCE(embedding, CAST(:embed AS vector))
                         WHERE video_id = :vid
                     """
                     await execute(update_sql, {
@@ -574,7 +604,8 @@ async def collect_trend_one(country: str, category: str = None):
                         "short": is_short,
                         "vid": vid,
                         "cc": country,
-                        "cat": item.get('categoryId')
+                        "cat": item.get('categoryId'),
+                        "embed": embedding_str
                     })
                     
                 total_processed += 1
