@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Calendar, Eye } from 'lucide-react';
+import { TrendingUp, Calendar, Eye, UserPlus } from 'lucide-react';
 import { getVideosFeed } from '../../api/channelsApi';
 import './VideoFeed.css';
 
@@ -131,13 +131,13 @@ export default function VideoFeed({ onVideoClick }) {
                     <span className="channel-name">{video.channelTitle}</span>
                     <button
                       className="feed-subscribe-btn"
-                      title="구독하기"
+                      title="채널 구독 및 저장 (User Log)"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSubscribe(video);
                       }}
                     >
-                      +
+                      <UserPlus size={14} />
                     </button>
                   </div>
 

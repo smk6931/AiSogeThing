@@ -13,6 +13,7 @@ export default function GlobalCollector() {
 
   // 국가 목록
   const countries = [
+    { code: null, name: '🌍 전체' },
     { code: 'KR', name: '🇰🇷 한국' },
     { code: 'US', name: '🇺🇸 미국' },
     { code: 'JP', name: '🇯🇵 일본' },

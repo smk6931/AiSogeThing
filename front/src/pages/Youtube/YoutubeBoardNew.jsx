@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Video, List, Search, Filter, TrendingUp, Calendar, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { Video, List, Search, Filter, TrendingUp, Calendar, Tag, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import { getVideosFeed, getChannelsList, subscribeChannel, unsubscribeChannel } from '../../api/channelsApi';
 import { getAdhocRssVideos } from '../../api/youtube';
 import YoutubePlayer from './YoutubePlayer';
@@ -59,7 +59,7 @@ function VideoBrowser({ onVideoClick }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
-  const [country, setCountry] = useState('');
+  const [country, setCountry] = useState('KR');
   const [category, setCategory] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -76,6 +76,19 @@ function VideoBrowser({ onVideoClick }) {
       console.error('Failed to load videos:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubscribe = async (e, video) => {
+    e.stopPropagation();
+    try {
+      const channelId = video.channelId || video.channel_id; // API 응답 필드 확인 (camel or snake)
+      if (!channelId) return;
+
+      await subscribeChannel(channelId, video.channelTitle);
+      alert(`✅ "${video.channelTitle}" 채널을 구독했습니다!`);
+    } catch (error) {
+      console.error('Subscribe failed:', error);
     }
   };
 
@@ -116,18 +129,36 @@ function VideoBrowser({ onVideoClick }) {
           </div>
 
           <select value={country} onChange={(e) => setCountry(e.target.value)} className="filter-select">
-            <option value="">모든 국가</option>
+            <option value="">🌍 모든 국가</option>
             <option value="KR">🇰🇷 한국</option>
             <option value="US">🇺🇸 미국</option>
             <option value="JP">🇯🇵 일본</option>
+            <option value="CA">🇨🇦 캐나다</option>
+            <option value="GB">🇬🇧 영국</option>
+            <option value="AU">🇦🇺 호주</option>
+            <option value="DE">🇩🇪 독일</option>
+            <option value="FR">🇫🇷 프랑스</option>
+            <option value="VN">🇻🇳 베트남</option>
+            <option value="TH">🇹🇭 태국</option>
+            <option value="TW">🇹🇼 대만</option>
           </select>
 
           <select value={category} onChange={(e) => setCategory(e.target.value)} className="filter-select">
-            <option value="">모든 장르</option>
+            <option value="">🔥 모든 장르</option>
             <option value="10">🎵 음악</option>
             <option value="20">🎮 게임</option>
-            <option value="24">📺 엔터</option>
+            <option value="24">📺 엔터테인먼트</option>
+            <option value="23">🤣 코미디</option>
             <option value="17">⚽ 스포츠</option>
+            <option value="25">📰 뉴스/정치</option>
+            <option value="22">✨ 인물/블로그</option>
+            <option value="1">🎬 영화/애니</option>
+            <option value="26">💄 스타일/뷰티</option>
+            <option value="27">🏫 교육</option>
+            <option value="28">🚀 과학기술</option>
+            <option value="15">🐶 반려동물</option>
+            <option value="2">🚗 자동차</option>
+            <option value="19">✈️ 여행/이벤트</option>
           </select>
         </div>
       </div>
@@ -148,7 +179,16 @@ function VideoBrowser({ onVideoClick }) {
                 </div>
                 <div className="video-details">
                   <h4>{video.title}</h4>
-                  <p className="channel-name">{video.channelTitle}</p>
+                  <div className="channel-row-compact">
+                    <span className="channel-name-text">{video.channelTitle}</span>
+                    <button
+                      className="compact-sub-btn"
+                      onClick={(e) => handleSubscribe(e, video)}
+                      title="구독 및 저장"
+                    >
+                      <UserPlus size={16} />
+                    </button>
+                  </div>
                   <div className="video-stats-row">
                     <span>조회수 {formatViews(video.viewCount)}</span>
                     <span>{formatDate(video.publishedAt)}</span>

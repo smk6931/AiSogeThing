@@ -77,7 +77,11 @@ async def get_view_history_endpoint(
     """
     나의 시청 기록 조회
     """
-    return await service.get_view_history(current_user["id"])
+    try:
+        return await service.get_user_watch_history(current_user["id"], limit=20)
+    except Exception as e:
+        print(f"[History Error] {e}")
+        return [] # 에러 시 빈 배열 반환 (500 방지)
 
 @router.get("/api/youtube/taste")
 async def get_user_taste_endpoint(
@@ -427,6 +431,7 @@ async def get_my_subscriptions_endpoint(
     """
     channels = await service.get_my_channels(user_id=current_user["id"])
     return {"success": True, "channels": channels}
+
 
 # ========================================================
 #  Public Profile APIs (다른 사용자 정보 조회)

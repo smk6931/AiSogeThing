@@ -675,3 +675,16 @@
     transform: rotate(360deg);
   }
 }
+
+/* Dark Mode Select Options */
+.filter-select {
+  background-color: rgba(30, 30, 40, 0.8) !important;
+  color: white !important;
+  color-scheme: dark;
+}
+
+.filter-select option {
+  background-color: #1e1e28;
+  color: white;
+  padding: 10px;
+}

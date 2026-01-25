@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, Grid, Heart, LogOut, History, PlayCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getHistory } from '../../api/youtube';
+import { getHistory, getMySubscriptions } from '../../api/youtube';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import AuthModal from '../../components/common/AuthModal';
@@ -12,6 +12,7 @@ export default function MyPage() {
   const [activeTab, setActiveTab] = useState('feed');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [viewHistory, setViewHistory] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
 
   // 더미 데이터 (나중에 API 연동)
   const [posts] = useState([
@@ -20,12 +21,20 @@ export default function MyPage() {
     { id: 3, image: 'https://via.placeholder.com/300/1a1a1a', likes: 67 },
   ]);
 
-  // 시청 기록 조회
+  // 데이터 로드
   useEffect(() => {
-    if (user && activeTab === 'activity') {
+    if (!user) return;
+
+    if (activeTab === 'activity') {
       getHistory().then(data => {
         if (Array.isArray(data)) {
           setViewHistory(data);
+        }
+      }).catch(err => console.error(err));
+    } else if (activeTab === 'subscriptions') {
+      getMySubscriptions().then(data => {
+        if (data.channels) {
+          setSubscriptions(data.channels);
         }
       }).catch(err => console.error(err));
     }
@@ -77,8 +86,8 @@ export default function MyPage() {
               <div className="mypage__stat-label">시청 기록</div>
             </div>
             <div className="mypage__stat">
-              <div className="mypage__stat-value">0</div>
-              <div className="mypage__stat-label">매칭</div>
+              <div className="mypage__stat-value">{subscriptions.length || 0}</div>
+              <div className="mypage__stat-label">구독 채널</div>
             </div>
             <div className="mypage__stat">
               <div className="mypage__stat-value">0</div>
@@ -108,6 +117,13 @@ export default function MyPage() {
           >
             <History size={20} />
             <span>시청 기록</span>
+          </button>
+          <button
+            className={`mypage__tab ${activeTab === 'subscriptions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('subscriptions')}
+          >
+            <PlayCircle size={20} />
+            <span>구독 채널</span>
           </button>
           <button
             className={`mypage__tab ${activeTab === 'liked' ? 'active' : ''}`}
@@ -141,9 +157,34 @@ export default function MyPage() {
             </div>
           ))}
 
+          {activeTab === 'subscriptions' && subscriptions.map((ch, idx) => (
+            <div key={`${ch.channel_id}-${idx}`} className="mypage__post" onClick={() => window.open(`https://youtube.com/channel/${ch.channel_id}`, '_blank')}>
+              <img
+                src={ch.thumbnail_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(ch.name)}&background=random`}
+                alt={ch.name}
+                className="mypage__post-image"
+                style={{ objectFit: 'cover' }}
+              />
+              <div className="mypage__post-overlay">
+                <span style={{ fontSize: '0.9rem', fontWeight: 'bold', textAlign: 'center', padding: '0 10px' }}>
+                  {ch.name}
+                </span>
+                <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>
+                  {new Date(ch.subscribed_at).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          ))}
+
           {activeTab === 'activity' && viewHistory.length === 0 && (
             <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: '#888' }}>
               아직 시청 기록이 없어요 😢<br /> 유튜브 라운지에서 영상을 시청해보세요!
+            </div>
+          )}
+
+          {activeTab === 'subscriptions' && subscriptions.length === 0 && (
+            <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: '#888' }}>
+              아직 구독한 채널이 없어요 📺<br /> 마음에 드는 채널을 구독해보세요!
             </div>
           )}
         </div>

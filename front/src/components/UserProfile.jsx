@@ -240,26 +240,66 @@ export default function UserProfile({ userId, onClose }) {
                 {subscriptions.length === 0 ? (
                   <p style={{ textAlign: 'center', color: '#888' }}>구독 채널이 없습니다.</p>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '16px' }}>
                     {subscriptions.map((ch, idx) => (
                       <div
                         key={idx}
                         className="subscription-item-card"
                         onClick={() => setSelectedChannel({ id: ch.channel_id, name: ch.name })}
                         style={{
-                          background: 'rgba(255,255,255,0.05)',
-                          padding: '10px',
-                          borderRadius: '8px',
-                          textAlign: 'center',
+                          position: 'relative',
+                          aspectRatio: '1/1',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
                           cursor: 'pointer',
-                          transition: 'all 0.2s'
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                          border: '1px solid rgba(255,255,255,0.1)'
                         }}
                       >
-                        <div style={{ fontWeight: 'bold', fontSize: '0.85rem', marginBottom: '5px' }}>
+                        {ch.thumbnail_url ? (
+                          <img
+                            src={ch.thumbnail_url}
+                            alt={ch.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              transition: 'transform 0.3s'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            background: '#333',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '2rem',
+                            fontWeight: 'bold',
+                            color: '#666'
+                          }}>
+                            {ch.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+
+                        {/* 텍스트 오버레이 (검정 박스 + 흰색 글씨) */}
+                        <div style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          width: '100%',
+                          background: 'rgba(0, 0, 0, 0.7)',
+                          color: 'white',
+                          padding: '8px',
+                          textAlign: 'center',
+                          fontSize: '0.85rem',
+                          fontWeight: 'bold',
+                          backdropFilter: 'blur(2px)'
+                        }}>
                           {ch.name}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: '#888' }}>
-                          {new Date(ch.subscribed_at).toLocaleDateString()}
                         </div>
                       </div>
                     ))}

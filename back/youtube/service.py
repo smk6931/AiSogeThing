@@ -176,21 +176,25 @@ async def update_video_time(log_id: int, watched: int, total: int = None):
 
 async def get_user_watch_history(user_id: int, limit: int = 50):
     """
-    유저 시청 기록 조회 (최신순, 중복 제거)
+    유저 시청 기록 조회 (최신순, 중복 제거 - 개선된 쿼리)
     """
     sql = """
+        WITH RecentLogs AS (
+            SELECT video_id, MAX(updated_at) as watched_at
+            FROM user_youtube_logs
+            WHERE user_id = :uid
+            GROUP BY video_id
+        )
         SELECT 
-            l.video_id,
-            MAX(l.updated_at) as watched_at,  -- 가장 최근 시청 시간
+            r.video_id,
+            r.watched_at,
             yl.title,
             yl.thumbnail_url,
             yl.channel_title,
             yl.duration
-        FROM user_youtube_logs l
-        JOIN youtube_list yl ON l.video_id = yl.video_id
-        WHERE l.user_id = :uid
-        GROUP BY l.video_id, yl.title, yl.thumbnail_url, yl.channel_title, yl.duration
-        ORDER BY watched_at DESC
+        FROM RecentLogs r
+        JOIN youtube_list yl ON r.video_id = yl.video_id
+        ORDER BY r.watched_at DESC
         LIMIT :limit
     """
     rows = await fetch_all(sql, {"uid": user_id, "limit": limit})
@@ -215,27 +219,62 @@ async def subscribe_channel(user_id: int, channel_data: dict, keyword: str = "")
     if not channel_id or not channel_name:
         return {"error": "Invalid channel data"}
 
-    # 1. 채널 테이블 확인 및 캐싱
-    check_ch_sql = "SELECT id, keywords FROM youtube_channels WHERE channel_id = :cid"
+    # 1. 채널 정보 확보 (DB -> Input -> API)
+    check_ch_sql = "SELECT id, name, thumbnail_url, description FROM youtube_channels WHERE channel_id = :cid"
     existing_ch = await fetch_one(check_ch_sql, {"cid": channel_id})
 
+    # 메타데이터가 부족하면 API 호출 시도 (JIT Enrichment)
+    need_api_fetch = False
+    
     if not existing_ch:
-        # 신규 채널 등록 (키워드, 썸네일도 함께 저장)
-        await execute(
+        # DB에 아예 없으면 -> API 호출 필수 (썸네일/설명 확보)
+        need_api_fetch = True
+    elif not existing_ch.get("thumbnail_url"):
+        # DB에 있는데 썸네일이 없으면 -> API 호출
+        need_api_fetch = True
+        
+    description = ""
+
+    # Input data에 이미 고화질 썸네일이 있다면 API 호출 생략 가능
+    if not thumbnail and need_api_fetch:
+         # API 호출
+         from client.youtube_client import fetch_channel_metadata
+         meta = fetch_channel_metadata(channel_id) # 동기 호출 주의 (requests 사용중) -> async 래핑 필요하지만 일단 호출
+         if meta:
+             channel_name = meta.get("name") or channel_name
+             thumbnail = meta.get("thumbnail") or thumbnail
+             description = meta.get("description") or ""
+
+    # Upsert Channel
+    if not existing_ch:
+         await execute(
             """
-            INSERT INTO youtube_channels (channel_id, name, keywords, thumbnail_url)
-            VALUES (:cid, :name, :kw, :thumb)
+            INSERT INTO youtube_channels (channel_id, name, keywords, thumbnail_url, description, created_at)
+            VALUES (:cid, :name, :kw, :thumb, :desc, NOW())
             """,
             {
                 "cid": channel_id,
                 "name": channel_name,
                 "kw": keyword,
-                "thumb": thumbnail
+                "thumb": thumbnail,
+                "desc": description
             }
         )
     else:
-        # 기존 채널이면 pass (추후 키워드 업데이트 로직 추가 가능)
-        pass
+        # 정보 보강 (썸네일/설명이 비어있거나 업데이트 필요시)
+        updates = {}
+        if thumbnail and thumbnail != existing_ch.get("thumbnail_url"):
+            updates["thumbnail_url"] = thumbnail
+        if description and description != existing_ch.get("description"):
+            updates["description"] = description
+            
+        if updates:
+             set_clause = ", ".join([f"{k} = :{k}" for k in updates.keys()])
+             updates["cid"] = channel_id
+             await execute(
+                f"UPDATE youtube_channels SET {set_clause}, updated_at = NOW() WHERE channel_id = :cid",
+                updates
+            )
 
     # 2. 유저 구독 로그 저장 (이미 구독했는지 확인)
     check_sub_sql = """
@@ -471,30 +510,41 @@ async def collect_trend_one(country: str, category: str = None):
                     except ValueError:
                         pub_dt = datetime.now()
 
-                if not existing:
-                    # 신규 저장
-                    insert_sql = """
-                        INSERT INTO youtube_list 
-                        (video_id, title, description, thumbnail_url, channel_title, channel_id, tags, duration, is_short, view_count, published_at, country_code, category_id)
-                        VALUES 
-                        (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :tags, :dur, :short, :views, :pub, :cc, :cat)
-                    """
-                    await execute(insert_sql, {
-                        "vid": vid,
-                        "title": item['title'],
-                        "desc": item['description'][:500] if item.get('description') else "", # 너무 길면 자름
-                        "thumb": item['thumbnail'],
-                        "ch_title": item['channelTitle'],
-                        "ch_id": item['channelId'],
-                        "tags": tags_str,
-                        "dur": duration,
-                        "short": is_short,
-                        "views": int(item['viewCount']) if item['viewCount'] else 0,
-                        "pub": pub_dt,
-                        "cc": country,
-                        "cat": item.get('categoryId')
-                    })
-                    new_videos += 1
+                    if not existing:
+                        # 신규/업데이트 (Upsert) + 중복체크 로그
+                        upsert_sql = """
+                            INSERT INTO youtube_list 
+                            (video_id, title, description, thumbnail_url, channel_title, channel_id, tags, duration, is_short, view_count, published_at, country_code, category_id)
+                            VALUES 
+                            (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :tags, :dur, :short, :views, :pub, :cc, :cat)
+                            ON CONFLICT (video_id) DO UPDATE SET
+                                view_count = EXCLUDED.view_count,
+                                title = EXCLUDED.title,
+                                description = EXCLUDED.description,
+                                thumbnail_url = EXCLUDED.thumbnail_url,
+                                updated_at = NOW()
+                            RETURNING (xmax::text = '0') as is_new
+                        """
+                        result = await insert_and_return(upsert_sql, {
+                            "vid": vid,
+                            "title": item['title'],
+                            "desc": item['description'][:500] if item.get('description') else "", 
+                            "thumb": item['thumbnail'],
+                            "ch_title": item['channelTitle'],
+                            "ch_id": item['channelId'],
+                            "tags": tags_str,
+                            "dur": duration,
+                            "short": is_short,
+                            "views": int(item['viewCount']) if item['viewCount'] else 0,
+                            "pub": pub_dt,
+                            "cc": country,
+                            "cat": item.get('categoryId')
+                        })
+                        
+                        if result and result.get('is_new'):
+                            new_videos += 1
+                        else:
+                            print(f"⚠️ [Duplicate] Video {vid} already exists. Updated info.")
                 else:
                     # 업데이트
                     update_sql = """
@@ -556,18 +606,20 @@ async def get_collected_videos(country: str = None, category: str = None, limit:
     
     sql = f"""
         SELECT 
-            video_id as id, 
-            title, 
-            description, 
-            thumbnail_url as thumbnail, 
-            channel_title as "channelTitle", 
-            channel_id as "channelId", 
-            published_at as "publishedAt", 
-            view_count as "viewCount", 
-            duration, 
-            is_short as "isShort",
-            tags
-        FROM youtube_list 
+            l.video_id as id, 
+            l.title, 
+            l.description, 
+            l.thumbnail_url as thumbnail, 
+            l.channel_title as "channelTitle", 
+            l.channel_id as "channelId", 
+            l.published_at as "publishedAt", 
+            l.view_count as "viewCount", 
+            l.duration, 
+            l.is_short as "isShort",
+            l.tags,
+            c.thumbnail_url as "channelThumbnail"
+        FROM youtube_list l
+        LEFT JOIN youtube_channels c ON l.channel_id = c.channel_id
         {where_str}
         {order_clause}
         LIMIT :limit OFFSET :offset
