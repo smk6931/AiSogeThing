@@ -319,6 +319,54 @@ async def get_live_search_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/api/youtube/search/channels")
+async def search_channels_endpoint(
+    query: str,
+    limit: int = 15
+):
+    """
+    채널 검색 (Admin 수집용)
+    """
+    try:
+        from client.youtube_client import discover_interest_channels
+        
+        print(f"[Channel Search] Keyword: {query}")
+        result = discover_interest_channels(query)
+        
+        # 에러 체크
+        if "error" in result:
+            print(f"[Channel Search] Error: {result['error']}")
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        # 채널 리스트 추출 (키 이름 확인!)
+        channels = result.get("found_channels", [])
+        print(f"[Channel Search] Found {len(channels)} channels")
+        
+        # 채널명 로깅
+        for ch in channels:
+            print(f"  - {ch.get('name', 'Unknown')} (ID: {ch.get('id', 'N/A')})")
+        
+        # 썸네일 추가 (YouTube 기본 썸네일 URL)
+        enriched_channels = []
+        for ch in channels:
+            enriched_channels.append({
+                "id": ch["id"],
+                "name": ch["name"],
+                "keyword": ch.get("keyword", query),
+                "thumbnail": f"https://yt3.ggpht.com/ytc/default_profile.jpg"  # 기본 썸네일
+            })
+        
+        return {
+            "channels": enriched_channels,
+            "meta": result.get("meta", {})
+        }
+    except Exception as e:
+        print(f"[Channel Search] Exception: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 class RssRequest(BaseModel):
     channels: list[dict] # [{id: '...', name: '...'}, ...]

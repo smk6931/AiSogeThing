@@ -1,49 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { Video, List, Search, Filter, TrendingUp, Calendar, Tag, Sparkles, ChevronDown, ChevronUp, Globe, Download, Check, Loader } from 'lucide-react';
-import { getVideosFeed, getChannelsList, subscribeChannel, unsubscribeChannel, getLiveVideos } from '../../api/channelsApi';
-import { discoverInterest, getAdhocRssVideos } from '../../api/youtube';
-import client from '../../api/client';
+import { Video, List, Search, Filter, TrendingUp, Calendar, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { getVideosFeed, getChannelsList, subscribeChannel, unsubscribeChannel } from '../../api/channelsApi';
+import { getAdhocRssVideos } from '../../api/youtube';
 import YoutubePlayer from './YoutubePlayer';
+import GlobalCollector from '../../components/GlobalCollector';
 import './YoutubeBoardNew.css';
 
 export default function YoutubeBoard() {
-  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'channels'
+  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'channels' (2개만)
   const [selectedVideo, setSelectedVideo] = useState(null);
 
   return (
     <div className="youtube-main-container">
-      {/* Tab Switcher */}
+      {/* Tab Switcher (2개만) */}
       <div className="main-tab-switcher">
         <button
           className={`main-tab ${activeTab === 'videos' ? 'active' : ''}`}
           onClick={() => setActiveTab('videos')}
         >
           <Video size={20} />
-          영상 보기
+          영상
         </button>
         <button
           className={`main-tab ${activeTab === 'channels' ? 'active' : ''}`}
           onClick={() => setActiveTab('channels')}
         >
           <List size={20} />
-          채널 관리
-        </button>
-        <button
-          className={`main-tab ${activeTab === 'explorer' ? 'active' : ''}`}
-          onClick={() => setActiveTab('explorer')}
-        >
-          <Globe size={20} />
-          API 탐색
+          채널
         </button>
       </div>
 
       <div className="main-content-area">
         {activeTab === 'videos' ? (
           <VideoBrowser onVideoClick={setSelectedVideo} />
-        ) : activeTab === 'channels' ? (
-          <ChannelManager />
         ) : (
-          <ApiExplorer onVideoClick={setSelectedVideo} />
+          <ChannelManager />
         )}
       </div>
 
@@ -56,6 +47,9 @@ export default function YoutubeBoard() {
           </div>
         </div>
       )}
+
+      {/* Admin Collection Modal */}
+      <GlobalCollector />
     </div>
   );
 }
@@ -174,7 +168,6 @@ function ChannelManager() {
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [discoveryKeyword, setDiscoveryKeyword] = useState('');
   const [expandedChannel, setExpandedChannel] = useState(null); // 확장된 채널 ID
   const [channelVideos, setChannelVideos] = useState({}); // {channelId: [videos]}
 
@@ -194,25 +187,7 @@ function ChannelManager() {
     }
   };
 
-  const handleDiscovery = async () => {
-    if (!discoveryKeyword.trim()) return alert('키워드를 입력해주세요');
 
-    if (!confirm(`AI가 "${discoveryKeyword}" 관련 채널을 찾습니다.\n(API 100점 소모)`)) return;
-
-    setLoading(true);
-    try {
-      const res = await discoverInterest(discoveryKeyword);
-      if (res.channels) {
-        alert(`✨ ${res.channels.length}개 채널 발굴 완료!`);
-        loadChannels(); // Refresh
-      }
-    } catch (error) {
-      alert('발굴 실패');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubscribe = async (channel) => {
     try {
@@ -258,25 +233,6 @@ function ChannelManager() {
 
   return (
     <div className="channel-manager-section">
-      {/* Discovery Panel */}
-      <div className="discovery-panel">
-        <div className="discovery-header">
-          <Sparkles size={24} color="#ff6b6b" />
-          <h3>AI 채널 발굴</h3>
-        </div>
-        <div className="discovery-input-group">
-          <input
-            type="text"
-            placeholder="관심사 입력 (예: EPL 축구, 주식)"
-            value={discoveryKeyword}
-            onChange={(e) => setDiscoveryKeyword(e.target.value)}
-          />
-          <button onClick={handleDiscovery} disabled={loading}>
-            {loading ? '검색중...' : '🔍 발굴'}
-          </button>
-        </div>
-      </div>
-
       {/* Channel List */}
       <div className="channel-list-panel">
         <div className="channel-search-bar">
@@ -367,136 +323,6 @@ function ChannelManager() {
   );
 }
 
-// ========== Section 3: API 탐색 (Live) ==========
-function ApiExplorer({ onVideoClick }) {
-  const [activeCountry, setActiveCountry] = useState('KR');
-  const [activeCategory, setActiveCategory] = useState('');
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [collecting, setCollecting] = useState(false);
-
-  const countries = [
-    { code: 'KR', name: '🇰🇷 한국' },
-    { code: 'US', name: '🇺🇸 미국' },
-    { code: 'JP', name: '🇯🇵 일본' },
-    { code: 'TH', name: '🇹🇭 태국' },
-    { code: 'VN', name: '🇻🇳 베트남' },
-    { code: 'GB', name: '🇬🇧 영국' },
-  ];
-
-  const categories = [
-    { id: '', name: '🔥 전체 인기' },
-    { id: '10', name: '🎵 음악' },
-    { id: '20', name: '🎮 게임' },
-    { id: '17', name: '⚽ 스포츠' },
-    { id: '24', name: '📺 엔터' },
-    { id: '25', name: '📰 뉴스' },
-    { id: '1', name: '🎬 애니/영화' },
-  ];
-
-  const handleFetch = async () => {
-    setLoading(true);
-    try {
-      const result = await getLiveVideos({ country: activeCountry, category: activeCategory });
-      setVideos(result.videos || []);
-    } catch (error) {
-      console.error(error);
-      alert('API 호출 실패');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCollect = async () => {
-    if (!confirm('이 목록의 영상들을 DB에 수집하시겠습니까? (Admin Only)')) return;
-
-    setCollecting(true);
-    try {
-      await client.post('/api/youtube/admin/collect-one', {
-        country: activeCountry,
-        category: activeCategory || null
-      });
-      alert('✅ 수집 완료! "영상 보기" 탭에서 확인할 수 있습니다.');
-    } catch (error) {
-      console.error(error);
-      alert('수집 실패');
-    } finally {
-      setCollecting(false);
-    }
-  };
-
-  return (
-    <div className="api-explorer-section">
-      <div className="explorer-controls">
-        <label>국가 선택</label>
-        <div className="pill-group">
-          {countries.map(c => (
-            <button
-              key={c.code}
-              className={`pill-btn ${activeCountry === c.code ? 'active' : ''}`}
-              onClick={() => setActiveCountry(c.code)}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
-
-        <label style={{ marginTop: '16px' }}>카테고리 선택</label>
-        <div className="pill-group">
-          {categories.map(c => (
-            <button
-              key={c.id}
-              className={`pill-btn ${activeCategory === c.id ? 'active' : ''}`}
-              onClick={() => setActiveCategory(c.id)}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
-
-        <div className="action-row">
-          <button className="primary-btn" onClick={handleFetch} disabled={loading}>
-            {loading ? <Loader className="spin" /> : <Search size={18} />}
-            실시간 탐색 (API)
-          </button>
-
-          {videos.length > 0 && (
-            <button className="secondary-btn" onClick={handleCollect} disabled={collecting}>
-              {collecting ? <Loader className="spin" /> : <Download size={18} />}
-              DB 수집
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="video-grid-container">
-        {loading ? (
-          <div className="loading-msg">YouTube API 호출 중... 📡</div>
-        ) : videos.length === 0 ? (
-          <div className="empty-msg">조건을 선택하고 탐색해보세요!</div>
-        ) : (
-          <div className="video-grid">
-            {videos.map((video) => (
-              <div key={video.id} className="video-card-item" onClick={() => onVideoClick(video)}>
-                <div className="video-thumb">
-                  <img src={video.thumbnail} alt={video.title} />
-                </div>
-                <div className="video-details">
-                  <h4>{video.title}</h4>
-                  <p className="channel-name">{video.channelTitle}</p>
-                  <div className="video-stats-row">
-                    <span>조회수 {formatViews(video.viewCount)}</span>
-                    <span style={{ color: '#ff6b6b' }}>Live API</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // Helpers
 function formatViews(count) {
