@@ -526,12 +526,14 @@ async def get_random_video(seed: int = None):
     sql = "SELECT * FROM youtube_list ORDER BY RANDOM() LIMIT 1"
     return await fetch_one(sql)
 
-async def get_collected_videos(country: str = None, category: str = None, limit: int = 50):
+async def get_collected_videos(country: str = None, category: str = None, limit: int = 50, offset: int = 0, sort_by: str = "newest"):
     """
-    DB에 수집된 영상 목록 조회 (Admin Collect 결과물)
+    DB에 수집된 영상 목록 조회 (New UI용)
+    - sort_by: "newest" (최신순) | "popular" (조회수순)
+    - offset: 페이징 offset
     """
     where_clauses = []
-    params = {"limit": limit}
+    params = {"limit": limit, "offset": offset}
     
     # 1. 국가 필터
     if country:
@@ -544,6 +546,9 @@ async def get_collected_videos(country: str = None, category: str = None, limit:
         params["category"] = category
         
     where_str = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+    
+    # 3. 정렬 결정
+    order_clause = "ORDER BY published_at DESC" if sort_by == "newest" else "ORDER BY view_count DESC NULLS LAST"
     
     sql = f"""
         SELECT 
@@ -560,8 +565,8 @@ async def get_collected_videos(country: str = None, category: str = None, limit:
             tags
         FROM youtube_list 
         {where_str}
-        ORDER BY published_at DESC 
-        LIMIT :limit
+        {order_clause}
+        LIMIT :limit OFFSET :offset
     """
     
     rows = await fetch_all(sql, params)

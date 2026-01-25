@@ -168,6 +168,129 @@ async def subscribe_channel_endpoint(
         keyword="Direct Subscribe" # 직접 구독 표기
     )
 
+# =========================================================
+#  채널 발굴 & 리스트 API (New UI)
+# =========================================================
+
+@router.get("/api/youtube/channels/list")
+async def get_channels_list_endpoint(
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    search: str = None,
+    category: str = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """
+    채널 리스트 조회 (발굴된 채널 + 구독 정보)
+    - search: 채널명 또는 키워드 검색
+    - category: 카테고리 필터
+    - limit/offset: 페이징
+    """
+    where_clauses = []
+    params = {"limit": limit, "offset": offset, "user_id": current_user["id"]}
+    
+    if search:
+        where_clauses.append("(c.name ILIKE :search OR c.keywords ILIKE :search OR c.description ILIKE :search)")
+        params["search"] = f"%{search}%"
+    
+    if category:
+        where_clauses.append("c.category = :category")
+        params["category"] = category
+    
+    where_str = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+    
+    sql = f"""
+        SELECT 
+            c.channel_id,
+            c.name,
+            c.keywords,
+            c.category,
+            c.description,
+            c.created_at,
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END as is_subscribed
+        FROM youtube_channels c
+        LEFT JOIN user_logs ul ON ul.content_id = c.channel_id 
+            AND ul.user_id = :user_id 
+            AND ul.content_type = 'youtube_channel' 
+            AND ul.action = 'subscribe'
+        {where_str}
+        ORDER BY c.created_at DESC
+        LIMIT :limit OFFSET :offset
+    """
+    
+    channels = await fetch_all(sql, params)
+    
+    return {
+        "channels": [dict(ch) for ch in channels],
+        "count": len(channels),
+        "offset": offset,
+        "limit": limit
+    }
+
+@router.get("/api/youtube/channels/{channel_id}")
+async def get_channel_detail_endpoint(
+    channel_id: str,
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    특정 채널 상세 정보 조회
+    """
+    sql = """
+        SELECT 
+            c.channel_id,
+            c.name,
+            c.keywords,
+            c.category,
+            c.description,
+            c.created_at,
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END as is_subscribed
+        FROM youtube_channels c
+        LEFT JOIN user_logs ul ON ul.content_id = c.channel_id 
+            AND ul.user_id = :user_id 
+            AND ul.content_type = 'youtube_channel' 
+            AND ul.action = 'subscribe'
+        WHERE c.channel_id = :channel_id
+    """
+    
+    channel = await fetch_one(sql, {"channel_id": channel_id, "user_id": current_user["id"]})
+    
+    if not channel:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    
+    return dict(channel)
+
+@router.get("/api/youtube/videos/feed")
+async def get_videos_feed_endpoint(
+    current_user: Annotated[models.User, Depends(get_current_user)],
+    sort_by: str = "newest",  # "newest" or "popular"
+    country: str = None,
+    category: str = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """
+    영상 피드 조회 (DB 수집 영상)
+    - sort_by: "newest" (최신순) | "popular" (조회수순)
+    - country, category: 필터
+    - limit/offset: 페이징
+    """
+    videos = await service.get_collected_videos(
+        country=country,
+        category=category,
+        limit=limit,
+        offset=offset,
+        sort_by=sort_by
+    )
+    
+    return {
+        "videos": videos,
+        "count": len(videos),
+        "offset": offset,
+        "sort_by": sort_by
+    }
+
+
+
 class RssRequest(BaseModel):
     channels: list[dict] # [{id: '...', name: '...'}, ...]
 
