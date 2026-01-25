@@ -353,3 +353,44 @@ def get_video_detail(video_id: str):
         _manage_quota(cost=1)
         return _parse_videos(data['items'])[0]
     return None
+
+def fetch_channel_metadata(channel_id: str):
+    """
+    채널 ID로 상세 정보 조회 (Cost: 1)
+    구독 시 DB에 없는 채널일 경우 최초 1회 정보를 가져오기 위함
+    """
+    if not API_KEY:
+        print("[Youtube] Error: API Key missing")
+        return None
+
+    _manage_quota(cost=1)
+    
+    url = f"{BASE_URL}/channels"
+    params = {
+        "part": "snippet",
+        "id": channel_id,
+        "key": API_KEY
+    }
+    
+    try:
+        print(f"[YoutubeAPI] Fetching metadata for channel: {channel_id}")
+        res = requests.get(url, params=params, timeout=10)
+        
+        if res.status_code != 200:
+            print(f"[YoutubeAPI] Error {res.status_code}: {res.text}")
+            return None
+            
+        data = res.json()
+        
+        if "items" in data and len(data["items"]) > 0:
+            snippet = data["items"][0]["snippet"]
+            return {
+                "id": channel_id,
+                "name": snippet.get("title"),
+                "description": snippet.get("description"),
+                "thumbnail": snippet.get("thumbnails", {}).get("default", {}).get("url")
+            }
+        return None
+    except Exception as e:
+        print(f"[YoutubeAPI] Fetch channel meta exception: {e}")
+        return None

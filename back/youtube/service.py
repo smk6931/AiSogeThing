@@ -174,26 +174,27 @@ async def update_video_time(log_id: int, watched: int, total: int = None):
     return {"status": "updated", "watched": watched}
 
 
-async def get_view_history(user_id: int, limit: int = 20):
+async def get_user_watch_history(user_id: int, limit: int = 50):
     """
-    유저의 시청 기록 조회 (YoutubeList와 JOIN)
+    유저 시청 기록 조회 (최신순, 중복 제거)
     """
     sql = """
         SELECT 
-            ul.created_at as viewed_at,
-            ul.updated_at as last_viewed_at,
-            ul.watched_seconds,
-            y.video_id,
-            y.title,
-            y.thumbnail_url,
-            y.channel_title
-        FROM user_youtube_logs ul
-        JOIN youtube_list y ON ul.video_id = y.video_id
-        WHERE ul.user_id = :user_id 
-        ORDER BY ul.updated_at DESC
+            l.video_id,
+            MAX(l.updated_at) as watched_at,  -- 가장 최근 시청 시간
+            yl.title,
+            yl.thumbnail_url,
+            yl.channel_title,
+            yl.duration
+        FROM user_youtube_logs l
+        JOIN youtube_list yl ON l.video_id = yl.video_id
+        WHERE l.user_id = :uid
+        GROUP BY l.video_id, yl.title, yl.thumbnail_url, yl.channel_title, yl.duration
+        ORDER BY watched_at DESC
         LIMIT :limit
     """
-    return await fetch_all(sql, {"user_id": user_id, "limit": limit})
+    rows = await fetch_all(sql, {"uid": user_id, "limit": limit})
+    return [dict(row) for row in rows]
 
 
 # ========================================================
@@ -264,20 +265,21 @@ async def subscribe_channel(user_id: int, channel_data: dict, keyword: str = "")
 
 async def get_my_channels(user_id: int):
     """
-    내가 구독한 채널 목록 조회 (최신순)
+    내가 구독한 채널 목록 조회 (최신순, 중복 제거)
     """
     sql = """
-        SELECT 
+        SELECT DISTINCT ON (c.channel_id)
             c.channel_id,
             c.name,
             c.keywords,
+            c.thumbnail_url,
             ul.created_at as subscribed_at
         FROM user_logs ul
         JOIN youtube_channels c ON ul.content_id = c.channel_id
         WHERE ul.user_id = :uid
           AND ul.content_type = 'youtube_channel'
           AND ul.action = 'subscribe'
-        ORDER BY ul.created_at DESC
+        ORDER BY c.channel_id, ul.created_at DESC
     """
     return await fetch_all(sql, {"uid": user_id})
 
@@ -616,3 +618,7 @@ async def add_channel(channel_id: str, name: str, keywords: str = None, category
             "thumb": thumbnail_url,
             "desc": description
         })
+
+async def get_channel(channel_id: str):
+    sql = "SELECT * FROM youtube_channels WHERE channel_id = :cid"
+    return await fetch_one(sql, {"cid": channel_id})

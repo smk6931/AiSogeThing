@@ -102,7 +102,6 @@
   }
 }
 
-/* 스크롤 힌트 */
 /* 스크롤 힌트 (이제 숨김 처리) */
 .scroll-hint {
   display: none !important;
@@ -130,19 +129,17 @@
    ========================================= */
 .next-video-touch-area {
   position: absolute;
-  top: 0;
+  top: 10%;
   right: 0;
   width: 15%;
-  /* 화면 우측 15% 영역 */
   min-width: 60px;
-  /* 너무 좁지 않게 최소폭 보장 */
-  height: 100%;
+  height: 50%;
+  /* 하단 50%는 비움 */
 
   /* 투명하지만 클릭 가능 */
   background: transparent;
   cursor: pointer;
   z-index: 200;
-  /* iframe보다 위 */
 
   display: flex;
   align-items: center;
@@ -150,11 +147,13 @@
 
   /* 모바일 터치 하이라이트 제거 */
   -webkit-tap-highlight-color: transparent;
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
 }
 
-/* 마우스를 올렸을 때 희미하게 보이게 할지 여부 (선택) */
+/* 마우스를 올렸을 때 희미하게 보이게 */
 .next-video-touch-area:hover {
-  background: linear-gradient(to left, rgba(0, 0, 0, 0.3), transparent);
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.4), transparent);
 }
 
 /* 힌트 아이콘/텍스트 (처음에만 보임) */
@@ -168,7 +167,6 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   animation: slideInRight 0.5s ease-out;
   pointer-events: none;
-  /* 힌트는 클릭 방해 X */
 }
 
 .hint-text {
@@ -194,7 +192,71 @@
 @media (max-width: 768px) {
   .next-video-touch-area {
     width: 20%;
-    /* 모바일은 조금 더 넓게 */
     min-width: 70px;
+    height: 60%;
   }
+}
+
+/* =========================================
+   하단 영상 정보 & 구독 버튼
+   ========================================= */
+.player-video-info {
+  padding: 16px 20px;
+  background: #1e1e2e;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.channel-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.channel-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.channel-text h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.channel-text p {
+  margin: 2px 0 0 0;
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.subscribe-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subscribe-btn:active {
+  transform: scale(0.95);
+}
+
+.subscribe-btn.subscribed {
+  background: #3a3a4e;
+  color: #aaa;
 }

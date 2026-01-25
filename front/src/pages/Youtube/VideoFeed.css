@@ -168,3 +168,34 @@
   padding: 60px 20px;
   font-size: 16px;
 }
+
+/* 채널 구독 버튼 스타일 */
+.channel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.feed-subscribe-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.2s;
+}
+
+.feed-subscribe-btn:hover {
+  background: #FF6B6B;
+  color: white;
+  border-color: transparent;
+  transform: scale(1.1);
+}

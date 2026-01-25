@@ -25,6 +25,27 @@ export default function VideoFeed({ onVideoClick }) {
     }
   };
 
+  const handleSubscribe = async (video) => {
+    try {
+      // client 동적 import
+      const { default: client } = await import('../../api/client');
+
+      const channelId = video.channelId || video.channel_id;
+      if (!channelId) {
+        alert('채널 정보가 없습니다.');
+        return;
+      }
+
+      await client.post('/api/youtube/channel/subscribe', {
+        channel_id: channelId
+      });
+      alert(`✅ "${video.channelTitle}" 채널을 구독했습니다!`);
+    } catch (error) {
+      console.error(error);
+      alert('구독 실패');
+    }
+  };
+
   const formatViewCount = (count) => {
     if (!count) return '조회수 정보 없음';
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
@@ -106,7 +127,19 @@ export default function VideoFeed({ onVideoClick }) {
                 <h4 className="video-title">{video.title}</h4>
 
                 <div className="video-meta">
-                  <span className="channel-name">{video.channelTitle}</span>
+                  <div className="channel-row">
+                    <span className="channel-name">{video.channelTitle}</span>
+                    <button
+                      className="feed-subscribe-btn"
+                      title="구독하기"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSubscribe(video);
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
 
                   <div className="video-stats">
                     <span className="view-count">

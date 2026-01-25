@@ -208,6 +208,35 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
 
   if (!currentVideo) return null;
 
+  // 구독 처리
+  const handleSubscribe = async () => {
+    if (!currentVideo) return;
+
+    // 데이터 소스에 따라 필드명이 다를 수 있음 (DB: snake_case, JS: camelCase, API: snippet...)
+    const channelId = currentVideo.channelId || currentVideo.channel_id || currentVideo.snippet?.channelId;
+    const channelName = currentVideo.channelTitle || currentVideo.channel_title || currentVideo.snippet?.channelTitle || "Unknown Channel";
+
+    console.log("Attempting to subscribe:", { channelId, channelName, currentVideo });
+
+    if (!channelId) {
+      alert(`채널 정보를 찾을 수 없습니다. (ID Missing)\n데이터: ${JSON.stringify(currentVideo).slice(0, 100)}...`);
+      return;
+    }
+
+    try {
+      // client 동적 import
+      const { default: client } = await import('../../api/client');
+
+      await client.post('/api/youtube/channel/subscribe', {
+        channel_id: channelId
+      });
+      alert(`✅ "${channelName}" 채널을 구독했습니다!`);
+    } catch (error) {
+      console.error("[Subscribe Error]", error);
+      alert('구독 실패! (콘솔 로그를 확인해주세요)');
+    }
+  };
+
   return (
     <div className="youtube-modal-overlay" onClick={onClose}>
       <div className="youtube-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -225,27 +254,49 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
         <div className="youtube-iframe-container">
           {/* IFrame 대신 API가 사용할 div */}
           <div id="youtube-player-div" ref={containerRef}></div>
+
+          {/* 우측 투명 터치 영역 (다음 영상 넘기기) - CSS 위치 수정됨 */}
+          {!nextLoading && (
+            <div
+              className="next-video-touch-area"
+              onClick={(e) => {
+                e.stopPropagation();
+                loadNextVideo();
+              }}
+              title="다음 영상 (화면 우측 상단 클릭)"
+            >
+              {/* 처음에만 보이는 힌트 */}
+              {showHint && (
+                <div className="next-video-hint">
+                  <span>👉</span>
+                  <span className="hint-text">Next</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* 우측 투명 터치 영역 (다음 영상 넘기기) */}
-        {!nextLoading && (
-          <div
-            className="next-video-touch-area"
-            onClick={(e) => {
-              e.stopPropagation();
-              loadNextVideo();
-            }}
-            title="다음 영상 (화면 우측 클릭)"
-          >
-            {/* 처음에만 보이는 힌트 */}
-            {showHint && (
-              <div className="next-video-hint">
-                <span>👉</span>
-                <span className="hint-text">다음 영상</span>
-              </div>
-            )}
+        {/* 하단 영상 정보 & 구독 버튼 */}
+        <div className="player-video-info">
+          <div className="channel-info">
+            {/* 채널 썸네일은 현재 영상 데이터에 없으므로 기본 아이콘 or 영상 썸네일 사용 */}
+            <img
+              src={currentVideo.thumbnail || "https://yt3.ggpht.com/ytc/default_profile.jpg"}
+              alt="Channel"
+              className="channel-avatar"
+              onError={(e) => e.target.src = "https://yt3.ggpht.com/ytc/default_profile.jpg"}
+            />
+            <div className="channel-text">
+              <h3>{currentVideo.channelTitle || currentVideo.channel_title || "Unknown Channel"}</h3>
+              <p>{currentVideo.title}</p>
+            </div>
           </div>
-        )}
+
+          <button className="subscribe-btn" onClick={handleSubscribe}>
+            구독
+          </button>
+        </div>
+
       </div>
     </div>
   );

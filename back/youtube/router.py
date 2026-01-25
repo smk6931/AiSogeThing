@@ -5,7 +5,7 @@ from youtube import service
 from user import service as user_service # UUID 조회를 위해 추가
 from user.router import get_current_user
 from user import models
-from core.database import fetch_all, fetch_one
+from core.database import fetch_all, fetch_one, execute
 
 router = APIRouter()
 
@@ -443,8 +443,9 @@ async def get_user_history_endpoint(
     target_user = await user_service.get_user_by_uuid(user_uuid)
     if not target_user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
-        
-    history = await service.get_view_history(user_id=target_user["id"], limit=20)
+    # 시청 기록 조회 (Youtube) -> service 함수명 변경됨 (get_view_history -> get_user_watch_history)
+    history = await service.get_user_watch_history(user_id=target_user["id"], limit=20)
+    
     return {"success": True, "history": history}
 
 @router.get("/api/youtube/user/{user_uuid}/subscriptions")
@@ -550,16 +551,42 @@ async def subscribe_channel_endpoint(
 ):
     """
     채널 구독 (user_logs에 기록)
+    + DB에 없는 채널이면 API로 정보 수집 (Cost 1)
     """
     try:
-        # user_logs에 구독 기록
+        # 0. User ID 추출
+        user_id = current_user.get("id") if isinstance(current_user, dict) else current_user.id
+
+        # 1. 채널 DB 존재 여부 확인
+        existing_ch = await service.get_channel(req.channel_id)
+        
+        if not existing_ch:
+            print(f"[Subscribe] Channel {req.channel_id} missing in DB. Fetching from API...")
+            try:
+                from client.youtube_client import fetch_channel_metadata
+                meta = fetch_channel_metadata(req.channel_id)
+                
+                if meta:
+                    await service.add_channel(
+                        channel_id=meta["id"],
+                        name=meta["name"],
+                        keywords=None,
+                        thumbnail_url=meta["thumbnail"],
+                        description=meta["description"]
+                    )
+                    print(f"[Subscribe] ✅ Automatically saved channel: {meta['name']}")
+            except Exception as api_err:
+                print(f"[Subscribe] ⚠️ Failed to auto-save channel info: {api_err}")
+                # 실패해도 구독은 계속 진행 (로그만 남김)
+
+        # 2. user_logs에 구독 기록 (기존 로직)
         insert_sql = """
             INSERT INTO user_logs (user_id, content_type, content_id, action, created_at)
             VALUES (:uid, 'youtube_channel', :cid, 'subscribe', NOW())
         """
-        await execute(insert_sql, {"uid": current_user.id, "cid": req.channel_id})
+        await execute(insert_sql, {"uid": user_id, "cid": req.channel_id})
         
-        print(f"[Subscribe] User {current_user.id} subscribed to channel {req.channel_id}")
+        print(f"[Subscribe] User {user_id} subscribed to channel {req.channel_id}")
         
         return {"success": True, "channel_id": req.channel_id}
     except Exception as e:
