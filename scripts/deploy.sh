@@ -17,6 +17,9 @@ cd "$BACK_DIR"
 source ../venv/bin/activate
 pip install -r ../requirements.txt
 
+# [Fix] 서버에서는 로컬 DB 포트(5432)를 사용하도록 강제 설정
+export DB_PORT=5432
+
 # DB 마이그레이션 적용
 alembic upgrade head
 
