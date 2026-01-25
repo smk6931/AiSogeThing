@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Download, Loader, Check, X, ShieldCheck } from 'lucide-react';
+import { Download, Loader, Check, X, ShieldCheck, RefreshCw } from 'lucide-react';
 import client from '../api/client';
 
 export default function GlobalCollector() {
@@ -16,14 +16,14 @@ export default function GlobalCollector() {
     { code: 'KR', name: '🇰🇷 한국' },
     { code: 'US', name: '🇺🇸 미국' },
     { code: 'JP', name: '🇯🇵 일본' },
-    { code: 'CA', name: '�� 캐나다' },
+    { code: 'CA', name: '🇨🇦 캐나다' },
     { code: 'GB', name: '🇬🇧 영국' },
     { code: 'AU', name: '🇦🇺 호주' },
     { code: 'DE', name: '🇩🇪 독일' },
     { code: 'FR', name: '🇫🇷 프랑스' },
     { code: 'VN', name: '🇻🇳 베트남' },
     { code: 'TH', name: '🇹🇭 태국' },
-    { code: 'TW', name: '�� 대만' },
+    { code: 'TW', name: '🇹🇼 대만' },
   ];
 
   // 카테고리 목록 (유튜브 공식 ID 기준)
@@ -64,9 +64,6 @@ export default function GlobalCollector() {
     const itemKey = `${activeCountry}-${category.id}`;
     if (collectedItems.has(itemKey)) return;
 
-    // confirm 제거 (빠른 수집 위해) - 혹은 옵션으로? 일단 유지하되 메시지 간소화
-    // if (!confirm(`${activeCountry} - ${category.name} 수집?`)) return;
-
     setLoading(itemKey);
     try {
       await client.post('/api/youtube/admin/collect-one', {
@@ -85,6 +82,15 @@ export default function GlobalCollector() {
       alert('요청 실패');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 초기화 버튼 핸들러 추가
+  const handleReset = () => {
+    if (confirm('오늘 수집한 기록(체크 표시)을 초기화하시겠습니까?\n다시 수집할 수 있게 됩니다.')) {
+      const key = getStorageKey();
+      localStorage.removeItem(key);
+      setCollectedItems(new Set());
     }
   };
 
@@ -131,7 +137,7 @@ export default function GlobalCollector() {
       backdropFilter: 'blur(12px)',
       border: '1px solid rgba(255,255,255,0.15)',
       borderRadius: '20px',
-      width: '600px', // 가로 대폭 확장
+      width: '600px',
       maxHeight: '80vh',
       display: 'flex',
       flexDirection: 'column',
@@ -153,12 +159,21 @@ export default function GlobalCollector() {
           <ShieldCheck size={24} color="#FF6B6B" />
           글로벌 트렌드 수집기
         </h3>
-        <button
-          onClick={() => setIsOpen(false)}
-          style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', padding: '5px' }}
-        >
-          <X size={24} />
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={handleReset}
+            title="수집 기록 초기화 (다시 수집)"
+            style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '5px' }}
+          >
+            <RefreshCw size={20} />
+          </button>
+          <button
+            onClick={() => setIsOpen(false)}
+            style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', padding: '5px' }}
+          >
+            <X size={24} />
+          </button>
+        </div>
       </div>
 
       {/* Content Area (Scrollable) */}
@@ -183,12 +198,16 @@ export default function GlobalCollector() {
                 background: activeCountry === c.code ? 'rgba(255, 107, 107, 0.15)' : 'rgba(255,255,255,0.03)',
                 color: activeCountry === c.code ? '#FF6B6B' : '#888',
                 cursor: 'pointer',
-                fontSize: '0.95rem',
+                fontSize: '0.9rem',
                 fontWeight: activeCountry === c.code ? 'bold' : 'normal',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              {c.name.split(' ')[0]} <span style={{ fontSize: '0.8em' }}>{c.code}</span>
+              {c.name}
             </button>
           ))}
         </div>
@@ -242,7 +261,6 @@ export default function GlobalCollector() {
                   <Download size={18} style={{ opacity: 0.3 }} />
                 )}
 
-                {/* 진행률 바 효과 (로딩 중일 때) */}
                 {isLoading && (
                   <div style={{
                     position: 'absolute', bottom: 0, left: 0, height: '3px', background: '#FF6B6B',

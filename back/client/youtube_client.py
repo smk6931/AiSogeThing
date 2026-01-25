@@ -329,3 +329,23 @@ def discover_interest_channels(keyword: str):
         "found_channels": valid_channels,
         "meta": {"remaining": remaining, "limit": limit}
     }
+
+def get_video_detail(video_id: str):
+    """
+    영상 1개 상세 조회 (JIT Enrichment용) - Cost: 1
+    """
+    if not API_KEY: return None
+    
+    url = f"{BASE_URL}/videos"
+    params = {
+        "part": "snippet,contentDetails,statistics,topicDetails",
+        "id": video_id,
+        "key": API_KEY
+    }
+    
+    data, error = safe_http_get(url, params)
+    
+    if data and 'items' in data and len(data['items']) > 0:
+        _manage_quota(cost=1)
+        return _parse_videos(data['items'])[0]
+    return None

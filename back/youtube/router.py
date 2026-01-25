@@ -129,7 +129,15 @@ async def get_interest_endpoint(
         return {"items": [], "channels": [], "message": "구독한 채널이 없습니다."}
 
     # 2. 영상 긁어오기 (RSS)
-    return get_interest_videos(target_keyword=keyword, my_channels=my_channels)
+    # 2. 영상 긁어오기 (RSS)
+    result = get_interest_videos(target_keyword=keyword, my_channels=my_channels)
+
+    # 3. [New] RSS 영상 DB 백업 (Archiving) - 비동기 처리 권장되지만 일단 await
+    # 사용자가 볼 때마다 최신 영상이 DB에 쌓임
+    if result.get("items"):
+        await service.save_rss_videos(result["items"])
+    
+    return result
 
 
 class SubscribeRequest(BaseModel):
@@ -257,6 +265,14 @@ async def collect_global_trends_endpoint(background_tasks: BackgroundTasks):
     """
     background_tasks.add_task(service.collect_global_trends)
     return {"status": "started", "message": "Global trend collection started in background."}
+
+@router.get("/api/youtube/db-list")
+async def get_db_videos_endpoint(country: str = None, category: str = None, limit: int = 50):
+    """
+    수집된 영상 목록 조회 (DB) - API Cost 0
+    """
+    items = await service.get_collected_videos(country, category, limit)
+    return {"items": items, "count": len(items)}
 
 class CollectSpecificRequest(BaseModel):
     country: str

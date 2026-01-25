@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, PlayCircle, Eye, Sparkles, XCircle, PlusCircle } from 'lucide-react';
-import { searchYoutube, getPopularYoutube, logYoutubeVideo, getDatingYoutube, discoverDatingChannels, discoverInterest, getInterestYoutube, subscribeChannel, unsubscribeChannel, getMySubscriptions, getAdhocRssVideos } from '../../api/youtube';
+import { searchYoutube, getPopularYoutube, getDatingYoutube, discoverDatingChannels, discoverInterest, getInterestYoutube, subscribeChannel, unsubscribeChannel, getMySubscriptions, getAdhocRssVideos, getDBVideos } from '../../api/youtube';
 import YoutubePlayer from './YoutubePlayer';
 import ApiInfo from '../../components/common/ApiInfo';
 import GlobalCollector from '../../components/GlobalCollector';
@@ -66,7 +66,18 @@ export default function YoutubeBoard() {
         data = await getInterestYoutube(customKeyword || null);
         if (data.channels) setInterestChannels(data.channels);
       } else {
-        data = await getPopularYoutube(categoryId);
+        // 1. DB 먼저 조회 (Hybrid Strategy: Cost 0)
+        // TODO: 현재 국가 설정이 'KR'로 고정되어 있음. GlobalCollector와 연동 필요.
+        const dbRes = await getDBVideos('KR', categoryId);
+
+        if (dbRes.items && dbRes.items.length > 0) {
+          console.log("Using DB Data:", dbRes.count);
+          data = dbRes;
+        } else {
+          // 2. DB 없으면 실시간 API 호출 (Cost 발생)
+          console.log("DB Empty -> Fetching API");
+          data = await getPopularYoutube(categoryId);
+        }
       }
 
       console.log("Youtube Data:", data);
@@ -464,9 +475,9 @@ export default function YoutubeBoard() {
               <div
                 key={video.id}
                 className="video-card glass-card"
-                onClick={() => {
-                  logYoutubeVideo(video);
-                  setSelectedVideo(video.id);
+                onClick={async () => {
+                  // 로그 저장은 YoutubePlayer 내부에서 처리 (메타데이터 전달)
+                  setSelectedVideo(video);
                 }}
               >
                 <div className="thumbnail-wrapper">
@@ -558,7 +569,7 @@ export default function YoutubeBoard() {
 
       {selectedVideo && (
         <YoutubePlayer
-          videoId={selectedVideo}
+          video={selectedVideo}
           onClose={() => setSelectedVideo(null)}
         />
       )}

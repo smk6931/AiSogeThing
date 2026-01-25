@@ -6,8 +6,9 @@ import './YoutubePlayer.css';
 // 전역 변수: API 로드 상태
 let ytApiLoaded = false;
 
-export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
-  const [currentVideoId, setCurrentVideoId] = useState(initialVideoId);
+export default function YoutubePlayer({ video: initialVideo, onClose }) {
+  // videoId가 아닌 video 객체 전체를 상태로 관리
+  const [currentVideo, setCurrentVideo] = useState(initialVideo);
   const [nextLoading, setNextLoading] = useState(false);
 
   // YouTube API 관련 Refs
@@ -38,26 +39,28 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
 
     // 전역 콜백 (API 준비됨)
     window.onYouTubeIframeAPIReady = () => {
-      loadPlayer(currentVideoId);
+      if (currentVideo) {
+        loadPlayer(currentVideo.id);
+      }
     };
 
     // 이미 로드된 경우 바로 실행
-    if (window.YT && window.YT.Player) {
-      loadPlayer(currentVideoId);
+    if (window.YT && window.YT.Player && currentVideo) {
+      loadPlayer(currentVideo.id);
     }
 
     return () => clearTimeout(hintTimer);
   }, []);
 
-  // 2. 비디오 ID 변경 감지 -> 플레이어 로드/갱신
+  // 2. 비디오 변경 감지 -> 플레이어 로드/갱신
   useEffect(() => {
-    if (currentVideoId && window.YT && window.YT.Player) {
-      loadPlayer(currentVideoId);
+    if (currentVideo && window.YT && window.YT.Player) {
+      loadPlayer(currentVideo.id);
     }
     return () => {
       stopTracking(); // 컴포넌트 언마운트/변경 시 추적 종료
     };
-  }, [currentVideoId]);
+  }, [currentVideo]);
 
 
   // 플레이어 로드/큐잉
@@ -100,7 +103,15 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     if (event.data === window.YT.PlayerState.PLAYING) {
       startInterval();
       // 총 길이 다시 확인 (로딩 직후엔 0일 수 있어서)
-      totalDurationRef.current = playerRef.current.getDuration();
+      // 2. 총 길이 저장 (Optional)
+      let duration = 0;
+      if (playerRef.current && typeof playerRef.current.getDuration === 'function') {
+        const d = playerRef.current.getDuration();
+        if (typeof d === 'number' && !isNaN(d)) {
+          duration = d;
+        }
+      }
+      totalDurationRef.current = duration;
     } else {
       stopInterval();
     }
@@ -114,12 +125,7 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
   const startInterval = () => {
     stopInterval();
     intervalRef.current = setInterval(() => {
-      // 현재 재생 위치(초) 기록 (건너뛰기 감지용이 아니라 단순히 '체류 시간'을 측정할 거라면 +1 씩 하는게 맞음)
-      // 하지만 '어디까지 봤냐'가 중요하다면 currentTime을 써야 함.
-      // 여기서는 "얼마나 관심 있었냐(=체류 시간)"이므로 단순 카운팅보다는
-      // 실제 재생 헤드 위치가 유의미할 수 있음. 
-      // 일단 간단하게: currentTime을 watchedTime으로 간주 (끝까지 보면 100%)
-
+      // 현재 재생 위치(초) 기록
       if (playerRef.current && playerRef.current.getCurrentTime) {
         watchTimeRef.current = playerRef.current.getCurrentTime();
       }
@@ -138,18 +144,21 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     watchTimeRef.current = 0;
     currentLogIdRef.current = null; // 초기화
 
-    // 여기서는 상세 정보가 없으므로(API가 안 줌), 랜덤 추천 시 받은 정보를 써야 함.
-    // 하지만 getRandomVideo 응답 데이터를 state로 관리 안 했음...
-    // 괜찮음, logYoutubeVideo는 title 등이 없어도 동작하도록 수정되어 있음 (Optional).
-    // 그래도 최대한 정보가 있으면 좋으니, API에서 가져올 때 메타정보를 저장해두는 게 좋음.
-    // (지금은 단순화를 위해 ID만 넘김 -> 백엔드가 이미 정보를 갖고 있으면(youtube_list) 그걸 씀)
+    // 메타데이터 준비 (currentVideo 상태 사용)
+    let videoMeta = { id: videoId, title: "Watching..." };
 
-    // *임시*: 일단 ID만으로 로그 생성 요청. (Service가 youtube_list 조회해서 채워주진 않으므로 빈칸일 수 있음)
-    // -> 해결책: getRandomVideo 결과를 state에 저장하거나, 여기서 fetch 필요.
-    // 일단은 그냥 호출.
-    const res = await logYoutubeVideo({ id: videoId, title: "Watching..." });
+    // 현재 상태의 비디오 객체가 해당 ID와 일치하면 메타데이터 사용
+    if (currentVideo && currentVideo.id === videoId) {
+      videoMeta = currentVideo;
+    }
+
+    const res = await logYoutubeVideo(videoMeta);
+
     if (res && res.log_id) {
       currentLogIdRef.current = res.log_id;
+    } else {
+      // 에러 처리
+      console.error("❌ Watching Log Failed:", res);
     }
   };
 
@@ -164,7 +173,7 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     watchTimeRef.current = 0;
   };
 
-  // 다음 영상 로드
+  // 다음 영상 로드 (Infinite Scroll)
   const loadNextVideo = async () => {
     setNextLoading(true);
     try {
@@ -172,11 +181,22 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
       if (res.success && res.video) {
         // 약간의 딜레이 후 교체
         setTimeout(() => {
-          setCurrentVideoId(res.video.video_id);
-          // logYoutubeVideo는 startTracking에서 처리함
-          setNextLoading(false);
+          // DB(snake_case) -> Frontend(CamelCase) 매핑
+          const nextVideo = {
+            id: res.video.video_id,
+            title: res.video.title,
+            description: res.video.description,
+            thumbnail: res.video.thumbnail_url,
+            channelTitle: res.video.channel_title,
+            channelId: res.video.channel_id,
+            // 필요한 다른 필드들...
+            isShort: res.video.is_short,
+            viewCount: res.video.view_count,
+            publishedAt: res.video.published_at
+          };
 
-          // 메타데이터 보정을 위해 타이틀 저장 (필요 시)
+          setCurrentVideo(nextVideo);
+          setNextLoading(false);
         }, 500);
       } else {
         setNextLoading(false);
@@ -186,7 +206,7 @@ export default function YoutubePlayer({ videoId: initialVideoId, onClose }) {
     }
   };
 
-  if (!currentVideoId) return null;
+  if (!currentVideo) return null;
 
   return (
     <div className="youtube-modal-overlay" onClick={onClose}>

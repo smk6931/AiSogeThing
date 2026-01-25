@@ -47,6 +47,22 @@ class YoutubeChannel(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class YoutubeRSS(Base):
+    """RSS로 수집된 영상 리스트 (Zero Cost)"""
+    __tablename__ = "youtube_rss"
+
+    id = Column(Integer, primary_key=True, index=True)
+    video_id = Column(String, unique=True, index=True, nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    thumbnail_url = Column(String, nullable=True)
+    channel_title = Column(String, nullable=True)
+    channel_id = Column(String, nullable=True)
+    published_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+
 class UserLog(Base):
     """유저 통합 활동 로그 (클릭, 좋아요, 조회 등)"""
     __tablename__ = "user_logs"

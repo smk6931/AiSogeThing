@@ -100,6 +100,15 @@ export const getMySubscriptions = async () => {
   return response.data;
 };
 
+// 5. DB 수집 영상 조회 (Admin Collect 결과)
+export const getDBVideos = async (country, category) => {
+  const params = { limit: 50 };
+  if (country) params.country = country;
+  if (category) params.category = category;
+  const response = await client.get('/api/youtube/db-list', { params });
+  return response.data;
+};
+
 // 5. 랜덤 추천 (무한 스크롤용)
 export const getRandomVideo = async () => {
   const response = await client.get('/api/youtube/recommend/random');
