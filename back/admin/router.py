@@ -145,3 +145,100 @@ async def migrate_channels():
     print("🚀 [Migration-Ch] Start...")
     count = await _process_channel_migration()
     return {"message": f"Channel migration finished. Processed {count} channels."}
+
+@router.post("/discover/channels")
+async def discover_channels_by_keyword(keyword: str):
+    """
+    [Admin] 키워드로 상위 30개 채널 발굴하여 자동 추가 + 벡터화
+    Cost: 100 (YouTube Search API 1회)
+    """
+    if not keyword:
+        return {"error": "Keyword is required"}
+        
+    print(f"🚀 [Discovery] Searching for '{keyword}' channels...")
+    
+    # 1. 유튜브에서 채널 검색 (RSS 검증된 알짜 채널)
+    from client.youtube_client import discover_interest_channels
+    # 동기 함수라 safe_execute 필요 없으나, 블로킹 방지 위해 run_in_executor 권장되나 여기선 그냥 호출 (관리자용이므로)
+    result = discover_interest_channels(keyword)
+    
+    if "error" in result:
+        return result
+        
+    channels = result.get("found_channels", [])[:30] # 상위 30개 제한
+    print(f"📦 [Discovery] Found {len(channels)} validated channels.")
+    
+    # 2. 임베딩 생성 준비
+    texts = []
+    for ch in channels:
+        name = ch.get("name", "")
+        desc = (ch.get("description") or "")[:300]
+        # 키워드도 포함
+        text = f"{name} {keyword} {desc}"
+        texts.append(text)
+        
+    # 3. 임베딩 생성
+    from client.openai_client import get_embeddings_batch_openai
+    embeddings = await get_embeddings_batch_openai(texts)
+    
+    if not embeddings:
+        return {"error": "Failed to generate embeddings"}
+        
+    # 4. DB 저장
+    saved_count = 0
+    for i, ch in enumerate(channels):
+        try:
+            sql = """
+                INSERT INTO youtube_channels (channel_id, name, keywords, category, thumbnail_url, description, embedding, created_at, updated_at)
+                VALUES (:cid, :name, :kw, :cat, :thumb, :desc, CAST(:embed AS vector), NOW(), NOW())
+                ON CONFLICT (channel_id) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    keywords = EXCLUDED.keywords,
+                    description = COALESCE(EXCLUDED.description, youtube_channels.description),
+                    thumbnail_url = EXCLUDED.thumbnail_url,
+                    embedding = EXCLUDED.embedding,
+                    updated_at = NOW()
+            """
+            
+            vec = embeddings[i]
+            vec_str = str(vec) if vec else None
+            
+            await execute(sql, {
+                "cid": ch["id"],
+                "name": ch["name"],
+                "kw": keyword, # 검색 키워드를 태그로 저장
+                "cat": "auto-discovered",
+                "thumb": ch["thumbnail"],
+                "desc": ch.get("description", ""),
+                "embed": vec_str
+            })
+            saved_count += 1
+        except Exception as e:
+            print(f"❌ [Discovery] DB Save Error {ch['id']}: {e}")
+            
+    return {
+        "message": f"Discovery complete. Saved {saved_count} channels for '{keyword}'.",
+        "channels": [c["name"] for c in channels]
+    }
+
+@router.post("/fix-schema")
+async def fix_schema():
+    """[Admin] DB 스키마 긴급 복구 (Missing Columns 추가)"""
+    print("🔧 [Fix] Checking schema...")
+    try:
+        # youtube_list 테이블에 updated_at 컬럼 강제 추가
+        await execute("""
+            ALTER TABLE youtube_list 
+            ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+        """)
+        
+        # youtube_channels 테이블에도 혹시 모르니 추가
+        await execute("""
+            ALTER TABLE youtube_channels 
+            ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+        """)
+        
+        return {"message": "Schema fixed! 'updated_at' columns added."}
+    except Exception as e:
+        print(f"❌ [Fix] Error: {e}")
+        return {"error": str(e)}

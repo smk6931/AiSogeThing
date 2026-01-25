@@ -129,12 +129,13 @@
    ========================================= */
 .next-video-touch-area {
   position: absolute;
-  top: 10%;
+  top: 0;
+  /* 상단부터 시작 */
   right: 0;
   width: 15%;
   min-width: 60px;
-  height: 50%;
-  /* 하단 50%는 비움 */
+  height: 25%;
+  /* 상단 25%만 차지하여 하단 전체화면 버튼 공간 확보 */
 
   /* 투명하지만 클릭 가능 */
   background: transparent;
@@ -147,8 +148,8 @@
 
   /* 모바일 터치 하이라이트 제거 */
   -webkit-tap-highlight-color: transparent;
-  border-top-left-radius: 20px;
   border-bottom-left-radius: 20px;
+  /* 상단은 둥글게 만들 필요 없음 */
 }
 
 /* 마우스를 올렸을 때 희미하게 보이게 */
@@ -193,7 +194,8 @@
   .next-video-touch-area {
     width: 20%;
     min-width: 70px;
-    height: 60%;
+    height: 35%;
+    /* 모바일에서는 조금 더 넓게 (손가락 터치) */
   }
 }
 

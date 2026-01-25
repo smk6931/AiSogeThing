@@ -39,6 +39,7 @@ class YoutubeList(Base):
 
     published_at = Column(DateTime(timezone=True), nullable=True)       # 업로드일
     created_at = Column(DateTime(timezone=True), server_default=func.now()) # 수집일
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now()) # 수정일
 
 
 class YoutubeChannel(Base):

@@ -48,7 +48,6 @@ async def retrieve_videos(query_text: str, limit: int = 4):
     query_vector = await get_embedding_openai(query_text)
     
     # 2. 벡터 검색 (Cosine Distance: <=>)
-    # pgvector 연산자: <=> (Distance), 1 - (<=>) = Similarity
     sql = """
         SELECT video_id, title, channel_title, description, 
                (1 - (embedding <=> :qv)) as similarity
@@ -58,10 +57,8 @@ async def retrieve_videos(query_text: str, limit: int = 4):
         LIMIT :limit
     """
     
-    # safe_execute 리턴값이 context manager라 여기서는 직접 try-except가 나을 수도 있지만,
-    # fetch_all 자체가 데이터베이스 레이어임.
     try:
-        results = await fetch_all(sql, {"qv": str(query_vector), "limit": limit}) # 벡터는 문자열로 변환 전달
+        results = await fetch_all(sql, {"qv": str(query_vector), "limit": limit})
         return results
     except Exception as e:
         print(f"⚠️ Vector Search Error: {e}")
@@ -71,28 +68,46 @@ async def process_chat(user_id: int, message: str) -> str:
     """
     [Main Logic] 챗봇 대화 처리 (RAG + LLM)
     """
+    print(f"\n💬 [ChatRequest] User: {user_id}, Message: {message}")
+    
     # 1. 유저 컨텍스트 분석 (내 취향)
     user_context = await analyze_user_context(user_id)
+    print(f"👤 [Context] User Profile Loaded ({len(user_context)} chars)")
     
-    # 2. 관련 영상 검색 (RAG) - 질문과 관련된 영상 찾기
-    # "재밌는 거 추천해줘" -> Context가 없으면 그냥 인기 영상이 나올 수도 있음.
-    # 유저 질문에 '추천' 의도가 있으면 시청기록 기반 추천도 섞어야 함.
-    relevant_videos = await retrieve_videos(message)
+    # 2. 질문 의도 파악: 벡터 검색이 필요한지 판단
+    # 메타 질문 키워드 (성향 분석, 서비스 안내 등)
+    meta_keywords = ["성향", "분석", "안내", "설명", "사용법", "기능", "서비스", "취향"]
+    is_meta_question = any(keyword in message for keyword in meta_keywords)
     
     video_context = ""
-    if relevant_videos:
-        video_infos = [f"- [{v['title']}] ({v['channel_title']}): {v['similarity']:.2f}" for v in relevant_videos]
-        video_context = "관련 영상 DB 검색 결과:\n" + "\n".join(video_infos)
+    if not is_meta_question:
+        # 3-A. 콘텐츠 질문 → 벡터 검색 실행
+        print("🔍 [Intent] Content query detected. Running vector search...")
+        relevant_videos = await retrieve_videos(message)
+        print(f"🔍 [VectorSearch] Found {len(relevant_videos)} relevant videos.")
+        
+        if relevant_videos:
+            video_infos = []
+            for v in relevant_videos:
+                sim = v['similarity']
+                info = f"- [{v['title']}] ({v['channel_title']}): 유사도 {sim:.3f}"
+                video_infos.append(info)
+                print(f"   👉 {info} (ID: {v['video_id']})")
+                
+            video_context = "관련 영상 DB 검색 결과:\n" + "\n".join(video_infos)
+    else:
+        # 3-B. 메타 질문 → 벡터 검색 스킵
+        print("🧠 [Intent] Meta question detected. Skipping vector search (using user context only).")
     
-    # 3. 프롬프트 구성
+    # 4. 프롬프트 구성
     system_prompt = """
     당신은 'AiSogeThing'의 AI 큐레이터입니다.
     유저의 시청 기록과 질문 의도를 파악하여, 가장 적절한 답변과 영상 추천을 제공하세요.
-    
     - 말투: 친근하고 위트 있게 (이모지 적절히 사용)
     - 형식: Markdown 문법 활용 (볼드체, 리스트 등)
-    - 추천 시: 영상 제목을 강조하고, 왜 이 영상을 추천하는지 이유를 한 줄로 설명하세요.
-    - 모르는 내용: "아직 잘 모르겠지만, 이런 건 어떠세요?"라며 DB 검색 결과를 활용하세요.
+    - 성향 분석: User Profile 데이터를 기반으로 MBTI처럼 재미있게 분석하세요.
+    - 추천 시: 영상 제목, 채널명을 명확히 언급하고, DB 검색 결과에 있는 영상만 추천하세요.
+    - 데이터 출처: 반드시 제공된 [User Profile] 또는 [DB Context] 내에서만 답변하고, 없는 내용을 지어내지 마세요.
     """
     
     final_prompt = f"""
@@ -100,12 +115,14 @@ async def process_chat(user_id: int, message: str) -> str:
     {user_context}
     
     [DB Context (RAG)]
-    {video_context}
+    {video_context if video_context else "검색 결과 없음 (User Profile 기반으로만 답변)"}
     
     [User Message]
     {message}
     """
     
-    # 4. LLM 답변 생성
+    # 5. LLM 답변 생성
+    print("🤖 [LLM] Generating response via OpenAI...")
     response = await generate_response_openai(final_prompt, system_role=system_prompt)
+    print("✅ [LLM] Response Generated.\n")
     return response

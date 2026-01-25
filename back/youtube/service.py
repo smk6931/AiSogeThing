@@ -57,13 +57,14 @@ async def ensure_video_metadata(video_id: str, video_data: dict):
         tags_str = video_data.get("tags") or ""
         text_content = f"{title} {ch_title} {tags_str} {desc[:500]}"
         embedding = await get_embedding_openai(text_content)
+        embedding_str = str(embedding) if embedding else None # 리스트 -> 문자열 변환
 
         await execute(
             """
             INSERT INTO youtube_list 
             (video_id, title, description, thumbnail_url, channel_title, channel_id, duration, is_short, view_count, category_id, tags, embedding, published_at, created_at)
             VALUES 
-            (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :dur, :short, :views, :cat, :tags, :embed, :pub, NOW())
+            (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :dur, :short, :views, :cat, :tags, CAST(:embed AS vector), :pub, NOW())
             ON CONFLICT (video_id) DO UPDATE SET
                 view_count = EXCLUDED.view_count,
                 duration = EXCLUDED.duration,
@@ -71,7 +72,9 @@ async def ensure_video_metadata(video_id: str, video_data: dict):
                 category_id = EXCLUDED.category_id,
                 tags = EXCLUDED.tags,
                 title = EXCLUDED.title,
-                description = EXCLUDED.description
+                description = EXCLUDED.description,
+                embedding = CAST(:embed AS vector),
+                updated_at = NOW()
             """, 
             {
                 "vid": video_id,
@@ -85,7 +88,7 @@ async def ensure_video_metadata(video_id: str, video_data: dict):
                 "views": video_data.get("view_count", 0),
                 "cat": video_data.get("category_id"),
                 "tags": video_data.get("tags"),
-                "embed": embedding,
+                "embed": embedding_str,
                 "pub": video_data.get("published_at")
             }
         )
@@ -652,7 +655,7 @@ async def add_channel(channel_id: str, name: str, keywords: str = None, category
                 thumbnail_url = COALESCE(:thumb, thumbnail_url),
                 description = COALESCE(:desc, description),
                 category = COALESCE(category, :cat),
-                embedding = COALESCE(:embed, embedding), 
+                embedding = COALESCE(CAST(:embed AS vector), embedding), 
                 updated_at = NOW()
             WHERE channel_id = :cid
         """
@@ -661,6 +664,7 @@ async def add_channel(channel_id: str, name: str, keywords: str = None, category
         text_content = f"{name} {keywords or ''} {category or ''} {description or ''}"
         from client.openai_client import get_embedding_openai
         embedding = await get_embedding_openai(text_content)
+        embedding_str = str(embedding) if embedding else None
 
         await execute(update_sql, {
             "cid": channel_id, 
@@ -669,17 +673,18 @@ async def add_channel(channel_id: str, name: str, keywords: str = None, category
             "thumb": thumbnail_url,
             "desc": description,
             "cat": category,
-            "embed": embedding
+            "embed": embedding_str
         })
     else:
         # Insert
         text_content = f"{name} {keywords or ''} {category or ''} {description or ''}"
         from client.openai_client import get_embedding_openai
         embedding = await get_embedding_openai(text_content)
+        embedding_str = str(embedding) if embedding else None
         
         insert_sql = """
             INSERT INTO youtube_channels (channel_id, name, keywords, category, thumbnail_url, description, embedding, created_at)
-            VALUES (:cid, :name, :kw, :cat, :thumb, :desc, :embed, NOW())
+            VALUES (:cid, :name, :kw, :cat, :thumb, :desc, CAST(:embed AS vector), NOW())
         """
         await execute(insert_sql, {
             "cid": channel_id,
@@ -688,7 +693,7 @@ async def add_channel(channel_id: str, name: str, keywords: str = None, category
             "cat": category,
             "thumb": thumbnail_url,
             "desc": description,
-            "embed": embedding
+            "embed": embedding_str
         })
 
 async def get_channel(channel_id: str):

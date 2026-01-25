@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MessageCircle, X, Send, TrendingUp, Users, HelpCircle, Sparkles } from 'lucide-react';
+import chatbotAPI from '../api/chatbot';
 import './ChatbotWidget.css';
 
 export default function ChatbotWidget({ isOpen, onClose }) {
@@ -29,18 +30,16 @@ export default function ChatbotWidget({ isOpen, onClose }) {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://localhost:8001/api/chatbot/${actionType}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
-
-      const data = await response.json();
+      const data = await chatbotAPI[actionType]();
       setMessages(prev => [...prev, { role: 'assistant', content: data.message || '처리 완료!' }]);
     } catch (error) {
+      const errorMsg = error.response?.status === 401
+        ? '로그인이 필요한 기능입니다. 먼저 로그인해주세요!'
+        : '죄송합니다. 일시적인 오류가 발생했습니다.';
+
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: '죄송합니다. 일시적인 오류가 발생했습니다.'
+        content: errorMsg
       }]);
     } finally {
       setLoading(false);
@@ -50,24 +49,22 @@ export default function ChatbotWidget({ isOpen, onClose }) {
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
 
-    setMessages(prev => [...prev, { role: 'user', content: inputText }]);
+    const messageToSend = inputText;
+    setMessages(prev => [...prev, { role: 'user', content: messageToSend }]);
     setInputText('');
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8001/api/chatbot/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ message: inputText })
-      });
-
-      const data = await response.json();
+      const data = await chatbotAPI.chat(messageToSend);
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     } catch (error) {
+      const errorMsg = error.response?.status === 401
+        ? '로그인이 필요합니다. 먼저 로그인해주세요!'
+        : '죄송합니다. 응답을 생성하지 못했습니다.';
+
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: '죄송합니다. 응답을 생성하지 못했습니다.'
+        content: errorMsg
       }]);
     } finally {
       setLoading(false);
