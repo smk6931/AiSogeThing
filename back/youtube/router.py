@@ -263,7 +263,6 @@ async def get_channel_detail_endpoint(
 
 @router.get("/api/youtube/videos/feed")
 async def get_videos_feed_endpoint(
-    current_user: Annotated[models.User, Depends(get_current_user)],
     sort_by: str = "newest",  # "newest" or "popular"
     country: str = None,
     category: str = None,
@@ -326,6 +325,7 @@ async def search_channels_endpoint(
 ):
     """
     채널 검색 (Admin 수집용)
+    검색 즉시 모든 채널을 DB에 자동 저장!
     """
     try:
         from client.youtube_client import discover_interest_channels
@@ -338,27 +338,40 @@ async def search_channels_endpoint(
             print(f"[Channel Search] Error: {result['error']}")
             raise HTTPException(status_code=500, detail=result["error"])
         
-        # 채널 리스트 추출 (키 이름 확인!)
+        # 채널 리스트 추출
         channels = result.get("found_channels", [])
         print(f"[Channel Search] Found {len(channels)} channels")
         
-        # 채널명 로깅
+        # 🔥 검색 즉시 모든 채널 DB 저장 (자동!)
         for ch in channels:
-            print(f"  - {ch.get('name', 'Unknown')} (ID: {ch.get('id', 'N/A')})")
+            try:
+                await service.add_channel(
+                    channel_id=ch["id"],
+                    name=ch["name"],
+                    keywords=query,
+                    category=query,  # 검색어를 카테고리로 저장! (Null 방지)
+                    thumbnail_url=ch.get("thumbnail"),
+                    description=ch.get("description")
+                )
+                print(f"  ✅ Saved: {ch.get('name', 'Unknown')} (ID: {ch.get('id', 'N/A')})")
+            except Exception as save_error:
+                print(f"  ⚠️ Failed to save {ch.get('name')}: {save_error}")
         
-        # 썸네일 추가 (YouTube 기본 썸네일 URL)
+        # 썸네일 포함하여 프론트로 반환
         enriched_channels = []
         for ch in channels:
             enriched_channels.append({
                 "id": ch["id"],
                 "name": ch["name"],
                 "keyword": ch.get("keyword", query),
-                "thumbnail": f"https://yt3.ggpht.com/ytc/default_profile.jpg"  # 기본 썸네일
+                "thumbnail": ch.get("thumbnail", "https://yt3.ggpht.com/ytc/default_profile.jpg"),
+                "description": ch.get("description", "")
             })
         
         return {
             "channels": enriched_channels,
-            "meta": result.get("meta", {})
+            "meta": result.get("meta", {}),
+            "auto_saved": len(channels)  # 자동 저장 개수
         }
     except Exception as e:
         print(f"[Channel Search] Exception: {e}")
@@ -490,3 +503,67 @@ async def collect_one_trend_endpoint(req: CollectSpecificRequest, background_tas
     """
     background_tasks.add_task(service.collect_trend_one, req.country, req.category)
     return {"status": "started", "message": f"Collect {req.country} - {req.category} started."}
+
+
+class SaveChannelRequest(BaseModel):
+    channel_id: str
+    channel_name: str
+    keyword: str
+    thumbnail_url: str | None = None  # 썸네일 추가
+
+@router.post("/api/youtube/admin/save-channel")
+async def admin_save_channel_endpoint(req: SaveChannelRequest):
+    """
+    [Admin] 검색한 채널을 DB에 저장
+    """
+    try:
+        # DB에 채널 저장
+        await service.add_channel(
+            channel_id=req.channel_id,
+            name=req.channel_name,
+            keywords=req.keyword,
+            category=None,
+            thumbnail_url=req.thumbnail_url  # 썸네일 전달
+        )
+        
+        print(f"[Admin] Channel saved: {req.channel_name} (ID: {req.channel_id})")
+        
+        return {
+            "success": True,
+            "channel_id": req.channel_id,
+            "channel_name": req.channel_name
+        }
+    except Exception as e:
+        print(f"[Admin Save Channel] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class SubscribeChannelRequest(BaseModel):
+    channel_id: str
+
+@router.post("/api/youtube/channel/subscribe")
+async def subscribe_channel_endpoint(
+    req: SubscribeChannelRequest,
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    채널 구독 (user_logs에 기록)
+    """
+    try:
+        # user_logs에 구독 기록
+        insert_sql = """
+            INSERT INTO user_logs (user_id, content_type, content_id, action, created_at)
+            VALUES (:uid, 'youtube_channel', :cid, 'subscribe', NOW())
+        """
+        await execute(insert_sql, {"uid": current_user.id, "cid": req.channel_id})
+        
+        print(f"[Subscribe] User {current_user.id} subscribed to channel {req.channel_id}")
+        
+        return {"success": True, "channel_id": req.channel_id}
+    except Exception as e:
+        print(f"[Subscribe] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))

@@ -573,3 +573,46 @@ async def get_collected_videos(country: str = None, category: str = None, limit:
     
     rows = await fetch_all(sql, params)
     return [dict(row) for row in rows]
+
+async def add_channel(channel_id: str, name: str, keywords: str = None, category: str = None, thumbnail_url: str = None, description: str = None):
+    """
+    채널 DB 저장 (Upsert)
+    - 이미 존재하면 키워드/이름/썸네일/설명 업데이트
+    """
+    check_sql = "SELECT channel_id FROM youtube_channels WHERE channel_id = :cid"
+    exists = await fetch_one(check_sql, {"cid": channel_id})
+    
+    if exists:
+        # Update
+        update_sql = """
+            UPDATE youtube_channels
+            SET name = :name,
+                keywords = COALESCE(:processed_kw, keywords),
+                thumbnail_url = COALESCE(:thumb, thumbnail_url),
+                description = COALESCE(:desc, description),
+                category = COALESCE(category, :cat),
+                updated_at = NOW()
+            WHERE channel_id = :cid
+        """
+        await execute(update_sql, {
+            "cid": channel_id, 
+            "name": name, 
+            "processed_kw": keywords,
+            "thumb": thumbnail_url,
+            "desc": description,
+            "cat": category
+        })
+    else:
+        # Insert
+        insert_sql = """
+            INSERT INTO youtube_channels (channel_id, name, keywords, category, thumbnail_url, description, created_at)
+            VALUES (:cid, :name, :kw, :cat, :thumb, :desc, NOW())
+        """
+        await execute(insert_sql, {
+            "cid": channel_id,
+            "name": name,
+            "kw": keywords,
+            "cat": category,
+            "thumb": thumbnail_url,
+            "desc": description
+        })

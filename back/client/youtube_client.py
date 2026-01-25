@@ -304,7 +304,7 @@ def discover_interest_channels(keyword: str):
     
     # 2. RSS 검증 및 필터링
     valid_channels = []
-    target_count = 15  # 목표 채널 수
+    target_count = 50  # 목표 채널 수 15 -> 50으로 증가
     
     for item in data.get('items', []):
         if len(valid_channels) >= target_count:
@@ -312,6 +312,8 @@ def discover_interest_channels(keyword: str):
             
         c_id = item['snippet']['channelId']
         c_title = item['snippet']['channelTitle']
+        c_thumbnail = item['snippet'].get('thumbnails', {}).get('default', {}).get('url', '')
+        c_description = item['snippet'].get('description', '')  # 설명 추가
         
         # RSS 찔러보기 (영상 있는지 확인)
         rss_videos = get_channel_rss(c_id)
@@ -319,7 +321,9 @@ def discover_interest_channels(keyword: str):
             valid_channels.append({
                 "id": c_id,
                 "name": c_title,
-                "keyword": keyword
+                "keyword": keyword,
+                "thumbnail": c_thumbnail,
+                "description": c_description  # 설명 추가!
             })
             
     return {

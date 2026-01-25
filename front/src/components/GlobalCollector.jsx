@@ -397,7 +397,7 @@ function ChannelCollectionTab() {
       // 영상 로드 (RSS)
       if (!channelVideos[channel.id]) {
         try {
-          const res = await client.post('/api/youtube/adhoc-rss', {
+          const res = await client.post('/api/youtube/interest/rss', {
             channels: [{ id: channel.id, name: channel.name }]
           });
           setChannelVideos(prev => ({
@@ -411,17 +411,15 @@ function ChannelCollectionTab() {
     }
   };
 
-  const handleSaveChannel = async (channel) => {
+  const handleSubscribe = async (channel) => {
     try {
-      await client.post('/api/youtube/subscribe', {
-        channel_id: channel.id,
-        channel_name: channel.name,
-        keyword: searchQuery
+      await client.post('/api/youtube/channel/subscribe', {
+        channel_id: channel.id
       });
-      alert(`✅ "${channel.name}" 채널이 저장되었습니다!`);
+      alert(`✅ "${channel.name}" 채널을 구독했습니다!`);
     } catch (error) {
       console.error(error);
-      alert('저장 실패');
+      alert('구독 실패');
     }
   };
 
@@ -463,6 +461,9 @@ function ChannelCollectionTab() {
           >
             {loading ? '검색중...' : '검색'}
           </button>
+        </div>
+        <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#888' }}>
+          💡 검색 시 자동으로 모든 채널이 DB에 저장됩니다
         </div>
       </div>
 
@@ -526,20 +527,20 @@ function ChannelCollectionTab() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleSaveChannel(channel);
+                      handleSubscribe(channel);
                     }}
                     style={{
                       padding: '8px 16px',
                       borderRadius: '8px',
                       border: 'none',
-                      background: 'linear-gradient(135deg, #2ed573, #1abc9c)',
+                      background: 'linear-gradient(135deg, #667eea, #764ba2)',
                       color: 'white',
                       fontWeight: 'bold',
                       cursor: 'pointer',
                       fontSize: '0.85rem'
                     }}
                   >
-                    저장
+                    구독
                   </button>
 
                   {expandedChannel === channel.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
