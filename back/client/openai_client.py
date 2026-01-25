@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
 from openai import AsyncOpenAI
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -62,6 +65,7 @@ def get_chat_model(model="gpt-4o-mini", temperature=0.7):
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key: return None
     return ChatOpenAI(model=model, temperature=temperature, api_key=api_key)
+    # return ChatOpenAI(model=model, temperature=temperature, openai_api_key=api_key)
 
 async def generate_response_openai(prompt: str, system_role: str = "Assistant"):
     llm = get_chat_model()

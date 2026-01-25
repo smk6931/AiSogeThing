@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv(override=True) # .env 파일 로드 (시스템 환경변수 덮어쓰기)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from hotplace.router import router as hotplace_router
