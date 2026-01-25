@@ -37,28 +37,15 @@ class YoutubeList(Base):
 
 
 class YoutubeChannel(Base):
-    """(검색 캐싱용) 수집된 유튜브 채널 정보"""
+    """(검색 캐싱용) 수집된 유튜브 채널 정보 - 사용자 취향 분석의 핵심"""
     __tablename__ = "youtube_channels"
 
     id = Column(Integer, primary_key=True, index=True)
     channel_id = Column(String, unique=True, index=True, nullable=False) # 유튜브 채널 ID
     name = Column(String, nullable=False)                                # 채널명
     keywords = Column(Text, nullable=True)                               # 발견된 키워드 (JSON String)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
-class YoutubeRSS(Base):
-    """RSS로 수집된 영상 리스트 (Zero Cost)"""
-    __tablename__ = "youtube_rss"
-
-    id = Column(Integer, primary_key=True, index=True)
-    video_id = Column(String, unique=True, index=True, nullable=False)
-    title = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    thumbnail_url = Column(String, nullable=True)
-    channel_title = Column(String, nullable=True)
-    channel_id = Column(String, nullable=True)
-    published_at = Column(DateTime(timezone=True), nullable=True)
+    category = Column(String, nullable=True)                             # 채널 카테고리 (예: Gaming, Music, Education)
+    description = Column(Text, nullable=True)                            # 채널 설명
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

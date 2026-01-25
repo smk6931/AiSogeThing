@@ -17,6 +17,8 @@ class VideoLogSchema(BaseModel):
     channel_title: str = None
 
 from client.youtube_client import search_videos, get_popular_videos, get_dating_videos, discover_new_channels
+from youtube.taste_analyzer import analyze_user_taste
+
 
 class DiscoverRequest(BaseModel):
     category: str = "reality" # 'reality' or 'sketch'
@@ -76,6 +78,16 @@ async def get_view_history_endpoint(
     """
     return await service.get_view_history(current_user["id"])
 
+@router.get("/api/youtube/taste")
+async def get_user_taste_endpoint(
+    current_user: Annotated[models.User, Depends(get_current_user)]
+):
+    """
+    사용자 취향 분석 (구독 채널 기반)
+    """
+    return await analyze_user_taste(current_user["id"])
+
+
 # =========================================================
 #  사용자 정의 관심사 RSS API
 # =========================================================
@@ -128,16 +140,9 @@ async def get_interest_endpoint(
     if not my_channels:
         return {"items": [], "channels": [], "message": "구독한 채널이 없습니다."}
 
-    # 2. 영상 긁어오기 (RSS)
-    # 2. 영상 긁어오기 (RSS)
-    result = get_interest_videos(target_keyword=keyword, my_channels=my_channels)
+    # 2. 영상 긁어오기 (RSS) - 실시간으로만 보여주고 DB 저장 안 함
+    return get_interest_videos(target_keyword=keyword, my_channels=my_channels)
 
-    # 3. [New] RSS 영상 DB 백업 (Archiving) - 비동기 처리 권장되지만 일단 await
-    # 사용자가 볼 때마다 최신 영상이 DB에 쌓임
-    if result.get("items"):
-        await service.save_rss_videos(result["items"])
-    
-    return result
 
 
 class SubscribeRequest(BaseModel):

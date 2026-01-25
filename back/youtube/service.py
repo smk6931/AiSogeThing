@@ -234,46 +234,6 @@ async def subscribe_channel(user_id: int, channel_data: dict, keyword: str = "")
         # 기존 채널이면 pass (추후 키워드 업데이트 로직 추가 가능)
         pass
 
-async def save_rss_videos(videos: list):
-    """
-    RSS로 수집된 영상 리스트를 youtube_rss 테이블에 저장 (Zero Cost Archive)
-    """
-    if not videos: return
-
-    for v in videos:
-        # 필수 필드 확인
-        vid = v.get("id")
-        if not vid: continue
-
-        # 날짜 파싱 (ISO 8601 -> datetime)
-        pub_dt = None
-        if v.get('publishedAt'):
-            try:
-                # '2025-01-25T10:00:00+00:00' format usually
-                pub_dt = datetime.fromisoformat(str(v.get('publishedAt')).replace('Z', '+00:00'))
-            except ValueError:
-                pub_dt = datetime.now()
-
-        # Insert (Ignore duplicates)
-        # RSS 데이터는 변하지 않는다고 가정하고, 이미 있으면 무시합니다.
-        sql = """
-            INSERT INTO youtube_rss
-            (video_id, title, description, thumbnail_url, channel_title, channel_id, published_at, created_at)
-            VALUES
-            (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :pub, NOW())
-            ON CONFLICT (video_id) DO NOTHING
-        """
-        
-        await execute(sql, {
-            "vid": vid,
-            "title": v.get("title", "Unknown"),
-            "desc": v.get("description", ""),
-            "thumb": v.get("thumbnail", ""),
-            "ch_title": v.get("channelTitle", ""),
-            "ch_id": v.get("channelId", ""),
-            "pub": pub_dt
-        })
-
     # 2. 유저 구독 로그 저장 (이미 구독했는지 확인)
     check_sub_sql = """
         SELECT id FROM user_logs 
