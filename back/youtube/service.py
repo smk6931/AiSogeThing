@@ -209,6 +209,7 @@ async def subscribe_channel(user_id: int, channel_data: dict, keyword: str = "")
     # 데이터 표준화
     channel_id = channel_data.get("id") or channel_data.get("channelId")
     channel_name = channel_data.get("title") or channel_data.get("channelTitle") or channel_data.get("name")
+    thumbnail = channel_data.get("thumbnail") or channel_data.get("thumbnails", {}).get("default", {}).get("url", "")
     
     if not channel_id or not channel_name:
         return {"error": "Invalid channel data"}
@@ -218,16 +219,17 @@ async def subscribe_channel(user_id: int, channel_data: dict, keyword: str = "")
     existing_ch = await fetch_one(check_ch_sql, {"cid": channel_id})
 
     if not existing_ch:
-        # 신규 채널 등록 (키워드도 함께 저장)
+        # 신규 채널 등록 (키워드, 썸네일도 함께 저장)
         await execute(
             """
-            INSERT INTO youtube_channels (channel_id, name, keywords)
-            VALUES (:cid, :name, :kw)
+            INSERT INTO youtube_channels (channel_id, name, keywords, thumbnail_url)
+            VALUES (:cid, :name, :kw, :thumb)
             """,
             {
                 "cid": channel_id,
                 "name": channel_name,
-                "kw": keyword
+                "kw": keyword,
+                "thumb": thumbnail
             }
         )
     else:

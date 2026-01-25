@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+import client from './client';
 
 // ========== 채널 관련 API ==========
 export const getChannelsList = async (params = {}) => {
@@ -11,16 +9,12 @@ export const getChannelsList = async (params = {}) => {
   queryParams.append('limit', limit);
   queryParams.append('offset', offset);
 
-  const res = await axios.get(`${API_URL}/api/youtube/channels/list?${queryParams}`, {
-    withCredentials: true
-  });
+  const res = await client.get(`/api/youtube/channels/list?${queryParams}`);
   return res.data;
 };
 
 export const getChannelDetail = async (channelId) => {
-  const res = await axios.get(`${API_URL}/api/youtube/channels/${channelId}`, {
-    withCredentials: true
-  });
+  const res = await client.get(`/api/youtube/channels/${channelId}`);
   return res.data;
 };
 
@@ -34,25 +28,31 @@ export const getVideosFeed = async (params = {}) => {
   queryParams.append('limit', limit);
   queryParams.append('offset', offset);
 
-  const res = await axios.get(`${API_URL}/api/youtube/videos/feed?${queryParams}`, {
-    withCredentials: true
-  });
+  const res = await client.get(`/api/youtube/videos/feed?${queryParams}`);
   return res.data;
+};
+
+export const getLiveVideos = async (params = {}) => {
+  const { country = 'KR', category, limit = 20 } = params;
+  const queryParams = new URLSearchParams();
+  queryParams.append('country', country);
+  if (category) queryParams.append('category', category);
+  queryParams.append('limit', limit);
+
+  const res = await client.get(`/api/youtube/search/live?${queryParams}`);
+  return res.data; // { videos: [...] }
 };
 
 // ========== 구독 API (기존 유지) ==========
 export const subscribeChannel = async (channelId, channelName) => {
-  const res = await axios.post(
-    `${API_URL}/api/youtube/interest/subscribe`,
-    { channel_id: channelId, channel_name: channelName },
-    { withCredentials: true }
+  const res = await client.post(
+    `/api/youtube/interest/subscribe`,
+    { channel_id: channelId, channel_name: channelName }
   );
   return res.data;
 };
 
 export const unsubscribeChannel = async (channelId) => {
-  const res = await axios.delete(`${API_URL}/api/youtube/interest/unsubscribe/${channelId}`, {
-    withCredentials: true
-  });
+  const res = await client.delete(`/api/youtube/interest/unsubscribe/${channelId}`);
   return res.data;
 };

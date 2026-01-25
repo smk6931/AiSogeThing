@@ -10,7 +10,7 @@ import MyPage from './pages/MyPage/MyPage';
 import Home from './pages/Home/Home';
 import Login from './pages/Login/Login';
 import HotPlace from './pages/HotPlace/HotPlace';
-import YoutubeBoard from './pages/Youtube/YoutubeBoard';
+import YoutubeBoard from './pages/Youtube/YoutubeBoardNew';
 import './App.css';
 
 function App() {

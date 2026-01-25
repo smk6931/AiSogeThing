@@ -5,6 +5,7 @@ from youtube import service
 from user import service as user_service # UUID 조회를 위해 추가
 from user.router import get_current_user
 from user import models
+from core.database import fetch_all, fetch_one
 
 router = APIRouter()
 
@@ -206,6 +207,7 @@ async def get_channels_list_endpoint(
             c.keywords,
             c.category,
             c.description,
+            c.thumbnail_url,
             c.created_at,
             CASE WHEN ul.id IS NOT NULL THEN true ELSE false END as is_subscribed
         FROM youtube_channels c
@@ -288,6 +290,33 @@ async def get_videos_feed_endpoint(
         "offset": offset,
         "sort_by": sort_by
     }
+
+
+# =========================================================
+#  API 실시간 탐색 (Live API Call)
+# =========================================================
+
+@router.get("/api/youtube/search/live")
+async def get_live_search_endpoint(
+    country: str = "KR",
+    category: str = None, # None이면 전체 인기
+    limit: int = 20
+):
+    """
+    YouTube API 실시간 인기 급상승 조회 (DB 저장 X)
+    """
+    try:
+        videos_data = get_popular_videos(
+            region_code=country,
+            category_id=category,
+            max_results=limit
+        )
+        # get_popular_videos returns {'items': [...], 'meta': ...}
+        # We need to return the list directly or wrapper correctly
+        return {"videos": videos_data.get("items", [])}
+    except Exception as e:
+        print(f"Error fetching live videos: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 

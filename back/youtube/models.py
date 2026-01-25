@@ -46,6 +46,7 @@ class YoutubeChannel(Base):
     keywords = Column(Text, nullable=True)                               # 발견된 키워드 (JSON String)
     category = Column(String, nullable=True)                             # 채널 카테고리 (예: Gaming, Music, Education)
     description = Column(Text, nullable=True)                            # 채널 설명
+    thumbnail_url = Column(Text, nullable=True)                          # 채널 썸네일 URL
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
