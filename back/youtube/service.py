@@ -51,13 +51,19 @@ async def ensure_video_metadata(video_id: str, video_data: dict):
         thumb = (video_data.get("thumbnail_url") or "")[:500]
         ch_title = (video_data.get("channel_title") or "")[:200]
         ch_id = (video_data.get("channel_id") or "")[:100]
+        
+        # [New] 벡터 임베딩 생성 (Title + Description + Tags + Channel)
+        from core.embedding import get_embedding
+        tags_str = video_data.get("tags") or ""
+        text_content = f"{title} {ch_title} {tags_str} {desc[:500]}"
+        embedding = await get_embedding(text_content)
 
         await execute(
             """
             INSERT INTO youtube_list 
-            (video_id, title, description, thumbnail_url, channel_title, channel_id, duration, is_short, view_count, category_id, tags, published_at, created_at)
+            (video_id, title, description, thumbnail_url, channel_title, channel_id, duration, is_short, view_count, category_id, tags, embedding, published_at, created_at)
             VALUES 
-            (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :dur, :short, :views, :cat, :tags, :pub, NOW())
+            (:vid, :title, :desc, :thumb, :ch_title, :ch_id, :dur, :short, :views, :cat, :tags, :embed, :pub, NOW())
             ON CONFLICT (video_id) DO UPDATE SET
                 view_count = EXCLUDED.view_count,
                 duration = EXCLUDED.duration,
@@ -79,6 +85,7 @@ async def ensure_video_metadata(video_id: str, video_data: dict):
                 "views": video_data.get("view_count", 0),
                 "cat": video_data.get("category_id"),
                 "tags": video_data.get("tags"),
+                "embed": embedding,
                 "pub": video_data.get("published_at")
             }
         )
@@ -645,22 +652,34 @@ async def add_channel(channel_id: str, name: str, keywords: str = None, category
                 thumbnail_url = COALESCE(:thumb, thumbnail_url),
                 description = COALESCE(:desc, description),
                 category = COALESCE(category, :cat),
+                embedding = COALESCE(:embed, embedding), 
                 updated_at = NOW()
             WHERE channel_id = :cid
         """
+        
+        # 임베딩 생성 (Update시에도 정보가 바뀌면 갱신)
+        text_content = f"{name} {keywords or ''} {category or ''} {description or ''}"
+        from core.embedding import get_embedding
+        embedding = await get_embedding(text_content)
+
         await execute(update_sql, {
             "cid": channel_id, 
             "name": name, 
             "processed_kw": keywords,
             "thumb": thumbnail_url,
             "desc": description,
-            "cat": category
+            "cat": category,
+            "embed": embedding
         })
     else:
         # Insert
+        text_content = f"{name} {keywords or ''} {category or ''} {description or ''}"
+        from core.embedding import get_embedding
+        embedding = await get_embedding(text_content)
+        
         insert_sql = """
-            INSERT INTO youtube_channels (channel_id, name, keywords, category, thumbnail_url, description, created_at)
-            VALUES (:cid, :name, :kw, :cat, :thumb, :desc, NOW())
+            INSERT INTO youtube_channels (channel_id, name, keywords, category, thumbnail_url, description, embedding, created_at)
+            VALUES (:cid, :name, :kw, :cat, :thumb, :desc, :embed, NOW())
         """
         await execute(insert_sql, {
             "cid": channel_id,
@@ -668,7 +687,8 @@ async def add_channel(channel_id: str, name: str, keywords: str = None, category
             "kw": keywords,
             "cat": category,
             "thumb": thumbnail_url,
-            "desc": description
+            "desc": description,
+            "embed": embedding
         })
 
 async def get_channel(channel_id: str):

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float
 from sqlalchemy.sql import func
+from pgvector.sqlalchemy import Vector  # [New] 벡터 타입 추가
 from core.database import Base
 
 class Comment(Base):
@@ -32,6 +33,10 @@ class YoutubeList(Base):
     duration = Column(String, nullable=True)                            # 길이
     is_short = Column(Integer, nullable=True)                           # 쇼츠 여부 (1: 쇼츠, 0: 일반, NULL: 미확인)
     view_count = Column(Integer, nullable=True)                         # 조회수
+    
+    # [New] 벡터 임베딩 (1536차원 - OpenAI text-embedding-3-small)
+    embedding = Column(Vector(1536), nullable=True)
+
     published_at = Column(DateTime(timezone=True), nullable=True)       # 업로드일
     created_at = Column(DateTime(timezone=True), server_default=func.now()) # 수집일
 
@@ -46,6 +51,10 @@ class YoutubeChannel(Base):
     keywords = Column(Text, nullable=True)                               # 발견된 키워드 (JSON String)
     category = Column(String, nullable=True)                             # 채널 카테고리 (예: Gaming, Music, Education)
     description = Column(Text, nullable=True)                            # 채널 설명
+    
+    # [New] 채널 성향 벡터 임베딩 (1536차원)
+    embedding = Column(Vector(1536), nullable=True)
+
     thumbnail_url = Column(Text, nullable=True)                          # 채널 썸네일 URL
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
