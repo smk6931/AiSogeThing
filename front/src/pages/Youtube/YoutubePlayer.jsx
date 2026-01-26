@@ -19,12 +19,13 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
   const totalDurationRef = useRef(0);  // 영상 전체 길이
   const intervalRef = useRef(null);    // 시간 측정 타이머
 
-  // 최초 힌트 제어 (처음에만 보여주고 끌 것)
+  // 최초 힌트 제어
   const [showHint, setShowHint] = useState(true);
+  // 구독 버튼 표시 제어 (자동 숨김)
+  const [showSubscribeBtn, setShowSubscribeBtn] = useState(true);
 
   // 1. YouTube API 스크립트 로드 (최초 1회)
   useEffect(() => {
-    // 힌트는 2초 뒤에 사라짐 (한 번만)
     const hintTimer = setTimeout(() => {
       setShowHint(false);
     }, 2500);
@@ -57,8 +58,16 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
     if (currentVideo && window.YT && window.YT.Player) {
       loadPlayer(currentVideo.id);
     }
+
+    // 비디오 변경 시 버튼 보였다가 숨기기
+    setShowSubscribeBtn(true);
+    const subTimer = setTimeout(() => {
+      setShowSubscribeBtn(false);
+    }, 1000); // 1초 뒤 사라짐
+
     return () => {
       stopTracking(); // 컴포넌트 언마운트/변경 시 추적 종료
+      clearTimeout(subTimer);
     };
   }, [currentVideo]);
 
@@ -103,7 +112,6 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
     if (event.data === window.YT.PlayerState.PLAYING) {
       startInterval();
       // 총 길이 다시 확인 (로딩 직후엔 0일 수 있어서)
-      // 2. 총 길이 저장 (Optional)
       let duration = 0;
       if (playerRef.current && typeof playerRef.current.getDuration === 'function') {
         const d = playerRef.current.getDuration();
@@ -175,11 +183,15 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
 
   // 다음 영상 로드 (Infinite Scroll)
   const loadNextVideo = async () => {
+    console.log("👉 Loading Next Video...");
     setNextLoading(true);
+
     try {
       const res = await getRandomVideo();
-      if (res.success && res.video) {
-        // 약간의 딜레이 후 교체
+      console.log("👉 Random Video Result:", res);
+
+      if (res && res.video) {
+        // 약간의 딜레이 후 교체 (로딩 UX)
         setTimeout(() => {
           // DB(snake_case) -> Frontend(CamelCase) 매핑
           const nextVideo = {
@@ -189,21 +201,31 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
             thumbnail: res.video.thumbnail_url,
             channelTitle: res.video.channel_title,
             channelId: res.video.channel_id,
-            // 필요한 다른 필드들...
             isShort: res.video.is_short,
             viewCount: res.video.view_count,
             publishedAt: res.video.published_at
           };
 
           setCurrentVideo(nextVideo);
+          // 여기서 finally 블록에서 false 처리되므로 생략 가능하나, 
+          // setTimeout 내부이므로 여기서 직접 false 처리해야 딜레이가 적용됨
           setNextLoading(false);
         }, 500);
+        return; // 성공 시 finally 전에 함수 종료되는 게 아니라, 비동기 setTimeout이므로 finally가 먼저 실행됨. 
+        // 주의: finally에서 setNextLoading(false)를 하면 딜레이가 의미 없어짐.
+        // 따라서 성공 시에는 setTimeout 안에서 끄고, 실패 시에만 즉시 끄도록 로직 수정 필요.
       } else {
+        console.warn("No video found in response");
+        alert("다음 영상을 불러올 수 없습니다. (데이터 없음)");
         setNextLoading(false);
       }
     } catch (error) {
+      console.error("Next Video Error:", error);
+      alert("다음 영상 로딩 중 오류가 발생했습니다.");
       setNextLoading(false);
     }
+    // finally 사용 시 setTimeout 딜레이가 씹힐 수 있으므로, 
+    // 위에서 각각 setNextLoading(false) 처리함.
   };
 
   if (!currentVideo) return null;
@@ -212,19 +234,15 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
   const handleSubscribe = async () => {
     if (!currentVideo) return;
 
-    // 데이터 소스에 따라 필드명이 다를 수 있음 (DB: snake_case, JS: camelCase, API: snippet...)
     const channelId = currentVideo.channelId || currentVideo.channel_id || currentVideo.snippet?.channelId;
     const channelName = currentVideo.channelTitle || currentVideo.channel_title || currentVideo.snippet?.channelTitle || "Unknown Channel";
 
-    console.log("Attempting to subscribe:", { channelId, channelName, currentVideo });
-
     if (!channelId) {
-      alert(`채널 정보를 찾을 수 없습니다. (ID Missing)\n데이터: ${JSON.stringify(currentVideo).slice(0, 100)}...`);
+      alert('채널 정보를 찾을 수 없습니다.');
       return;
     }
 
     try {
-      // client 동적 import
       const { default: client } = await import('../../api/client');
 
       await client.post('/api/youtube/channel/subscribe', {
@@ -255,7 +273,7 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
           {/* IFrame 대신 API가 사용할 div */}
           <div id="youtube-player-div" ref={containerRef}></div>
 
-          {/* 우측 투명 터치 영역 (다음 영상 넘기기) - CSS 위치 수정됨 */}
+          {/* 우측 투명 터치 영역 (다음 영상 넘기기) - 로딩 중엔 클릭 방지 */}
           {!nextLoading && (
             <div
               className="next-video-touch-area"
@@ -274,29 +292,20 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
               )}
             </div>
           )}
+
+          {/* 심플 구독 버튼 (중앙 하단, 4초 뒤 사라짐) - 로딩 중엔 숨김 */}
+          {!nextLoading && (
+            <button
+              className={`simple-subscribe-btn ${!showSubscribeBtn ? 'hidden' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSubscribe();
+              }}
+            >
+              <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> 구독
+            </button>
+          )}
         </div>
-
-        {/* 하단 영상 정보 & 구독 버튼 */}
-        <div className="player-video-info">
-          <div className="channel-info">
-            {/* 채널 썸네일은 현재 영상 데이터에 없으므로 기본 아이콘 or 영상 썸네일 사용 */}
-            <img
-              src={currentVideo.thumbnail || "https://yt3.ggpht.com/ytc/default_profile.jpg"}
-              alt="Channel"
-              className="channel-avatar"
-              onError={(e) => e.target.src = "https://yt3.ggpht.com/ytc/default_profile.jpg"}
-            />
-            <div className="channel-text">
-              <h3>{currentVideo.channelTitle || currentVideo.channel_title || "Unknown Channel"}</h3>
-              <p>{currentVideo.title}</p>
-            </div>
-          </div>
-
-          <button className="subscribe-btn" onClick={handleSubscribe}>
-            구독
-          </button>
-        </div>
-
       </div>
     </div>
   );

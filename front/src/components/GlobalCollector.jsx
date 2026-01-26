@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Download, Loader, Check, X, ShieldCheck, RefreshCw, Video, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import client from '../api/client';
 
-export default function GlobalCollector() {
+export default function GlobalCollector({ embedded = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'channels'
   const [loading, setLoading] = useState(false);
@@ -94,7 +94,7 @@ export default function GlobalCollector() {
     }
   };
 
-  if (!isOpen) {
+  if (!isOpen && !embedded) {
     const isMobile = window.innerWidth < 768;
     return (
       <button
@@ -128,27 +128,39 @@ export default function GlobalCollector() {
     );
   }
 
+  // Styles based on embedded prop
+  const containerStyle = embedded ? {
+    width: '100%',
+    height: '100%',
+    background: 'transparent',
+    color: 'white',
+    display: 'flex',
+    flexDirection: 'column',
+    animation: 'fadeIn 0.2s ease-out',
+    // Embedded일 때는 스크롤을 외부에서 제어하거나, 내부에서 full height
+  } : {
+    position: 'fixed',
+    bottom: window.innerWidth < 768 ? '10px' : '80px',
+    right: window.innerWidth < 768 ? '10px' : '20px',
+    left: window.innerWidth < 768 ? '10px' : 'auto',
+    zIndex: 9999,
+    background: 'rgba(30, 30, 46, 0.98)',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.15)',
+    borderRadius: '20px',
+    width: window.innerWidth < 768 ? 'calc(100% - 20px)' : '700px',
+    maxWidth: '100%',
+    maxHeight: window.innerWidth < 768 ? 'calc(100vh - 100px)' : '80vh',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+    color: 'white',
+    overflow: 'hidden',
+    animation: 'fadeIn 0.2s ease-out'
+  };
+
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: window.innerWidth < 768 ? '10px' : '80px',
-      right: window.innerWidth < 768 ? '10px' : '20px',
-      left: window.innerWidth < 768 ? '10px' : 'auto',
-      zIndex: 9999,
-      background: 'rgba(30, 30, 46, 0.98)',
-      backdropFilter: 'blur(12px)',
-      border: '1px solid rgba(255,255,255,0.15)',
-      borderRadius: '20px',
-      width: window.innerWidth < 768 ? 'calc(100% - 20px)' : '700px',
-      maxWidth: '100%',
-      maxHeight: window.innerWidth < 768 ? 'calc(100vh - 100px)' : '80vh',
-      display: 'flex',
-      flexDirection: 'column',
-      boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-      color: 'white',
-      overflow: 'hidden',
-      animation: 'fadeIn 0.2s ease-out'
-    }}>
+    <div style={containerStyle}>
       {/* Header */}
       <div style={{
         padding: '20px',
@@ -156,7 +168,7 @@ export default function GlobalCollector() {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        background: 'rgba(0,0,0,0.2)'
+        background: embedded ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.2)'
       }}>
         <h3 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 700 }}>
           <ShieldCheck size={24} color="#FF6B6B" />
@@ -170,12 +182,14 @@ export default function GlobalCollector() {
           >
             <RefreshCw size={20} />
           </button>
-          <button
-            onClick={() => setIsOpen(false)}
-            style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', padding: '5px' }}
-          >
-            <X size={24} />
-          </button>
+          {!embedded && (
+            <button
+              onClick={() => setIsOpen(false)}
+              style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', padding: '5px' }}
+            >
+              <X size={24} />
+            </button>
+          )}
         </div>
       </div>
 

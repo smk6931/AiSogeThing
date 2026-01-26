@@ -9,7 +9,7 @@
 Scripts/deploy_remote.ps1
 
 1-1. 기본 접속
-ssh -i "C:\Users\ssh\ssh-key-oracle.key" ubuntu@168.107.52.201
+`ssh -i "C:\Users\ssh\ssh-key-oracle.key" ubuntu@168.107.52.201`
 
 1-2. 접속과 동시에 프로젝트 폴더 이동 및 가상환경 활성화
 ssh -i "C:\Users\ssh\ssh-key-oracle.key" ubuntu@168.107.52.201 "cd AiSogeThing && source venv/bin/activate && bash"

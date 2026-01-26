@@ -4,13 +4,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: black;
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 5000;
-  /* ChannelVideoModal(4000)보다 높게 */
-  backdrop-filter: blur(5px);
+  z-index: 20000;
+  /* GlobalCollector(9999) 보다 높게 */
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -82,7 +81,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  z-index: 1000;
+  /* Loader는 제일 위에 */
   backdrop-filter: blur(5px);
 }
 
@@ -132,15 +132,17 @@
   top: 0;
   /* 상단부터 시작 */
   right: 0;
-  width: 15%;
-  min-width: 60px;
-  height: 25%;
-  /* 상단 25%만 차지하여 하단 전체화면 버튼 공간 확보 */
+  width: 20%;
+  /* 영역 조금 더 넓힘 */
+  min-width: 80px;
+  height: 40%;
+  /* 높이도 좀 더 여유있게 */
 
   /* 투명하지만 클릭 가능 */
   background: transparent;
   cursor: pointer;
-  z-index: 200;
+  z-index: 500;
+  /* iframe 및 다른 요소보다 확실히 위에 */
 
   display: flex;
   align-items: center;
@@ -152,9 +154,9 @@
   /* 상단은 둥글게 만들 필요 없음 */
 }
 
-/* 마우스를 올렸을 때 희미하게 보이게 */
+/* 마우스를 올렸을 때 희미하게 보이게 (UX 개선) */
 .next-video-touch-area:hover {
-  background: linear-gradient(to left, rgba(0, 0, 0, 0.4), transparent);
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.1), transparent);
 }
 
 /* 힌트 아이콘/텍스트 (처음에만 보임) */
@@ -192,73 +194,57 @@
 
 @media (max-width: 768px) {
   .next-video-touch-area {
-    width: 20%;
-    min-width: 70px;
-    height: 35%;
+    width: 25%;
+    min-width: 90px;
+    height: 40%;
     /* 모바일에서는 조금 더 넓게 (손가락 터치) */
   }
 }
 
 /* =========================================
-   하단 영상 정보 & 구독 버튼
+   심플 오버레이 구독 버튼 (중앙 하단, 페이드 아웃)
    ========================================= */
-.player-video-info {
-  padding: 16px 20px;
-  background: #1e1e2e;
+.simple-subscribe-btn {
+  position: absolute;
+  bottom: 20px !important;
+  /* 더 아래로 강제 이동 */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+
+  background: rgba(0, 0, 0, 0.6);
   color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.channel-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.channel-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.channel-text h3 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-}
-
-.channel-text p {
-  margin: 2px 0 0 0;
-  font-size: 0.8rem;
-  color: #aaa;
-}
-
-.subscribe-btn {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 30px;
   padding: 8px 16px;
-  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-  color: white;
-  border: none;
-  border-radius: 20px;
-  font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s, opacity 0.2s;
   display: flex;
   align-items: center;
   gap: 6px;
+  transition: all 0.2s, opacity 1.5s ease-out;
+  /* 페이드 길게 */
+  backdrop-filter: blur(4px);
+  opacity: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.subscribe-btn:active {
-  transform: scale(0.95);
+.simple-subscribe-btn:hover {
+  background: #FF6B6B;
+  border-color: #FF6B6B;
+  transform: translateX(-50%) scale(1.05);
+  /* 중앙 정렬 유지하면서 확대 */
+  opacity: 1 !important;
+  /* 마우스 올리면 다시 보이게 */
 }
 
-.subscribe-btn.subscribed {
-  background: #3a3a4e;
-  color: #aaa;
+.simple-subscribe-btn:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+.simple-subscribe-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
+  /* 클릭 불가 */
 }

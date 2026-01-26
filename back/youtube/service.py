@@ -643,7 +643,12 @@ async def get_collected_videos(country: str = None, category: str = None, limit:
     where_str = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
     
     # 3. 정렬 결정
-    order_clause = "ORDER BY published_at DESC" if sort_by == "newest" else "ORDER BY view_count DESC NULLS LAST"
+    if sort_by == "random":
+        order_clause = "ORDER BY RANDOM()"
+    elif sort_by == "popular":
+        order_clause = "ORDER BY view_count DESC NULLS LAST"
+    else: # newest
+        order_clause = "ORDER BY published_at DESC"
     
     sql = f"""
         SELECT 

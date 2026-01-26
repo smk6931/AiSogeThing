@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Video, List, Search, Filter, TrendingUp, Calendar, Tag, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
-import { getVideosFeed, getChannelsList, subscribeChannel, unsubscribeChannel } from '../../api/channelsApi';
-import { getAdhocRssVideos } from '../../api/youtube';
+import { Video, Search, TrendingUp, Calendar, UserPlus, ShieldCheck, Shuffle } from 'lucide-react';
+import { getVideosFeed, subscribeChannel } from '../../api/channelsApi';
 import YoutubePlayer from './YoutubePlayer';
 import GlobalCollector from '../../components/GlobalCollector';
-import ChannelExplorer from './ChannelExplorer';
 import './YoutubeBoardNew.css';
 
 export default function YoutubeBoard() {
@@ -23,11 +21,11 @@ export default function YoutubeBoard() {
           영상
         </button>
         <button
-          className={`main-tab ${activeTab === 'channels' ? 'active' : ''}`}
-          onClick={() => setActiveTab('channels')}
+          className={`main-tab ${activeTab === 'collect' ? 'active' : ''}`}
+          onClick={() => setActiveTab('collect')}
         >
-          <List size={20} />
-          채널
+          <ShieldCheck size={20} />
+          수집 (Admin)
         </button>
       </div>
 
@@ -35,7 +33,10 @@ export default function YoutubeBoard() {
         {activeTab === 'videos' ? (
           <VideoBrowser onVideoClick={setSelectedVideo} />
         ) : (
-          <ChannelExplorer onChannelClick={(ch) => console.log('Channel clicked:', ch)} />
+          <div style={{ height: '100%', overflow: 'hidden' }}>
+            {/* GlobalCollector를 페이지 내부에 임베딩 */}
+            <GlobalCollector embedded={true} />
+          </div>
         )}
       </div>
 
@@ -44,13 +45,10 @@ export default function YoutubeBoard() {
         <div className="player-modal-overlay" onClick={() => setSelectedVideo(null)}>
           <div className="player-modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setSelectedVideo(null)}>×</button>
-            <YoutubePlayer video={selectedVideo} />
+            <YoutubePlayer video={selectedVideo} onClose={() => setSelectedVideo(null)} />
           </div>
         </div>
       )}
-
-      {/* Admin Collection Modal */}
-      <GlobalCollector />
     </div>
   );
 }
@@ -59,7 +57,7 @@ export default function YoutubeBoard() {
 function VideoBrowser({ onVideoClick }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [sortBy, setSortBy] = useState('newest');
+  const [sortBy, setSortBy] = useState('random');
   const [country, setCountry] = useState('KR');
   const [category, setCategory] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -126,6 +124,13 @@ function VideoBrowser({ onVideoClick }) {
             >
               <TrendingUp size={16} />
               인기순
+            </button>
+            <button
+              className={`sort-btn ${sortBy === 'random' ? 'active' : ''}`}
+              onClick={() => setSortBy('random')}
+            >
+              <Shuffle size={16} />
+              랜덤순
             </button>
           </div>
 
@@ -203,167 +208,6 @@ function VideoBrowser({ onVideoClick }) {
     </div>
   );
 }
-
-// ========== Section 2: 채널 매니저 (Enhanced with Accordion) ==========
-function ChannelManager() {
-  const [channels, setChannels] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expandedChannel, setExpandedChannel] = useState(null); // 확장된 채널 ID
-  const [channelVideos, setChannelVideos] = useState({}); // {channelId: [videos]}
-
-  useEffect(() => {
-    loadChannels();
-  }, []);
-
-  const loadChannels = async () => {
-    setLoading(true);
-    try {
-      const data = await getChannelsList({ limit: 100 });
-      setChannels(data.channels || []);
-    } catch (error) {
-      console.error('Failed to load channels:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-
-  const handleSubscribe = async (channel) => {
-    try {
-      if (channel.is_subscribed) {
-        await unsubscribeChannel(channel.channel_id);
-      } else {
-        await subscribeChannel(channel.channel_id, channel.name);
-      }
-      loadChannels();
-    } catch (error) {
-      console.error('Subscribe failed:', error);
-    }
-  };
-
-  const handleChannelToggle = async (channel) => {
-    if (expandedChannel === channel.channel_id) {
-      setExpandedChannel(null); // 닫기
-    } else {
-      setExpandedChannel(channel.channel_id); // 열기
-
-      // 영상 로드 (RSS)
-      if (!channelVideos[channel.channel_id]) {
-        try {
-          const result = await getAdhocRssVideos([{
-            id: channel.channel_id,
-            name: channel.name
-          }]);
-          setChannelVideos(prev => ({
-            ...prev,
-            [channel.channel_id]: result.items || []
-          }));
-        } catch (error) {
-          console.error('Failed to load channel videos:', error);
-        }
-      }
-    }
-  };
-
-  const filteredChannels = searchTerm
-    ? channels.filter(c => c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.keywords?.toLowerCase().includes(searchTerm.toLowerCase()))
-    : channels;
-
-  return (
-    <div className="channel-manager-section">
-      {/* Channel List */}
-      <div className="channel-list-panel">
-        <div className="channel-search-bar">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="채널 검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="channel-accordion">
-          {loading ? (
-            <div className="loading-msg">채널 불러오는 중...</div>
-          ) : filteredChannels.length === 0 ? (
-            <div className="empty-msg">채널이 없습니다 📺</div>
-          ) : (
-            filteredChannels.map((channel) => (
-              <div key={channel.channel_id} className="channel-accordion-item">
-                {/* Channel Header */}
-                <div className="channel-card-header" onClick={() => handleChannelToggle(channel)}>
-                  {channel.thumbnail_url ? (
-                    <img src={channel.thumbnail_url} alt={channel.name} className="channel-thumbnail" />
-                  ) : (
-                    <div className="channel-avatar-circle">
-                      {channel.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-
-                  <div className="channel-info-box">
-                    <h4>{channel.name}</h4>
-                    {channel.category && (
-                      <span className="cat-tag">
-                        <Tag size={12} />
-                        {channel.category}
-                      </span>
-                    )}
-                    {channel.keywords && (
-                      <div className="keywords-row">
-                        {channel.keywords.split(',').slice(0, 3).map((kw, i) => (
-                          <span key={i} className="kw-pill">#{kw.trim()}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    className={`sub-btn ${channel.is_subscribed ? 'subscribed' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSubscribe(channel);
-                    }}
-                  >
-                    {channel.is_subscribed ? '✓' : '+'}
-                  </button>
-
-                  <button className="expand-btn">
-                    {expandedChannel === channel.channel_id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                  </button>
-                </div>
-
-                {/* Expanded Video List */}
-                {expandedChannel === channel.channel_id && (
-                  <div className="channel-videos-grid">
-                    {channelVideos[channel.channel_id] ? (
-                      channelVideos[channel.channel_id].length > 0 ? (
-                        channelVideos[channel.channel_id].map((video) => (
-                          <div key={video.id} className="channel-video-thumb">
-                            <img src={video.thumbnail} alt={video.title} />
-                            <div className="video-thumb-title">{video.title}</div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="no-videos-msg">영상이 없습니다</p>
-                      )
-                    ) : (
-                      <p className="loading-videos-msg">영상을 불러오는 중...</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 // Helpers
 function formatViews(count) {
