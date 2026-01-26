@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, ChevronDown, Loader } from 'lucide-react';
+import { X, Loader } from 'lucide-react';
 import { getRandomVideo, logYoutubeVideo, updateWatchTime } from '../../api/youtube';
 import './YoutubePlayer.css';
 
@@ -7,29 +7,22 @@ import './YoutubePlayer.css';
 let ytApiLoaded = false;
 
 export default function YoutubePlayer({ video: initialVideo, onClose }) {
-  // videoId가 아닌 video 객체 전체를 상태로 관리
   const [currentVideo, setCurrentVideo] = useState(initialVideo);
   const [nextLoading, setNextLoading] = useState(false);
 
-  // YouTube API 관련 Refs
-  const playerRef = useRef(null);      // YT.Player 인스턴스
-  const containerRef = useRef(null);   // 플레이어 div 컨테이너
-  const currentLogIdRef = useRef(null); // 현재 영상의 서버 로그 ID
-  const watchTimeRef = useRef(0);      // 누적 시청 시간 (초)
-  const totalDurationRef = useRef(0);  // 영상 전체 길이
-  const intervalRef = useRef(null);    // 시간 측정 타이머
+  // Refs
+  const playerRef = useRef(null);
+  const currentLogIdRef = useRef(null);
+  const watchTimeRef = useRef(0);
+  const totalDurationRef = useRef(0);
+  const intervalRef = useRef(null);
 
-  // 최초 힌트 제어
+  // UI States
   const [showHint, setShowHint] = useState(true);
-  // 구독 버튼 표시 제어 (자동 숨김)
   const [showSubscribeBtn, setShowSubscribeBtn] = useState(true);
 
-  // 1. YouTube API 스크립트 로드 (최초 1회)
+  // 1. 초기 API 스크립트 로드
   useEffect(() => {
-    const hintTimer = setTimeout(() => {
-      setShowHint(false);
-    }, 2500);
-
     if (!ytApiLoaded) {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
@@ -37,70 +30,79 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
       ytApiLoaded = true;
     }
-
-    // 전역 콜백 (API 준비됨)
-    window.onYouTubeIframeAPIReady = () => {
-      if (currentVideo) {
-        loadPlayer(currentVideo.id);
-      }
-    };
-
-    // 이미 로드된 경우 바로 실행
-    if (window.YT && window.YT.Player && currentVideo) {
-      loadPlayer(currentVideo.id);
-    }
-
-    return () => clearTimeout(hintTimer);
   }, []);
 
-  // 2. 비디오 변경 감지 -> 플레이어 로드/갱신
+  // 2. 비디오 라이프사이클 관리 (ID가 바뀌면 플레이어 재성성)
   useEffect(() => {
-    if (currentVideo && window.YT && window.YT.Player) {
-      loadPlayer(currentVideo.id);
-    }
+    if (!currentVideo) return;
 
-    // 비디오 변경 시 버튼 보였다가 숨기기
+    // UI 초기화
+    setShowHint(true);
     setShowSubscribeBtn(true);
-    const subTimer = setTimeout(() => {
-      setShowSubscribeBtn(false);
-    }, 1000); // 1초 뒤 사라짐
+    const hintTimer = setTimeout(() => setShowHint(false), 2500);
+    const subTimer = setTimeout(() => setShowSubscribeBtn(false), 2500);
 
-    return () => {
-      stopTracking(); // 컴포넌트 언마운트/변경 시 추적 종료
-      clearTimeout(subTimer);
-    };
-  }, [currentVideo]);
+    // 플레이어 생성 함수
+    const createPlayer = () => {
+      // 안전장치: 기존 것이 있으면 파괴
+      if (playerRef.current) {
+        try { playerRef.current.destroy(); } catch (e) { }
+      }
 
+      // 유니크 ID 사용 (React 충돌 방지)
+      const elementId = `youtube-player-${currentVideo.id}`;
 
-  // 플레이어 로드/큐잉
-  const loadPlayer = (videoId) => {
-    // 기존 로그 저장 (이전 영상이 있다면)
-    stopTracking();
+      // 요소를 찾을 때까지 약간 대기 (DOM 렌더링 시점 차이)
+      // 하지만 useEffect 안이라서 DOM은 이미 있을 것임.
+      if (!document.getElementById(elementId)) {
+        console.warn("Player element not found, retrying...");
+        setTimeout(createPlayer, 100);
+        return;
+      }
 
-    // 시청 시작 (새 로그 생성)
-    startTracking(videoId);
-
-    if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
-      // 이미 플레이어가 있으면 영상 로드
-      playerRef.current.loadVideoById(videoId);
-    } else {
-      // 새 플레이어 생성
-      playerRef.current = new window.YT.Player('youtube-player-div', {
+      playerRef.current = new window.YT.Player(elementId, {
         height: '100%',
         width: '100%',
-        videoId: videoId,
+        videoId: currentVideo.id,
         playerVars: {
           'autoplay': 1,
           'playsinline': 1,
-          'controls': 1
+          'controls': 1,
+          'rel': 0
         },
         events: {
           'onReady': onPlayerReady,
           'onStateChange': onPlayerStateChange
         }
       });
+    };
+
+    // API 준비 확인 후 실행
+    if (window.YT && window.YT.Player) {
+      createPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = () => {
+        createPlayer();
+      };
     }
-  };
+
+    // 시청 로그 시작
+    startTracking(currentVideo.id);
+
+    // Cleanup
+    return () => {
+      clearTimeout(hintTimer);
+      clearTimeout(subTimer);
+      stopTracking();
+      if (playerRef.current) {
+        try { playerRef.current.destroy(); } catch (e) { }
+        playerRef.current = null;
+      }
+    };
+  }, [currentVideo.id]); // currentVideo.id가 바뀔 때마다 실행 (완전 리셋)
+
+
+  // --- Event Handlers ---
 
   const onPlayerReady = (event) => {
     event.target.playVideo();
@@ -108,32 +110,20 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
   };
 
   const onPlayerStateChange = (event) => {
-    // 재생 중(1)일 때만 타이머 가동
     if (event.data === window.YT.PlayerState.PLAYING) {
       startInterval();
-      // 총 길이 다시 확인 (로딩 직후엔 0일 수 있어서)
-      let duration = 0;
-      if (playerRef.current && typeof playerRef.current.getDuration === 'function') {
-        const d = playerRef.current.getDuration();
-        if (typeof d === 'number' && !isNaN(d)) {
-          duration = d;
-        }
-      }
-      totalDurationRef.current = duration;
+      totalDurationRef.current = playerRef.current.getDuration();
     } else {
       stopInterval();
     }
-    // 종료(0) 시
     if (event.data === window.YT.PlayerState.ENDED) {
-      loadNextVideo(); // 자동 다음 영상
+      loadNextVideo();
     }
   };
 
-  // 타이머 (1초마다 시청 시간 증가)
   const startInterval = () => {
     stopInterval();
     intervalRef.current = setInterval(() => {
-      // 현재 재생 위치(초) 기록
       if (playerRef.current && playerRef.current.getCurrentTime) {
         watchTimeRef.current = playerRef.current.getCurrentTime();
       }
@@ -147,41 +137,31 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
     }
   };
 
-  // 새 영상 로깅 시작
+  // --- Logging Logic ---
+
   const startTracking = async (videoId) => {
     watchTimeRef.current = 0;
-    currentLogIdRef.current = null; // 초기화
-
-    // 메타데이터 준비 (currentVideo 상태 사용)
+    currentLogIdRef.current = null;
     let videoMeta = { id: videoId, title: "Watching..." };
-
-    // 현재 상태의 비디오 객체가 해당 ID와 일치하면 메타데이터 사용
-    if (currentVideo && currentVideo.id === videoId) {
-      videoMeta = currentVideo;
-    }
+    if (currentVideo && currentVideo.id === videoId) videoMeta = currentVideo;
 
     const res = await logYoutubeVideo(videoMeta);
-
     if (res && res.log_id) {
       currentLogIdRef.current = res.log_id;
-    } else {
-      // 에러 처리
-      console.error("❌ Watching Log Failed:", res);
     }
   };
 
-  // 영상 종료/교체 시 로그 업데이트
   const stopTracking = () => {
     stopInterval();
     if (currentLogIdRef.current && watchTimeRef.current > 0) {
-      // 비동기로 전송 (await 안 함)
       updateWatchTime(currentLogIdRef.current, watchTimeRef.current);
     }
     currentLogIdRef.current = null;
     watchTimeRef.current = 0;
   };
 
-  // 다음 영상 로드 (Infinite Scroll)
+  // --- Next Video Logic ---
+
   const loadNextVideo = async () => {
     console.log("👉 Loading Next Video...");
     setNextLoading(true);
@@ -191,9 +171,7 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
       console.log("👉 Random Video Result:", res);
 
       if (res && res.video) {
-        // 약간의 딜레이 후 교체 (로딩 UX)
         setTimeout(() => {
-          // DB(snake_case) -> Frontend(CamelCase) 매핑
           const nextVideo = {
             id: res.video.video_id,
             title: res.video.title,
@@ -205,56 +183,43 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
             viewCount: res.video.view_count,
             publishedAt: res.video.published_at
           };
-
           setCurrentVideo(nextVideo);
-          // 여기서 finally 블록에서 false 처리되므로 생략 가능하나, 
-          // setTimeout 내부이므로 여기서 직접 false 처리해야 딜레이가 적용됨
           setNextLoading(false);
         }, 500);
-        return; // 성공 시 finally 전에 함수 종료되는 게 아니라, 비동기 setTimeout이므로 finally가 먼저 실행됨. 
-        // 주의: finally에서 setNextLoading(false)를 하면 딜레이가 의미 없어짐.
-        // 따라서 성공 시에는 setTimeout 안에서 끄고, 실패 시에만 즉시 끄도록 로직 수정 필요.
       } else {
-        console.warn("No video found in response");
-        alert("다음 영상을 불러올 수 없습니다. (데이터 없음)");
+        alert("다음 영상을 불러올 수 없습니다.");
         setNextLoading(false);
       }
     } catch (error) {
       console.error("Next Video Error:", error);
-      alert("다음 영상 로딩 중 오류가 발생했습니다.");
+      alert("영상 로딩 중 오류가 발생했습니다.");
       setNextLoading(false);
     }
-    // finally 사용 시 setTimeout 딜레이가 씹힐 수 있으므로, 
-    // 위에서 각각 setNextLoading(false) 처리함.
   };
 
   if (!currentVideo) return null;
 
-  // 구독 처리
+  // --- Subscribe ---
+
   const handleSubscribe = async () => {
-    if (!currentVideo) return;
+    const channelId = currentVideo.channelId || currentVideo.channel_id;
+    const channelName = currentVideo.channelTitle || currentVideo.channel_title;
 
-    const channelId = currentVideo.channelId || currentVideo.channel_id || currentVideo.snippet?.channelId;
-    const channelName = currentVideo.channelTitle || currentVideo.channel_title || currentVideo.snippet?.channelTitle || "Unknown Channel";
-
-    if (!channelId) {
-      alert('채널 정보를 찾을 수 없습니다.');
-      return;
-    }
+    if (!channelId) return alert('채널 정보가 없습니다.');
 
     try {
       const { default: client } = await import('../../api/client');
-
-      await client.post('/api/youtube/channel/subscribe', {
-        channel_id: channelId
-      });
-      alert(`✅ "${channelName}" 채널을 구독했습니다!`);
+      await client.post('/api/youtube/channel/subscribe', { channel_id: channelId });
+      alert(`✅ "${channelName}" 구독 완료!`);
     } catch (error) {
-      console.error("[Subscribe Error]", error);
-      alert('구독 실패! (콘솔 로그를 확인해주세요)');
+      console.error(error);
+      alert('구독 실패');
     }
   };
 
+  // React Key 전략: Wrapper에 key를 주어 React가 Wrapper 내부를 신경 쓰지 않고 통째로 갈아끼우도록 함
+  // Youtube API는 내부 div를 iframe으로 바꿔치기 하므로, React가 이를 감지하면 에러 발생함.
+  // 따라서 매 비디오마다 새로운 Wrapper와 새로운 ID를 가진 Div를 렌더링.
   return (
     <div className="youtube-modal-overlay" onClick={onClose}>
       <div className="youtube-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -265,45 +230,49 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
         {nextLoading && (
           <div className="next-video-loader">
             <Loader size={48} className="spinner-icon" />
-            <p>다음 영상 불러오는 중...</p>
+            <p>다음 영상 연결 중...</p>
           </div>
         )}
 
         <div className="youtube-iframe-container">
-          {/* IFrame 대신 API가 사용할 div */}
-          <div id="youtube-player-div" ref={containerRef}></div>
 
-          {/* 우측 투명 터치 영역 (다음 영상 넘기기) - 로딩 중엔 클릭 방지 */}
-          {!nextLoading && (
-            <div
-              className="next-video-touch-area"
-              onClick={(e) => {
-                e.stopPropagation();
-                loadNextVideo();
-              }}
-              title="다음 영상 (화면 우측 상단 클릭)"
-            >
-              {/* 처음에만 보이는 힌트 */}
-              {showHint && (
-                <div className="next-video-hint">
-                  <span>👉</span>
-                  <span className="hint-text">Next</span>
-                </div>
-              )}
-            </div>
-          )}
+          {/* 
+            CRITICAL FIX: 
+            key를 줌으로써 React가 이 div를 매번 새로 생성하게 함.
+            Youtube API가 내부 DOM을 훼손해도, React는 Unmount -> Mount 과정을 거치므로 에러 없음.
+          */}
+          <div key={currentVideo.id} style={{ width: '100%', height: '100%' }}>
+            <div id={`youtube-player-${currentVideo.id}`}></div>
+          </div>
 
-          {/* 심플 구독 버튼 (중앙 하단, 4초 뒤 사라짐) - 로딩 중엔 숨김 */}
           {!nextLoading && (
-            <button
-              className={`simple-subscribe-btn ${!showSubscribeBtn ? 'hidden' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSubscribe();
-              }}
-            >
-              <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> 구독
-            </button>
+            <>
+              <div
+                className="next-video-touch-area"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  loadNextVideo();
+                }}
+                title="다음 영상"
+              >
+                {showHint && (
+                  <div className="next-video-hint">
+                    <span>👉</span>
+                    <span className="hint-text">Next</span>
+                  </div>
+                )}
+              </div>
+
+              <button
+                className={`simple-subscribe-btn ${!showSubscribeBtn ? 'hidden' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSubscribe();
+                }}
+              >
+                <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> 구독
+              </button>
+            </>
           )}
         </div>
       </div>
