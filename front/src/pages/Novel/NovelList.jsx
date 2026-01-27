@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import client from '../../api/client'; // axios client
 import { PlusCircle, BookOpen } from 'lucide-react';
+import { listNovels } from '../../api/novel';
 import './NovelList.css';
 
 const NovelList = () => {
@@ -11,9 +11,8 @@ const NovelList = () => {
   useEffect(() => {
     const fetchNovels = async () => {
       try {
-        // client 사용 (baseURL 설정됨)
-        const res = await client.get('/novel/');
-        setNovels(res.data);
+        const data = await listNovels();
+        setNovels(data);
       } catch (err) {
         console.error(err);
       } finally {

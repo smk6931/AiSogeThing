@@ -21,6 +21,10 @@ class NovelBase(BaseModel):
 
 class NovelCreate(BaseModel):
     topic: str  # The prompt for generation
+    character_count: Optional[int] = 2  # Number of characters
+    character_descriptions: Optional[str] = "남녀 주인공"  # Character descriptions
+    scene_count: Optional[int] = 4  # Number of scenes
+    script_length: Optional[str] = "medium"  # short/medium/long
 
 class NovelResponse(NovelBase):
     id: int

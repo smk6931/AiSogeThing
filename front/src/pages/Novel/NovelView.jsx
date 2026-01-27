@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import client from '../../api/client';
+import { getNovel } from '../../api/novel';
 import './NovelView.css';
 
 const NovelView = () => {
@@ -10,8 +10,8 @@ const NovelView = () => {
   useEffect(() => {
     const fetchNovel = async () => {
       try {
-        const res = await client.get(`/novel/${id}`);
-        setNovel(res.data);
+        const data = await getNovel(id);
+        setNovel(data);
       } catch (err) {
         console.error(err);
       }
@@ -38,7 +38,6 @@ const NovelView = () => {
                 alt={`Cut ${cut.cut_order}`}
                 className="cut-img"
                 onError={(e) => {
-                  // 임시 이미지 처리
                   e.target.src = "https://placehold.co/600x600/1a1a2e/ffffff?text=Generating...";
                 }}
               />

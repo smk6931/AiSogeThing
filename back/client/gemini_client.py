@@ -1,12 +1,18 @@
 import os
+import uuid
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
+import google.generativeai as genai
 
 # ========================================================
-#  Google Gemini Client (Chat Only)
+#  Google Gemini Client (Chat + Image Generation)
 # ========================================================
 
-def get_chat_model(model="gemini-pro", temperature=0.7):
+# API 키 설정
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"))
+
+
+def get_chat_model(model="Gemini 2.5 Flash", temperature=0.7):
     api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
     if not api_key: return None
     
@@ -15,6 +21,7 @@ def get_chat_model(model="gemini-pro", temperature=0.7):
         temperature=temperature,
         google_api_key=api_key
     )
+
 
 async def generate_response_gemini(prompt: str, system_role: str = "Assistant"):
     llm = get_chat_model()
@@ -31,3 +38,69 @@ async def generate_response_gemini(prompt: str, system_role: str = "Assistant"):
     except Exception as e:
         print(f"⚠️ Gemini Chat Error: {e}")
         return "Error generating response."
+
+
+# ========================================================
+#  Image Generation (Imagen 3.0)
+# ========================================================
+
+async def generate_image_gemini(
+    prompt: str,
+    output_dir: str,
+    model_name: str = "imagen-3.0-generate-001",
+    safety_filter: str = "block_only_high"
+) -> str:
+    """
+    Google GenAI로 이미지 생성 후 저장
+    
+    Args:
+        prompt: 이미지 생성 프롬프트 (영문)
+        output_dir: 저장 디렉토리
+        model_name: 이미지 생성 모델
+        safety_filter: 안전 필터 레벨
+    
+    Returns:
+        파일명 (예: abc123.png)
+    
+    Raises:
+        Exception: 이미지 생성 실패 시
+    """
+    print(f"🎨 이미지 생성 시작: {prompt[:50]}...")
+    
+    # google-genai SDK 사용
+    from google import genai as genai_client
+    from google.genai.types import GenerateContentConfig
+    
+    client = genai_client.Client(api_key=os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"))
+    
+    # 이미지 생성 요청
+    response = client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=GenerateContentConfig(
+            response_modalities=["image"]
+        )
+    )
+    
+    # 이미지 추출
+    if not response.candidates or not response.candidates[0].content.parts:
+        raise Exception("이미지 생성 실패: 빈 응답")
+    
+    image_part = response.candidates[0].content.parts[0]
+    
+    # 고유 파일명 생성
+    filename = f"{uuid.uuid4()}.png"
+    output_path = os.path.join(output_dir, filename)
+    
+    # 디렉토리 생성
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 이미지 저장 (base64 디코딩)
+    import base64
+    image_bytes = base64.b64decode(image_part.inline_data.data)
+    
+    with open(output_path, 'wb') as f:
+        f.write(image_bytes)
+    
+    print(f"✅ 이미지 저장 완료: {filename}")
+    return filename

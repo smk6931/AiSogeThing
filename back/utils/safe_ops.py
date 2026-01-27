@@ -56,6 +56,9 @@ def safe_http_get(url: str, headers: dict = None) -> tuple[dict, str]:
         return None, f"네트워크 오류: {str(e)}"
 
 from contextlib import contextmanager
+from functools import wraps
+from fastapi import HTTPException
+import traceback
 
 @contextmanager
 def safe_execute(error_msg="An error occurred"):
@@ -69,3 +72,62 @@ def safe_execute(error_msg="An error occurred"):
         yield
     except Exception as e:
         print(f"⚠️ {error_msg}: {e}")
+
+
+# ========================================================
+#  [추가] 데코레이터 방식 예외처리 (Router용)
+# ========================================================
+
+def handle_exceptions(default_message: str = "작업 실패"):
+    """
+    [비동기용] 예외 처리 데코레이터 (FastAPI Router용)
+    
+    사용법:
+        @handle_exceptions(default_message="웹툰 생성 실패")
+        async def generate_novel(request):
+            ...
+    
+    구조 설명:
+        - 1단계 (handle_exceptions): 파라미터(default_message) 받기
+        - 2단계 (decorator): 실제 함수(func) 받기  
+        - 3단계 (wrapper): 함수 실행 + 예외 처리
+    """
+    # [2단계] 함수를 받아서 래핑된 함수 반환
+    def decorator(func):
+        # [3단계] 실제 실행 로직 (try-except 처리)
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            try:
+                return await func(*args, **kwargs)
+            except HTTPException:
+                raise  # FastAPI HTTPException은 그대로 전달
+            except Exception as e:
+                error_msg = f"{default_message}: {str(e)}"
+                print(f"❌ {error_msg}")
+                print(f"📍 Traceback:\n{traceback.format_exc()}")
+                raise HTTPException(status_code=500, detail=error_msg)
+        return wrapper  # 래핑된 함수 반환
+    return decorator  # 데코레이터 반환
+
+
+def handle_sync_exceptions(default_message: str = "작업 실패"):
+    """
+    [동기용] 예외 처리 데코레이터
+    
+    사용법:
+        @handle_sync_exceptions(default_message="이미지 처리 실패")
+        def process_image(path):
+            ...
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                error_msg = f"{default_message}: {str(e)}"
+                print(f"❌ {error_msg}")
+                print(f"📍 Traceback:\n{traceback.format_exc()}")
+                return None
+        return wrapper
+    return decorator

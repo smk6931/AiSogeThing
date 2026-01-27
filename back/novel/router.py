@@ -1,7 +1,12 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from typing import List
+import os
+
 from novel.schemas import NovelCreate, NovelResponse
 from novel import service
+from novel.langgraph_workflow import generate_webtoon
+from utils.safe_ops import handle_exceptions
 
 router = APIRouter(
     prefix="/novel",
@@ -10,47 +15,56 @@ router = APIRouter(
 )
 
 @router.post("/generate", response_model=NovelResponse)
+@handle_exceptions(default_message="웹툰 생성 실패")
 async def generate_novel(request: NovelCreate):
     """
-    Start novel generation.
-    Currently mocked to create DB entries and return them.
-    LangGraph logic will be injected here later.
+    AI 웹툰 생성 (LangGraph + GenAI)
     """
-    # 1. 소설 메인 생성
-    novel = await service.create_novel(request.topic)
+    # LangGraph 워크플로우 실행
+    novel_id = await generate_webtoon(
+        topic=request.topic,
+        character_count=request.character_count,
+        character_descriptions=request.character_descriptions,
+        scene_count=request.scene_count,
+        script_length=request.script_length
+    )
     
-    # 2. (Mock) 4컷 생성 - 나중에 LangGraph가 할 일
-    # 우선 임시로 모두 같은 이미지 사용
-    # 사용자가 언급한 "백엔드 front/image 폴더"는 정적 파일 서빙을 의미하는 듯 함.
-    # 프론트에서 /images/temp.png 로 접근 가능하다고 가정.
-    
-    mock_desc = [
-        "Characters meeting for the first time.",
-        "Conflict arises unexpectedly.",
-        "Emotional moment in rain.",
-        "Happy resolution."
-    ]
-    
-    for i in range(1, 5):
-        await service.create_novel_cut(
-            novel_id=novel["id"],
-            cut_order=i,
-            scene_desc=mock_desc[i-1],
-            # 임시 이미지 경로 (프론트 public 폴더 기준)
-            image_path=f"/images/storyimage_{i}.png" # 프론트에서 이 파일을 넣어둬야 함
-        )
-    
-    # 3. 전체 데이터 반환
-    return await service.get_novel(novel["id"])
+    # 생성된 Novel 반환
+    return await service.get_novel(novel_id)
+
 
 @router.get("/{novel_id}", response_model=NovelResponse)
+@handle_exceptions(default_message="웹툰 조회 실패")
 async def get_novel(novel_id: int):
     novel = await service.get_novel(novel_id)
     if not novel:
         raise HTTPException(status_code=404, detail="Novel not found")
     return novel
 
+
 @router.get("/", response_model=List[NovelResponse])
+@handle_exceptions(default_message="웹툰 목록 조회 실패")
 async def list_novels():
-    # 목록 조회 시 cuts는 빈 배열로 나감 (service가 fetch 안하므로)
     return await service.list_novels()
+
+
+# ========================================================
+#  이미지 서빙 API
+# ========================================================
+
+@router.get("/image/character/{filename}")
+async def get_character_image(filename: str):
+    """캐릭터 이미지 조회"""
+    file_path = os.path.join("static/generated/characters", filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(file_path, media_type="image/png")
+
+
+@router.get("/image/scene/{filename}")
+async def get_scene_image(filename: str):
+    """씬 이미지 조회"""
+    file_path = os.path.join("static/generated/scenes", filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(file_path, media_type="image/png")
