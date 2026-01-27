@@ -11,6 +11,9 @@ import Home from './pages/Home/Home';
 import Login from './pages/Login/Login';
 import HotPlace from './pages/HotPlace/HotPlace';
 import YoutubeBoard from './pages/Youtube/YoutubeBoardNew';
+import NovelCreate from './pages/Novel/NovelCreate';
+import NovelView from './pages/Novel/NovelView';
+import NovelList from './pages/Novel/NovelList';
 import './App.css';
 
 function App() {
@@ -35,6 +38,12 @@ function App() {
             <Route path="/matching" element={<><Matching /><BottomNav /></>} />
             <Route path="/chat" element={<><Chat /><BottomNav /></>} />
             <Route path="/community" element={<><Community /><BottomNav /></>} />
+
+            {/* Novel */}
+            <Route path="/novel" element={<><NovelList /><BottomNav /></>} />
+            <Route path="/novel/create" element={<><NovelCreate /><BottomNav /></>} />
+            <Route path="/novel/:id" element={<><NovelView /><BottomNav /></>} />
+
             <Route path="/mypage" element={<><MyPage /><BottomNav /></>} />
           </Routes>
         </div>

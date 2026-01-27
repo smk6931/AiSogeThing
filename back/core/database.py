@@ -116,3 +116,4 @@ async def get_db():
 # 모델 Import
 from user.models import User
 from youtube.models import Comment, UserLog, YoutubeList
+from novel.models import Novel, NovelCut

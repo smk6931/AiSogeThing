@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Heart, MessageCircle, Users, User, MapPin, Youtube } from 'lucide-react';
+import { Home, Heart, MessageCircle, Users, User, MapPin, Youtube, BookOpen } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './BottomNav.css';
 
@@ -10,6 +10,7 @@ export default function BottomNav() {
     { to: '/', icon: Home, label: '홈' },
     { to: '/hotplace', icon: MapPin, label: '핫플' },
     { to: '/youtube', icon: Youtube, label: 'YouTube' },
+    { to: '/novel', icon: BookOpen, label: '웹툰' },
     { to: '/matching', icon: Heart, label: '매칭' },
     { to: '/chat', icon: MessageCircle, label: '채팅' },
     { to: '/community', icon: Users, label: '커뮤니티' },
