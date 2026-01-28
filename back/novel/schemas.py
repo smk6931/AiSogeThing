@@ -18,6 +18,7 @@ class NovelBase(BaseModel):
     title: Optional[str] = None
     genre: Optional[str] = None
     script: Optional[str] = None
+    character_descriptions: Optional[str] = None
 
 class NovelCreate(BaseModel):
     topic: str  # The prompt for generation

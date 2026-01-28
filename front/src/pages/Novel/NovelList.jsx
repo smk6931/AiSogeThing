@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, BookOpen } from 'lucide-react';
 import { listNovels } from '../../api/novel';
 import './NovelList.css';
@@ -7,6 +7,13 @@ import './NovelList.css';
 const NovelList = () => {
   const [novels, setNovels] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Auth Modal State
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isCoolDown, setIsCoolDown] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchNovels = async () => {
@@ -22,13 +29,40 @@ const NovelList = () => {
     fetchNovels();
   }, []);
 
+  const handleCreateClick = (e) => {
+    e.preventDefault();
+    setShowAuthModal(true);
+    setErrorMsg('');
+    setPassword('');
+  };
+
+  const handleAuthSubmit = (e) => {
+    e.preventDefault();
+    if (isCoolDown) return;
+
+    // Hardcoded Password Check (Demo Purpose)
+    if (password === 'asd789') {
+      setShowAuthModal(false);
+      navigate('/novel/create');
+    } else {
+      setErrorMsg('Incorrect Password. Please wait 5s.');
+      setIsCoolDown(true);
+      setPassword('');
+      // 5초 쿨다운
+      setTimeout(() => {
+        setIsCoolDown(false);
+        setErrorMsg('');
+      }, 5000);
+    }
+  };
+
   return (
     <div className="novel-list-page">
       <div className="novel-header">
         <h1 className="novel-title">AI Webtoon Gallery</h1>
-        <Link to="/novel/create" className="create-btn">
+        <button onClick={handleCreateClick} className="create-btn" title="Create New Story">
           <PlusCircle size={28} />
-        </Link>
+        </button>
       </div>
 
       {loading ? (
@@ -66,6 +100,43 @@ const NovelList = () => {
               </div>
             </Link>
           ))}
+        </div>
+      )}
+
+      {/* Password Modal */}
+      {showAuthModal && (
+        <div className="auth-modal-overlay" onClick={() => setShowAuthModal(false)}>
+          <div className="auth-modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="auth-modal-title">🔒 Admin Access</h3>
+            <p style={{ fontSize: '12px', color: '#888', marginBottom: '16px' }}>
+              AI Resource Control (Demo)
+            </p>
+            <form onSubmit={handleAuthSubmit}>
+              <input
+                type="password"
+                className="auth-input"
+                placeholder="Enter Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isCoolDown}
+                autoFocus
+              />
+              {errorMsg && <div className="auth-error-msg">{errorMsg}</div>}
+              <button
+                type="submit"
+                className="auth-submit-btn"
+                disabled={isCoolDown || !password}
+              >
+                {isCoolDown ? 'Wait 5s...' : 'Enter'}
+              </button>
+            </form>
+            <button
+              className="auth-close-btn"
+              onClick={() => setShowAuthModal(false)}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </div>

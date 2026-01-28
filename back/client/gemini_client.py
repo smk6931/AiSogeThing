@@ -83,8 +83,11 @@ async def generate_image_gemini(
     )
     
     # 이미지 추출
-    if not response.candidates or not response.candidates[0].content.parts:
-        raise Exception("이미지 생성 실패: 빈 응답")
+    if (not response.candidates or 
+        not response.candidates[0].content or 
+        not response.candidates[0].content.parts):
+        print(f"⚠️ 이미지 생성 실패 (안전 필터 또는 오류): {response}")
+        return None
     
     image_part = response.candidates[0].content.parts[0]
     

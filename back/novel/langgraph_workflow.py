@@ -241,8 +241,12 @@ async def database_writer_node(state: WebtoonState) -> WebtoonState:
     # 2. 전체 스크립트 업데이트 (raw SQL)
     from core.database import execute
     await execute(
-        "UPDATE novels SET script = :script WHERE id = :id",
-        {"script": state["full_script"], "id": novel_id}
+        "UPDATE novels SET script = :script, character_descriptions = :character_descriptions WHERE id = :id",
+        {
+            "script": state["full_script"], 
+            "character_descriptions": state.get("character_descriptions", ""),
+            "id": novel_id
+        }
     )
     
     # 3. 각 씬 저장

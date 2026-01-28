@@ -12,6 +12,7 @@ const NovelCreate = () => {
     script_length: 'medium'
   });
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -29,16 +30,43 @@ const NovelCreate = () => {
     }
 
     setLoading(true);
+    setProgress('📝 스토리 생성 중...');
+
     try {
+      // Simulate progress updates
+      setTimeout(() => setProgress('🎨 인물 디자인 중...'), 2000);
+      setTimeout(() => setProgress('✂️ 씬 분할 중...'), 4000);
+      setTimeout(() => setProgress('🖼️ 이미지 생성 중...'), 6000);
+      setTimeout(() => setProgress('💾 데이터 저장 중...'), 10000);
+
       const data = await generateNovel(formData);
       navigate(`/novel/${data.id}`);
     } catch (err) {
       console.error(err);
-      alert("웹툰 생성 실패");
+      alert("웹툰 생성 실패: " + (err.response?.data?.detail || err.message));
+      setProgress('');
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="novel-create-page">
+        <div className="loading-overlay">
+          <div className="loading-box">
+            <div className="loading-spinner"></div>
+            <h2 className="loading-title">AI 웹툰 생성 중</h2>
+            <p className="loading-text">{progress}</p>
+            <div className="loading-bar">
+              <div className="loading-bar-fill"></div>
+            </div>
+            <p className="loading-hint">잠시만 기다려주세요... (약 15-30초 소요)</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="novel-create-page">
@@ -145,7 +173,7 @@ const NovelCreate = () => {
           disabled={loading}
           className="generate-btn"
         >
-          {loading ? "AI가 웹툰을 그리는 중..." : "웹툰 생성하기"}
+          웹툰 생성하기
         </button>
       </div>
     </div>

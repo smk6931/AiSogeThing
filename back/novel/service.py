@@ -37,7 +37,7 @@ async def get_novel(novel_id: int):
     """
     Get novel and its cuts.
     """
-    sql = "SELECT id, title, script, created_at FROM novels WHERE id = :id"
+    sql = "SELECT id, title, script, character_descriptions, created_at FROM novels WHERE id = :id"
     novel = await fetch_one(sql, {"id": novel_id})
     
     if not novel:
