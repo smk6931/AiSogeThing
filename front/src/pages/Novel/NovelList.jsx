@@ -23,9 +23,15 @@ const NovelList = () => {
   const fetchNovels = async () => {
     try {
       const data = await listNovels();
-      setNovels(data);
+      if (Array.isArray(data)) {
+        setNovels(data);
+      } else {
+        console.warn("Invalid novels data:", data);
+        setNovels([]);
+      }
     } catch (err) {
       console.error(err);
+      setNovels([]);
     } finally {
       setLoading(false);
     }
