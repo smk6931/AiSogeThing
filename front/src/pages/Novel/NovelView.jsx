@@ -1,7 +1,9 @@
+/* eslint-disable react/prop-types */
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Users, BookText, ImageIcon, Loader2 } from 'lucide-react';
 import { getNovel, deleteNovel } from '../../api/novel';
+import client from '../../api/client';
 import './NovelView.css';
 
 const NovelView = () => {
@@ -119,7 +121,7 @@ const NovelView = () => {
         {novel.thumbnail_image ? (
           <div className="cover-image-container">
             <img
-              src={`http://localhost:8001${novel.thumbnail_image}`}
+              src={`${client.defaults.baseURL}${novel.thumbnail_image}`}
               alt="Cover"
               className="cover-img"
             />
@@ -169,7 +171,7 @@ const NovelView = () => {
                   <div className="character-avatar">
                     {char.image ? (
                       <img
-                        src={`http://localhost:8001${char.image}`}
+                        src={`${client.defaults.baseURL}${char.image}`}
                         alt={char.name}
                         className="char-img-real"
                       />
@@ -206,7 +208,7 @@ const NovelView = () => {
                 <div className="cut-image-wrapper">
                   {cut.image_path ? (
                     <img
-                      src={`http://localhost:8001${cut.image_path}`}
+                      src={`${client.defaults.baseURL}${cut.image_path}`}
                       alt={`Scene ${cut.cut_order}`}
                       className="cut-img"
                     />

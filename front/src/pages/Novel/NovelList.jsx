@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Image as ImageIcon, Info, BookOpen } from 'lucide-react';
 import { listNovels } from '../../api/novel';
+import client from '../../api/client'; // Import client for baseURL
 import './NovelList.css';
 
 const NovelList = () => {
@@ -13,7 +14,6 @@ const NovelList = () => {
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Password for admin access (Simple hardcoded for demo)
   // Password for admin access (Simple hardcoded for demo)
   const ADMIN_PASSWORD = "asd789";
 
@@ -48,7 +48,7 @@ const NovelList = () => {
     if (password === ADMIN_PASSWORD) {
       setShowAuthModal(false);
       setPassword('');
-      window.location.href = "/novel/create"; // Force navigation or use navigate
+      window.location.href = "/novel/create";
     } else {
       setErrorMsg("관리자 암호가 일치하지 않습니다.");
     }
@@ -93,7 +93,11 @@ const NovelList = () => {
             <Link to={`/novel/${novel.id}`} key={novel.id} className="novel-card">
               <div className="card-thumbnail">
                 {novel.thumbnail_image ? (
-                  <img src={`http://localhost:8001${novel.thumbnail_image}`} alt={novel.title} loading="lazy" />
+                  <img
+                    src={`${client.defaults.baseURL}${novel.thumbnail_image}`}
+                    alt={novel.title}
+                    loading="lazy"
+                  />
                 ) : (
                   <div className="thumbnail-placeholder">
                     <ImageIcon size={32} />
