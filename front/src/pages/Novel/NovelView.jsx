@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Users, BookText, ImageIcon, Loader2 } from 'lucide-react';
-import { getNovel } from '../../api/novel';
+import { getNovel, deleteNovel } from '../../api/novel';
 import './NovelView.css';
 
 const NovelView = () => {
@@ -16,10 +16,25 @@ const NovelView = () => {
       try {
         const data = await getNovel(id);
         setNovel(data);
+
+        // Error handling for 'failed' status
+        if (data && data.status === 'failed') {
+          clearInterval(intervalRef.current);
+          const errorMsg = data.error_message || '알 수 없는 오류';
+          alert(`[Error] 웹툰 생성 실패\n\n${errorMsg}\n\n데이터를 삭제하고 목록으로 복귀합니다.`);
+          try { await deleteNovel(id); } catch (e) { console.error(e); }
+          navigate('/novel');
+        }
+
+        // Stop polling if completed
+        if (data && data.status === 'completed') {
+          clearInterval(intervalRef.current);
+        }
+
       } catch (err) {
         console.error("Error fetching novel:", err);
 
-        // 404 Error Handling (Backend Rollback Case)
+        // 404 Error Handling (Rollback Case)
         if (err.response && err.response.status === 404) {
           clearInterval(intervalRef.current);
           alert("웹툰 생성 중 오류가 발생하여 작업이 취소되었습니다.\n(데이터가 삭제되었습니다)");
@@ -30,9 +45,11 @@ const NovelView = () => {
 
     fetchNovel();
 
-    // Poll every 2 seconds to check for updates
+    // Poll every 2 seconds
     intervalRef.current = setInterval(fetchNovel, 2000);
-    return () => clearInterval(intervalRef.current);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [id, navigate]);
 
   if (!novel) {
@@ -44,14 +61,13 @@ const NovelView = () => {
     );
   }
 
-  // Parse Characters (JSON or Text)
+  // Parse Characters
   const parseCharacters = (descriptions) => {
     if (!descriptions) return [];
     try {
       const parsed = JSON.parse(descriptions);
       if (Array.isArray(parsed)) return parsed;
     } catch (e) {
-      // Fallback: Text parsing
       const lines = descriptions.split('\n').filter(l => l.trim());
       return lines.map((line, idx) => {
         const parts = line.split(':');
@@ -67,21 +83,25 @@ const NovelView = () => {
 
   const characters = novel.character_descriptions ? parseCharacters(novel.character_descriptions) : [];
 
-  // Parse Script Summary
+  // Parse Summary
   const getSummary = (script) => {
     if (!script) return "";
-    // If explicit [Summary] tag exists
     if (script.includes('[Summary]')) {
       const parts = script.split('[Scene');
       return parts[0].replace('[Summary]', '').trim();
     }
-    // Otherwise return first few lines (or until first [Scene])
     const parts = script.split('[Scene');
-    if (parts[0].length < 10 && parts.length > 1) return parts[1]; // Edge case
+    if (parts[0].length < 10 && parts.length > 1) return parts[1];
     return parts[0].trim();
   };
 
-  const summaryText = getSummary(novel.script);
+  // Text Cleaner
+  const cleanText = (text) => {
+    if (!text) return "";
+    return text.replace(/\*\*/g, '').replace(/\*/g, '');
+  };
+
+  const summaryText = cleanText(getSummary(novel.script));
 
   const hasCover = !!novel.thumbnail_image;
   const hasScript = !!novel.script;
@@ -94,7 +114,7 @@ const NovelView = () => {
         <Link to="/novel" className="back-link">← Gallery</Link>
       </div>
 
-      {/* Header Section */}
+      {/* Header */}
       <div className="view-header">
         {novel.thumbnail_image ? (
           <div className="cover-image-container">
@@ -120,14 +140,14 @@ const NovelView = () => {
         </p>
       </div>
 
-      {/* Synopsis Section */}
+      {/* Synopsis */}
       <div className="synopsis-section">
         <div className="section-header">
           <BookText size={20} />
           <h2>줄거리 요약</h2>
         </div>
         {novel.script ? (
-          <p className="synopsis-text">{summaryText || novel.script}</p>
+          <p className="synopsis-text">{summaryText || cleanText(novel.script)}</p>
         ) : (
           <div className="skeleton-text">
             <Loader2 className="spin" /> 줄거리를 작성하고 있습니다...
@@ -135,7 +155,7 @@ const NovelView = () => {
         )}
       </div>
 
-      {/* Characters Section */}
+      {/* Characters */}
       {(characters.length > 0 || hasScript) && (
         <div className="characters-section">
           <div className="section-header">
@@ -172,7 +192,7 @@ const NovelView = () => {
         </div>
       )}
 
-      {/* Story Section */}
+      {/* Main Story */}
       <div className="story-section">
         <div className="section-header">
           <ImageIcon size={20} />
@@ -199,7 +219,7 @@ const NovelView = () => {
                 </div>
                 <div className="cut-content">
                   <span className="cut-label">SCENE #{cut.cut_order}</span>
-                  <p className="cut-desc">{cut.scene_desc}</p>
+                  <p className="cut-desc">{cleanText(cut.scene_desc)}</p>
                 </div>
               </div>
             ))

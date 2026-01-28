@@ -19,6 +19,11 @@ export const listNovels = async () => {
   return response.data;
 };
 
+export const deleteNovel = async (novelId) => {
+  const response = await client.delete(`/novel/${novelId}`);
+  return response.data;
+};
+
 export const getCharacterImage = (filename) => {
   return `${client.defaults.baseURL}/novel/image/character/${filename}`;
 };

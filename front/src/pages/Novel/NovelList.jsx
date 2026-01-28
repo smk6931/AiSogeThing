@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { PlusCircle, BookOpen } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Image as ImageIcon, Info, BookOpen } from 'lucide-react';
 import { listNovels } from '../../api/novel';
 import './NovelList.css';
 
@@ -12,130 +12,117 @@ const NovelList = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [isCoolDown, setIsCoolDown] = useState(false);
-  const navigate = useNavigate();
+
+  // Password for admin access (Simple hardcoded for demo)
+  const ADMIN_PASSWORD = "fast";
 
   useEffect(() => {
-    const fetchNovels = async () => {
-      try {
-        const data = await listNovels();
-        setNovels(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchNovels();
   }, []);
+
+  const fetchNovels = async () => {
+    try {
+      const data = await listNovels();
+      setNovels(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreateClick = (e) => {
     e.preventDefault();
     setShowAuthModal(true);
-    setErrorMsg('');
-    setPassword('');
   };
 
   const handleAuthSubmit = (e) => {
     e.preventDefault();
-    if (isCoolDown) return;
-
-    // Hardcoded Password Check (Demo Purpose)
-    if (password === 'asd789') {
+    if (password === ADMIN_PASSWORD) {
       setShowAuthModal(false);
-      navigate('/novel/create');
-    } else {
-      setErrorMsg('Incorrect Password. Please wait 5s.');
-      setIsCoolDown(true);
       setPassword('');
-      // 5초 쿨다운
-      setTimeout(() => {
-        setIsCoolDown(false);
-        setErrorMsg('');
-      }, 5000);
+      window.location.href = "/novel/create"; // Force navigation or use navigate
+    } else {
+      setErrorMsg("관리자 암호가 일치하지 않습니다.");
     }
   };
 
   return (
     <div className="novel-list-page">
+      {/* Header with Title and Buttons side-by-side */}
       <div className="novel-header">
-        <h1 className="novel-title">AI Webtoon Gallery</h1>
-        <button onClick={handleCreateClick} className="create-btn" title="Create New Story">
-          <PlusCircle size={28} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <h1 className="novel-title">AI Webtoon Gallery</h1>
+
+          <Link to="#" onClick={handleCreateClick} className="create-btn" title="Create New Webtoon">
+            <Plus size={24} />
+          </Link>
+
+          <Link to="/novel/portfolio" className="portfolio-link" style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '14px',
+            padding: '6px 12px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)',
+            transition: 'all 0.2s'
+          }}>
+            <Info size={16} />
+            <span>About Project</span>
+          </Link>
+        </div>
       </div>
 
       {loading ? (
-        <div className="empty-state">Loading stories...</div>
+        <div className="loading-state">
+          <div className="loading-spinner-small"></div>
+        </div>
       ) : novels.length === 0 ? (
         <div className="empty-state">
           <BookOpen size={48} className="empty-icon" />
-          <p>No stories yet.</p>
-          <p>Be the first to create one!</p>
+          <p>아직 생성된 웹툰이 없습니다.</p>
+          <p>새로운 이야기를 만들어보세요!</p>
         </div>
       ) : (
         <div className="novel-grid">
           {novels.map((novel) => (
-            <Link key={novel.id} to={`/novel/${novel.id}`} className="novel-card">
+            <Link to={`/novel/${novel.id}`} key={novel.id} className="novel-card">
               <div className="card-thumbnail">
                 {novel.thumbnail_image ? (
-                  <img
-                    src={`http://localhost:8001${novel.thumbnail_image}`}
-                    alt={novel.title}
-                    className="thumbnail-img"
-                  />
+                  <img src={`http://localhost:8001${novel.thumbnail_image}`} alt={novel.title} loading="lazy" />
                 ) : (
-                  <>
-                    <div className="thumbnail-overlay"></div>
-                    <BookOpen className="card-icon" size={32} />
-                  </>
+                  <div className="thumbnail-placeholder">
+                    <ImageIcon size={32} />
+                  </div>
                 )}
-              </div>
-              <div className="card-content">
-                <h3 className="card-title">{novel.title}</h3>
-                <div className="card-desc">{novel.script}</div>
-                <div className="card-date">
-                  {new Date(novel.created_at).toLocaleDateString()}
+                <div className="thumbnail-overlay">
+                  <div className="card-content">
+                    <h3 className="card-title">{novel.title || "제목 없음"}</h3>
+                    <p className="card-date">{new Date(novel.created_at).toLocaleDateString()}</p>
+                  </div>
                 </div>
+                {(!novel.thumbnail_image || !novel.script) && <span className="status-badge">제작 중</span>}
               </div>
             </Link>
           ))}
         </div>
       )}
 
-      {/* Password Modal */}
+      {/* Auth Modal */}
       {showAuthModal && (
         <div className="auth-modal-overlay" onClick={() => setShowAuthModal(false)}>
-          <div className="auth-modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="auth-modal-title">🔒 Admin Access</h3>
-            <p style={{ fontSize: '12px', color: '#888', marginBottom: '16px' }}>
-              AI Resource Control (Demo)
-            </p>
+          <div className="auth-modal-content" onClick={e => e.stopPropagation()}>
+            <h3 className="auth-modal-title">관리자 확인</h3>
             <form onSubmit={handleAuthSubmit}>
               <input
                 type="password"
                 className="auth-input"
-                placeholder="Enter Password"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isCoolDown}
                 autoFocus
               />
-              {errorMsg && <div className="auth-error-msg">{errorMsg}</div>}
-              <button
-                type="submit"
-                className="auth-submit-btn"
-                disabled={isCoolDown || !password}
-              >
-                {isCoolDown ? 'Wait 5s...' : 'Enter'}
-              </button>
+              {errorMsg && <p className="auth-error-msg">{errorMsg}</p>}
+              <button type="submit" className="auth-submit-btn">확인</button>
             </form>
-            <button
-              className="auth-close-btn"
-              onClick={() => setShowAuthModal(false)}
-            >
-              Cancel
-            </button>
+            <button className="auth-close-btn" onClick={() => setShowAuthModal(false)}>닫기</button>
           </div>
         </div>
       )}

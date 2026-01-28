@@ -14,6 +14,7 @@ import YoutubeBoard from './pages/Youtube/YoutubeBoardNew';
 import NovelCreate from './pages/Novel/NovelCreate';
 import NovelView from './pages/Novel/NovelView';
 import NovelList from './pages/Novel/NovelList';
+import NovelPortfolio from './pages/Novel/NovelPortfolio';
 import './App.css';
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
 
             {/* Novel */}
             <Route path="/novel" element={<><NovelList /><BottomNav /></>} />
+            <Route path="/novel/portfolio" element={<><NovelPortfolio /><BottomNav /></>} />
             <Route path="/novel/create" element={<><NovelCreate /><BottomNav /></>} />
             <Route path="/novel/:id" element={<><NovelView /><BottomNav /></>} />
 
