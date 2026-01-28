@@ -9,7 +9,7 @@ from novel.langgraph_workflow import generate_webtoon_task
 from utils.safe_ops import handle_exceptions
 
 router = APIRouter(
-    prefix="/novel",
+    prefix="/api/novel",
     tags=["Novel"],
     responses={404: {"description": "Not found"}},
 )
