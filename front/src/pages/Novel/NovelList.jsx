@@ -1,20 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Image as ImageIcon, Info, BookOpen } from 'lucide-react';
+import { Plus, Image as ImageIcon, Info, BookOpen, AlertTriangle } from 'lucide-react';
 import { listNovels } from '../../api/novel';
-import client from '../../api/client'; // Import client for baseURL
+import client from '../../api/client';
 import './NovelList.css';
 
 const NovelList = () => {
   const [novels, setNovels] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [debugInfo, setDebugInfo] = useState(null); // 디버깅용 상태
 
   // Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-
-  // Password for admin access (Simple hardcoded for demo)
   const ADMIN_PASSWORD = "asd789";
 
   useEffect(() => {
@@ -26,13 +25,30 @@ const NovelList = () => {
       const data = await listNovels();
       if (Array.isArray(data)) {
         setNovels(data);
+        setDebugInfo(null);
       } else {
         console.warn("Invalid novels data:", data);
         setNovels([]);
+        // HTML 응답이 오면 API 주소 문제임
+        if (typeof data === 'string' && data.includes('<!doctype html>')) {
+          setDebugInfo({
+            type: 'API_MISCONFIG',
+            message: 'API 요청이 프론트엔드 페이지를 반환했습니다. 백엔드 연결 실패.',
+            response: data.substring(0, 100) + "...",
+            currentApiUrl: client.defaults.baseURL
+          });
+        } else {
+          setDebugInfo({ type: 'INVALID_DATA', data });
+        }
       }
     } catch (err) {
       console.error(err);
       setNovels([]);
+      setDebugInfo({
+        type: 'NETWORK_ERROR',
+        message: err.message,
+        currentApiUrl: client.defaults.baseURL
+      });
     } finally {
       setLoading(false);
     }
@@ -56,36 +72,40 @@ const NovelList = () => {
 
   return (
     <div className="novel-list-page">
-      {/* Header with Title and Buttons side-by-side */}
+      {/* Header */}
       <div className="novel-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <h1 className="novel-title">AI Webtoon Gallery</h1>
-
-          <Link to="#" onClick={handleCreateClick} className="create-btn" title="Create New Webtoon">
-            <Plus size={24} />
-          </Link>
-
-          <Link to="/novel/portfolio" className="portfolio-link" style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '14px',
-            padding: '6px 12px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)',
-            transition: 'all 0.2s'
-          }}>
-            <Info size={16} />
-            <span>About Project</span>
+          <Link to="#" onClick={handleCreateClick} className="create-btn"><Plus size={24} /></Link>
+          <Link to="/novel/portfolio" className="portfolio-link" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+            <Info size={16} /> <span>About</span>
           </Link>
         </div>
       </div>
 
-      {loading ? (
-        <div className="loading-state">
-          <div className="loading-spinner-small"></div>
+      {/* DEBUG INFO PANEL (에러 발생 시 표시) */}
+      {debugInfo && (
+        <div style={{ background: '#330000', color: '#ffaaaa', padding: '15px', margin: '20px', borderRadius: '8px', border: '1px solid red', fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}><AlertTriangle size={16} /> API Connection Error</h3>
+          <p><strong>Status:</strong> {debugInfo.type}</p>
+          <p><strong>Configured API URL:</strong> {client.defaults.baseURL}</p>
+          {debugInfo.message && <p><strong>Message:</strong> {debugInfo.message}</p>}
+          {debugInfo.response && <p><strong>Response Preview:</strong> {debugInfo.response}</p>}
+          <button
+            onClick={fetchNovels}
+            style={{ marginTop: '10px', background: '#550000', color: 'white', border: '1px solid #770000', padding: '5px 10px', cursor: 'pointer' }}>
+            Retry Connection
+          </button>
         </div>
+      )}
+
+      {loading ? (
+        <div className="loading-state"><div className="loading-spinner-small"></div></div>
       ) : novels.length === 0 ? (
         <div className="empty-state">
           <BookOpen size={48} className="empty-icon" />
           <p>아직 생성된 웹툰이 없습니다.</p>
-          <p>새로운 이야기를 만들어보세요!</p>
+          {!debugInfo && <p>새로운 이야기를 만들어보세요!</p>}
         </div>
       ) : (
         <div className="novel-grid">
@@ -93,15 +113,9 @@ const NovelList = () => {
             <Link to={`/novel/${novel.id}`} key={novel.id} className="novel-card">
               <div className="card-thumbnail">
                 {novel.thumbnail_image ? (
-                  <img
-                    src={`${client.defaults.baseURL}${novel.thumbnail_image}`}
-                    alt={novel.title}
-                    loading="lazy"
-                  />
+                  <img src={`${client.defaults.baseURL}${novel.thumbnail_image}`} alt={novel.title} loading="lazy" />
                 ) : (
-                  <div className="thumbnail-placeholder">
-                    <ImageIcon size={32} />
-                  </div>
+                  <div className="thumbnail-placeholder"><ImageIcon size={32} /></div>
                 )}
                 <div className="thumbnail-overlay">
                   <div className="card-content">
@@ -116,20 +130,12 @@ const NovelList = () => {
         </div>
       )}
 
-      {/* Auth Modal */}
       {showAuthModal && (
         <div className="auth-modal-overlay" onClick={() => setShowAuthModal(false)}>
           <div className="auth-modal-content" onClick={e => e.stopPropagation()}>
             <h3 className="auth-modal-title">관리자 확인</h3>
             <form onSubmit={handleAuthSubmit}>
-              <input
-                type="password"
-                className="auth-input"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoFocus
-              />
+              <input type="password" className="auth-input" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
               {errorMsg && <p className="auth-error-msg">{errorMsg}</p>}
               <button type="submit" className="auth-submit-btn">확인</button>
             </form>
