@@ -14,7 +14,8 @@ const NovelList = () => {
   const [errorMsg, setErrorMsg] = useState('');
 
   // Password for admin access (Simple hardcoded for demo)
-  const ADMIN_PASSWORD = "fast";
+  // Password for admin access (Simple hardcoded for demo)
+  const ADMIN_PASSWORD = "asd789";
 
   useEffect(() => {
     fetchNovels();
