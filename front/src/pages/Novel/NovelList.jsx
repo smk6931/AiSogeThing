@@ -70,6 +70,17 @@ const NovelList = () => {
     }
   };
 
+  // Image URL Helper for backward compatibility
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    let cleanPath = path;
+    // If path starts with /novel/ but NOT /api/novel/, prepend /api
+    if (cleanPath.startsWith('/novel/') && !cleanPath.startsWith('/api/novel/')) {
+      cleanPath = '/api' + cleanPath;
+    }
+    return `${client.defaults.baseURL}${cleanPath}`;
+  };
+
   return (
     <div className="novel-list-page">
       {/* Header */}
@@ -113,7 +124,7 @@ const NovelList = () => {
             <Link to={`/novel/${novel.id}`} key={novel.id} className="novel-card">
               <div className="card-thumbnail">
                 {novel.thumbnail_image ? (
-                  <img src={`${client.defaults.baseURL}${novel.thumbnail_image}`} alt={novel.title} loading="lazy" />
+                  <img src={getImageUrl(novel.thumbnail_image)} alt={novel.title} loading="lazy" />
                 ) : (
                   <div className="thumbnail-placeholder"><ImageIcon size={32} /></div>
                 )}

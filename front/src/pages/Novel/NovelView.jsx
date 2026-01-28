@@ -110,6 +110,16 @@ const NovelView = () => {
   const cutCount = novel.cuts ? novel.cuts.length : 0;
   const hasImages = novel.cuts && novel.cuts.every(cut => cut.image_path);
 
+  // Image URL Helper
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    let cleanPath = path;
+    if (cleanPath.startsWith('/novel/') && !cleanPath.startsWith('/api/novel/')) {
+      cleanPath = '/api' + cleanPath;
+    }
+    return `${client.defaults.baseURL}${cleanPath}`;
+  };
+
   return (
     <div className="novel-view-page">
       <div className="view-nav">
@@ -121,7 +131,7 @@ const NovelView = () => {
         {novel.thumbnail_image ? (
           <div className="cover-image-container">
             <img
-              src={`${client.defaults.baseURL}${novel.thumbnail_image}`}
+              src={getImageUrl(novel.thumbnail_image)}
               alt="Cover"
               className="cover-img"
             />
@@ -171,7 +181,7 @@ const NovelView = () => {
                   <div className="character-avatar">
                     {char.image ? (
                       <img
-                        src={`${client.defaults.baseURL}${char.image}`}
+                        src={getImageUrl(char.image)}
                         alt={char.name}
                         className="char-img-real"
                       />
@@ -208,7 +218,7 @@ const NovelView = () => {
                 <div className="cut-image-wrapper">
                   {cut.image_path ? (
                     <img
-                      src={`${client.defaults.baseURL}${cut.image_path}`}
+                      src={getImageUrl(cut.image_path)}
                       alt={`Scene ${cut.cut_order}`}
                       className="cut-img"
                     />
