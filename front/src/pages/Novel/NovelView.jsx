@@ -34,7 +34,7 @@ const NovelView = () => {
           <div key={cut.id} className="cut-item">
             <div className="cut-image-wrapper">
               <img
-                src={cut.image_path}
+                src={`http://localhost:8001${cut.image_path}`}
                 alt={`Cut ${cut.cut_order}`}
                 className="cut-img"
                 onError={(e) => {

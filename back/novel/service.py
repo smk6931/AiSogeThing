@@ -51,5 +51,10 @@ async def get_novel(novel_id: int):
     return novel
 
 async def list_novels(limit: int = 20):
-    sql = "SELECT id, title, script, created_at FROM novels ORDER BY created_at DESC LIMIT :limit"
+    sql = """
+        SELECT n.id, n.title, n.script, n.created_at,
+        (SELECT image_path FROM novel_cuts WHERE novel_id = n.id ORDER BY cut_order LIMIT 1) as thumbnail_image
+        FROM novels n
+        ORDER BY n.created_at DESC LIMIT :limit
+    """
     return await fetch_all(sql, {"limit": limit})

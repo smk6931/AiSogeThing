@@ -44,8 +44,18 @@ const NovelList = () => {
           {novels.map((novel) => (
             <Link key={novel.id} to={`/novel/${novel.id}`} className="novel-card">
               <div className="card-thumbnail">
-                <div className="thumbnail-overlay"></div>
-                <BookOpen className="card-icon" size={32} />
+                {novel.thumbnail_image ? (
+                  <img
+                    src={`http://localhost:8001${novel.thumbnail_image}`}
+                    alt={novel.title}
+                    className="thumbnail-img"
+                  />
+                ) : (
+                  <>
+                    <div className="thumbnail-overlay"></div>
+                    <BookOpen className="card-icon" size={32} />
+                  </>
+                )}
               </div>
               <div className="card-content">
                 <h3 className="card-title">{novel.title}</h3>

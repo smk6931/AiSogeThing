@@ -30,6 +30,7 @@ class NovelResponse(NovelBase):
     id: int
     created_at: datetime
     cuts: List[NovelCutResponse] = []
+    thumbnail_image: Optional[str] = None
 
     class Config:
         from_attributes = True

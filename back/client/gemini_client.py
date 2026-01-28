@@ -12,7 +12,7 @@ import google.generativeai as genai
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"))
 
 
-def get_chat_model(model="Gemini 2.5 Flash", temperature=0.7):
+def get_chat_model(model="gemini-2.0-flash", temperature=0.7):
     api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
     if not api_key: return None
     
@@ -47,7 +47,7 @@ async def generate_response_gemini(prompt: str, system_role: str = "Assistant"):
 async def generate_image_gemini(
     prompt: str,
     output_dir: str,
-    model_name: str = "imagen-3.0-generate-001",
+    model_name: str = "models/gemini-2.5-flash-image",
     safety_filter: str = "block_only_high"
 ) -> str:
     """
@@ -95,12 +95,24 @@ async def generate_image_gemini(
     # 디렉토리 생성
     os.makedirs(output_dir, exist_ok=True)
     
-    # 이미지 저장 (base64 디코딩)
-    import base64
-    image_bytes = base64.b64decode(image_part.inline_data.data)
+    # 이미지 저장
+    import io
+    from PIL import Image
     
-    with open(output_path, 'wb') as f:
-        f.write(image_bytes)
-    
-    print(f"✅ 이미지 저장 완료: {filename}")
+    try:
+        image_data = image_part.inline_data.data
+        
+        # 만약 image_data가 이미 bytes라면 바로 사용, 아니면 base64 디코딩 시도
+        # google-genai 최신 SDK는 bytes로 반환함
+        
+        img = Image.open(io.BytesIO(image_data))
+        img.save(output_path, format="PNG")
+        
+        print(f"✅ 이미지 저장 완료: {filename} (Size: {img.size})")
+    except Exception as e:
+        print(f"⚠️ 이미지 저장 중 오류 발생: {e}")
+        # Fallback: Raw write if PIL fails
+        with open(output_path, 'wb') as f:
+            f.write(image_part.inline_data.data)
+            
     return filename

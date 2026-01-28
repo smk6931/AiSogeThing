@@ -38,7 +38,7 @@ class WebtoonState(TypedDict):
 def get_llm(temperature=0.7):
     api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
     return ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash-exp",  # 가장 저렴한 모델
+        model="gemini-2.0-flash",  # 가장 저렴한 모델   
         temperature=temperature,
         google_api_key=api_key
     )
