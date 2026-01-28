@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Users, BookText } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Users, BookText, ImageIcon, Loader2 } from 'lucide-react';
 import { getNovel } from '../../api/novel';
 import './NovelView.css';
 
 const NovelView = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [novel, setNovel] = useState(null);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     const fetchNovel = async () => {
@@ -14,11 +17,23 @@ const NovelView = () => {
         const data = await getNovel(id);
         setNovel(data);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching novel:", err);
+
+        // 404 Error Handling (Backend Rollback Case)
+        if (err.response && err.response.status === 404) {
+          clearInterval(intervalRef.current);
+          alert("웹툰 생성 중 오류가 발생하여 작업이 취소되었습니다.\n(데이터가 삭제되었습니다)");
+          navigate('/novel');
+        }
       }
     };
+
     fetchNovel();
-  }, [id]);
+
+    // Poll every 2 seconds to check for updates
+    intervalRef.current = setInterval(fetchNovel, 2000);
+    return () => clearInterval(intervalRef.current);
+  }, [id, navigate]);
 
   if (!novel) {
     return (
@@ -29,20 +44,49 @@ const NovelView = () => {
     );
   }
 
-  // Extract character info from character_descriptions if available
+  // Parse Characters (JSON or Text)
   const parseCharacters = (descriptions) => {
     if (!descriptions) return [];
-    const lines = descriptions.split('\n').filter(l => l.trim());
-    return lines.map((line, idx) => {
-      const parts = line.split(':');
-      return {
-        name: parts[0]?.trim() || `Character ${idx + 1}`,
-        description: parts[1]?.trim() || line
-      };
-    });
+    try {
+      const parsed = JSON.parse(descriptions);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      // Fallback: Text parsing
+      const lines = descriptions.split('\n').filter(l => l.trim());
+      return lines.map((line, idx) => {
+        const parts = line.split(':');
+        return {
+          name: parts[0]?.trim() || `Character ${idx + 1}`,
+          description: parts[1]?.trim() || line,
+          image: null
+        };
+      });
+    }
+    return [];
   };
 
   const characters = novel.character_descriptions ? parseCharacters(novel.character_descriptions) : [];
+
+  // Parse Script Summary
+  const getSummary = (script) => {
+    if (!script) return "";
+    // If explicit [Summary] tag exists
+    if (script.includes('[Summary]')) {
+      const parts = script.split('[Scene');
+      return parts[0].replace('[Summary]', '').trim();
+    }
+    // Otherwise return first few lines (or until first [Scene])
+    const parts = script.split('[Scene');
+    if (parts[0].length < 10 && parts.length > 1) return parts[1]; // Edge case
+    return parts[0].trim();
+  };
+
+  const summaryText = getSummary(novel.script);
+
+  const hasCover = !!novel.thumbnail_image;
+  const hasScript = !!novel.script;
+  const cutCount = novel.cuts ? novel.cuts.length : 0;
+  const hasImages = novel.cuts && novel.cuts.every(cut => cut.image_path);
 
   return (
     <div className="novel-view-page">
@@ -52,69 +96,118 @@ const NovelView = () => {
 
       {/* Header Section */}
       <div className="view-header">
-        <h1 className="view-title">{novel.title}</h1>
-        <p className="view-date">{new Date(novel.created_at).toLocaleDateString('ko-KR')}</p>
+        {novel.thumbnail_image ? (
+          <div className="cover-image-container">
+            <img
+              src={`http://localhost:8001${novel.thumbnail_image}`}
+              alt="Cover"
+              className="cover-img"
+            />
+            <div className="cover-overlay">
+              <h1 className="view-title-overlay">{novel.title || "제목 없음"}</h1>
+            </div>
+          </div>
+        ) : (
+          <div className="cover-placeholder">
+            {hasScript ? <h1 className="view-title">{novel.title}</h1> : <h1 className="view-title">제목 생성 중...</h1>}
+            {!hasCover && <div className="generating-badge"><Loader2 className="spin" size={14} /> 표지 생성 중...</div>}
+          </div>
+        )}
+
+        <p className="view-date">
+          {new Date(novel.created_at).toLocaleDateString('ko-KR')}
+          {(!hasImages || !hasCover) && <span className="status-badge">제작 중...</span>}
+        </p>
       </div>
 
       {/* Synopsis Section */}
-      {novel.script && (
-        <div className="synopsis-section">
-          <div className="section-header">
-            <BookText size={20} />
-            <h2>줄거리 소개</h2>
-          </div>
-          <p className="synopsis-text">{novel.script}</p>
+      <div className="synopsis-section">
+        <div className="section-header">
+          <BookText size={20} />
+          <h2>줄거리 요약</h2>
         </div>
-      )}
+        {novel.script ? (
+          <p className="synopsis-text">{summaryText || novel.script}</p>
+        ) : (
+          <div className="skeleton-text">
+            <Loader2 className="spin" /> 줄거리를 작성하고 있습니다...
+          </div>
+        )}
+      </div>
 
       {/* Characters Section */}
-      {characters.length > 0 && (
+      {(characters.length > 0 || hasScript) && (
         <div className="characters-section">
           <div className="section-header">
             <Users size={20} />
             <h2>등장인물</h2>
           </div>
-          <div className="characters-grid">
-            {characters.map((char, idx) => (
-              <div key={idx} className="character-card">
-                <div className="character-avatar">
-                  {char.name.charAt(0)}
+          {characters.length > 0 ? (
+            <div className="characters-grid">
+              {characters.map((char, idx) => (
+                <div key={idx} className="character-card">
+                  <div className="character-avatar">
+                    {char.image ? (
+                      <img
+                        src={`http://localhost:8001${char.image}`}
+                        alt={char.name}
+                        className="char-img-real"
+                      />
+                    ) : (
+                      char.name.charAt(0)
+                    )}
+                  </div>
+                  <div className="character-info">
+                    <h3 className="character-name">{char.name}</h3>
+                    <p className="character-desc">{char.description}</p>
+                  </div>
                 </div>
-                <div className="character-info">
-                  <h3 className="character-name">{char.name}</h3>
-                  <p className="character-desc">{char.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="skeleton-text">
+              <Loader2 className="spin" /> 등장인물을 분석하고 있습니다...
+            </div>
+          )}
         </div>
       )}
 
-      {/* Story Content */}
+      {/* Story Section */}
       <div className="story-section">
         <div className="section-header">
-          <h2>웹툰</h2>
+          <ImageIcon size={20} />
+          <h2>웹툰 본문</h2>
         </div>
 
         <div className="cuts-container">
-          {novel.cuts && novel.cuts.map((cut) => (
-            <div key={cut.id} className="cut-item">
-              <div className="cut-image-wrapper">
-                <img
-                  src={`http://localhost:8001${cut.image_path}`}
-                  alt={`Scene ${cut.cut_order}`}
-                  className="cut-img"
-                  onError={(e) => {
-                    e.target.src = "https://placehold.co/800x600/1a1a2e/ffffff?text=Loading...";
-                  }}
-                />
+          {cutCount > 0 ? (
+            novel.cuts.map((cut) => (
+              <div key={cut.id} className="cut-item">
+                <div className="cut-image-wrapper">
+                  {cut.image_path ? (
+                    <img
+                      src={`http://localhost:8001${cut.image_path}`}
+                      alt={`Scene ${cut.cut_order}`}
+                      className="cut-img"
+                    />
+                  ) : (
+                    <div className="cut-placeholder">
+                      <Loader2 className="spin" size={32} />
+                      <p>작화 작업 중...</p>
+                    </div>
+                  )}
+                </div>
+                <div className="cut-content">
+                  <span className="cut-label">SCENE #{cut.cut_order}</span>
+                  <p className="cut-desc">{cut.scene_desc}</p>
+                </div>
               </div>
-              <div className="cut-content">
-                <span className="cut-label">SCENE #{cut.cut_order}</span>
-                <p className="cut-desc">{cut.scene_desc}</p>
-              </div>
+            ))
+          ) : (
+            <div className="skeleton-cuts">
+              <p>콘티를 구성하고 있습니다...</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

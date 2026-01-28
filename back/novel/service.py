@@ -7,15 +7,15 @@ async def create_novel(topic: str):
     Initially, the script might just be the topic or empty until generated.
     """
     # 임시 제목 생성
-    title = f"Story: {topic[:20]}..." if len(topic) > 20 else f"Story: {topic}"
+    title = topic[:50] + "..." if len(topic) > 50 else topic
     
     sql = """
         INSERT INTO novels (title, script, created_at)
-        VALUES (:title, :script, NOW())
+        VALUES (:title, '', NOW())
         RETURNING id, title, script, created_at
     """
-    # 우선 script에 topic을 저장해둠 (나중에 생성된 이야기로 업데이트 가능)
-    return await insert_and_return(sql, {"title": title, "script": topic})
+    # Using insert_and_return to ensure COMMIT
+    return await insert_and_return(sql, {"title": title})
 
 async def create_novel_cut(novel_id: int, cut_order: int, scene_desc: str, image_path: str):
     """
@@ -37,7 +37,7 @@ async def get_novel(novel_id: int):
     """
     Get novel and its cuts.
     """
-    sql = "SELECT id, title, script, character_descriptions, created_at FROM novels WHERE id = :id"
+    sql = "SELECT id, title, script, character_descriptions, thumbnail_image, created_at FROM novels WHERE id = :id"
     novel = await fetch_one(sql, {"id": novel_id})
     
     if not novel:
@@ -52,9 +52,29 @@ async def get_novel(novel_id: int):
 
 async def list_novels(limit: int = 20):
     sql = """
-        SELECT n.id, n.title, n.script, n.created_at,
-        (SELECT image_path FROM novel_cuts WHERE novel_id = n.id ORDER BY cut_order LIMIT 1) as thumbnail_image
+        SELECT n.id, n.title, n.script, n.created_at, n.thumbnail_image, n.character_descriptions,
+        COALESCE(n.thumbnail_image, (SELECT image_path FROM novel_cuts WHERE novel_id = n.id ORDER BY cut_order LIMIT 1)) as thumbnail_image
         FROM novels n
         ORDER BY n.created_at DESC LIMIT :limit
     """
     return await fetch_all(sql, {"limit": limit})
+
+async def update_novel(novel_id: int, **kwargs):
+    """
+    Update novel fields dynamically.
+    """
+    if not kwargs:
+        return
+    
+    set_clause = ", ".join([f"{key} = :{key}" for key in kwargs.keys()])
+    sql = f"UPDATE novels SET {set_clause} WHERE id = :id"
+    kwargs["id"] = novel_id
+    await execute(sql, kwargs)
+
+async def delete_novel(novel_id: int):
+    """
+    Delete a novel and its related cuts.
+    """
+    # Delete related cuts first (manual cascade)
+    await execute("DELETE FROM novel_cuts WHERE novel_id = :id", {"id": novel_id})
+    await execute("DELETE FROM novels WHERE id = :id", {"id": novel_id})
