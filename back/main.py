@@ -13,6 +13,23 @@ from novel.router import router as novel_router
 
 app = FastAPI()
 
+# ========================================================
+#  Logging Configuration (Filter Heartbeat/Stats)
+# ========================================================
+import logging
+
+class EndpointFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Filter out noisy heartbeat/stats logs
+        return record.getMessage().find("/api/auth/heartbeat") == -1 and \
+               record.getMessage().find("/api/auth/stats/online") == -1
+
+@app.on_event("startup")
+async def startup_event():
+    # Apply filter to uvicorn access logger
+    logger = logging.getLogger("uvicorn.access")
+    logger.addFilter(EndpointFilter())
+
 # CORS 설정 (프론트엔드/클라우드 허용)
 origins = [
     "http://localhost:3000",

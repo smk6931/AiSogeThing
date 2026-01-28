@@ -110,6 +110,8 @@ async def cover_designer_node(state: WebtoonState) -> WebtoonState:
 #  Step 3: CharacterDesigner (인물 외형 묘사)
 # ========================================================
 
+from utils.safe_ops import safe_execute
+
 async def character_designer_node(state: WebtoonState) -> WebtoonState:
     print("🎭 Step 3: 인물 외형 묘사...")
     
@@ -133,7 +135,10 @@ async def character_designer_node(state: WebtoonState) -> WebtoonState:
     messages = [HumanMessage(content=prompt)]
     response = await llm.ainvoke(messages)
     
-    try:
+    # 기본값 초기화
+    state["character_visuals"] = []
+
+    with safe_execute("인물 데이터 파싱 및 저장 실패"):
         content = response.content.strip()
         if content.startswith("```"):
             content = re.sub(r'^```json\s*|\s*```$', '', content, flags=re.MULTILINE).strip()
@@ -146,9 +151,6 @@ async def character_designer_node(state: WebtoonState) -> WebtoonState:
         await novel_service.update_novel(state["novel_id"], character_descriptions=json_str)
         
         print(f"✅ 인물 정보 저장 완료")
-    except Exception as e:
-        print(f"⚠️ 인물 파싱 실패: {e}")
-        state["character_visuals"] = []
     
     state["current_step"] = "인물 설정 완료"
     return state
