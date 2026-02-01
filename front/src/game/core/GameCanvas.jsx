@@ -3,12 +3,13 @@ import { Canvas } from '@react-three/fiber';
 import { Sky, Stars } from '@react-three/drei';
 import RpgWorld from '../world/RpgWorld';
 
-const GameCanvas = ({ onBuildingClick, input }) => {
+const GameCanvas = ({ onBuildingClick, input, active = true }) => {
   return (
     <Canvas
+      frameloop={active ? 'always' : 'never'} // 앱 모드일 땐 렌더링 중지 (리소스 절약 & 에러 방지)
       camera={{
         position: [0, 30, 20], // 초기 위치 (CameraRig 오프셋과 일치)
-        zoom: 40, // 줌 레벨 (적절한 크기)
+        zoom: 16, // 2.5배 더 멀리 (40 -> 16)
         near: 0.1,
         far: 1000
       }}

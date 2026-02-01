@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
+import { Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import Player from '../entities/Player';
+import ZoomController from '../core/ZoomController';
 
 // 건물 컴포넌트
 const Building = ({ position, color, label, onClick, icon }) => {
@@ -44,32 +45,61 @@ const Building = ({ position, color, label, onClick, icon }) => {
   );
 };
 
-// 카메라맨 컴포넌트 (플레이어를 따라다님)
+// 카메라맨 컴포넌트 (플레이어를 따라다님 + 고정 앵글)
 const CameraRig = ({ target }) => {
   const { camera } = useThree();
   const vec = new THREE.Vector3();
 
+  // 1. 초기 각도 고정 (딱 한 번만 실행)
+  useEffect(() => {
+    const initialOffset = new THREE.Vector3(0, 30, 20); // 오프셋 기준 (가디언 테일즈 뷰)
+    const tempPos = camera.position.clone();
+
+    // 초기 카메라 위치를 잠시 오프셋 위치로 옮겨서 lookAt으로 각도를 잡음
+    camera.position.copy(initialOffset);
+    camera.lookAt(0, 0, 0);
+
+    // 다시 원래 위치(혹은 타겟 위치 근처)로 되돌릴 준비는 useFrame에서 처리
+    // 여기서는 '각도(Rotation/Quaternion)'를 세팅하는 것이 목적
+  }, [camera]);
+
   useFrame(() => {
     if (target.current) {
-      // 목표 위치: 플레이어 위치 + 오프셋
-      // (0, 30, 20) -> X축 정렬(기울어짐 없음), Y축 높게(Top-down 느낌), Z축 뒤로(거리감)
-      // 이것이 '젤다/가디언 테일즈' 스타일 뷰
+      // 2. 위치만 부드럽게 추적 (회전 X)
       const offset = new THREE.Vector3(0, 30, 20);
       const targetPos = target.current.position;
 
-      // 부드러운 이동 (Lerp)
-      // 현재 카메라 위치에서 목표 위치로 0.1의 속도로 이동
+      // lerp로 위치만 따라가고, lookAt은 호출하지 않음으로써 회전 고정
       camera.position.lerp(vec.copy(targetPos).add(offset), 0.1);
-
-      // 카메라는 항상 플레이어를 바라봄
-      camera.lookAt(targetPos);
     }
   });
   return null;
 };
 
+// 바닥 컴포넌트 (텍스처 로딩)
+// 바닥 컴포넌트 (텍스처 로딩)
+const MapFloor = () => {
+  // 실제 RPG 느낌이 나는 잔디/지형 텍스처 (Three.js 예제 소스 활용)
+  const texture = useTexture('/map_texture.jpg');
+
+  // 텍스처 반복 설정 (20x20으로 촘촘하게 타일링)
+  texture.repeat.set(1, 1);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+  return (
+    <group>
+      {/* 텍스처 바닥 */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.1, 0]}>
+        <planeGeometry args={[100, 100]} />
+        {/* 잔디 느낌을 살리기 위해 약간 어둡고(dark) 거칠게 표현 */}
+        <meshStandardMaterial map={texture} />
+      </mesh>
+    </group>
+  );
+};
+
 const RpgWorld = ({ onBuildingClick, input }) => {
-  const playerRef = useRef(); // 플레이어 참조 생성
+  const playerRef = useRef();
 
   const handleBuildingClick = (buildingName) => {
     if (onBuildingClick) {
@@ -79,17 +109,14 @@ const RpgWorld = ({ onBuildingClick, input }) => {
 
   return (
     <group>
-      {/* 카메라맨 배치 (플레이어 감시) */}
+      {/* 시스템: 카메라맨 & 줌 */}
       <CameraRig target={playerRef} />
+      <ZoomController />
 
-      {/* 바닥 (타일맵) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.1, 0]}>
-        <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#3a5a40" />
-      </mesh>
-      <gridHelper args={[100, 100, '#588157', '#588157']} position={[0, 0, 0]} />
+      {/* 환경: 바닥(지도) */}
+      <MapFloor />
 
-      {/* 건물 배치 */}
+      {/* 오브젝트: 건물들 */}
       <Building
         position={[-8, 1.5, -8]}
         color="#ff6b6b"
@@ -138,7 +165,7 @@ const RpgWorld = ({ onBuildingClick, input }) => {
         onClick={() => handleBuildingClick('카페 (매칭)')}
       />
 
-      {/* 플레이어 (ref 연결) */}
+      {/* 플레이어 */}
       <Player ref={playerRef} input={input} />
 
       {/* 시작 지점 표시 */}
