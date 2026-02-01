@@ -1,90 +1,163 @@
 import React, { useState, useEffect } from 'react';
+import { Joystick } from 'react-joystick-component';
 import GameCanvas from './core/GameCanvas';
+import BuildingModal from './ui/BuildingModal';
+import userApi from '../api/user';
+import { useGameInput } from './core/useGameInput';
 
 const GameEntry = () => {
-  const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+  const [activeModal, setActiveModal] = useState(null);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const { input, handleJoystickMove } = useGameInput(); // 입력 훅 (WASD + 조이스틱)
 
+  // 접속자 수 폴링 (5초마다 갱신)
   useEffect(() => {
-    const checkOrientation = () => {
-      setIsPortrait(window.innerHeight > window.innerWidth);
+    const fetchStatus = async () => {
+      try {
+        const response = await userApi.getOnlineStats();
+        setOnlineCount(response.data.online_users);
+      } catch (error) {
+        console.error('Status Error:', error);
+      }
     };
 
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-
-    return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
-    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 5000);
+    return () => clearInterval(interval);
   }, []);
 
+  const handleBuildingClick = (buildingName) => {
+    setActiveModal(buildingName);
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+  };
+
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      overflow: 'hidden',
+      position: 'relative',
+      background: '#0a0a0a'
+    }}>
 
-      {/* (1) 가로 모드 유도 오버레이 */}
-      {isPortrait && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'rgba(0,0,0,0.9)',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          textAlign: 'center',
-          backdropFilter: 'blur(5px)'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '20px' }}>🔄</div>
-          <h2>가로 화면으로 돌려주세요</h2>
-          <p style={{ opacity: 0.8, marginTop: '10px' }}>RPG 월드는 가로 모드에 최적화되어 있습니다.</p>
-        </div>
-      )}
+      {/* 메인 게임 캔버스 (입력 상태 전달) */}
+      <GameCanvas onBuildingClick={handleBuildingClick} input={input} />
 
-      {/* (2) 게임 캔버스 */}
-      <GameCanvas />
-
-      {/* (3) UI 레이어 (Canvas 위에 띄울 HTML) - 가로일 때만 활성화 권장 */}
-      {!isPortrait && (
-        <>
+      {/* 상단 HUD - 타이틀 & 접속자 수 & 설정 */}
+      <div style={{
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        right: 10,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        pointerEvents: 'none',
+        zIndex: 100
+      }}>
+        {/* 왼쪽 정보창 */}
+        <div style={{ display: 'flex', gap: '8px', pointerEvents: 'auto' }}>
           <div style={{
-            position: 'absolute',
-            top: 20,
-            left: 20,
             color: 'white',
-            textShadow: '1px 1px 2px black',
-            pointerEvents: 'none'
+            textShadow: '1px 1px 3px black',
+            fontSize: '14px',
+            background: 'rgba(0,0,0,0.5)',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
           }}>
-            <h1>RPG World</h1>
-            <p>Welcome to the metaverse</p>
+            <span>🏘️ 소개팅 마을</span>
           </div>
 
           <div style={{
-            position: 'absolute',
-            top: 20,
-            right: 20,
-            pointerEvents: 'auto'
+            color: '#4ade80',
+            textShadow: '1px 1px 3px black',
+            fontSize: '13px',
+            background: 'rgba(0,0,0,0.5)',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
           }}>
-            <button
-              onClick={() => window.history.back()}
-              style={{
-                padding: '8px 16px',
-                background: 'rgba(255, 0, 0, 0.5)',
-                color: 'white',
-                border: '1px solid white',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              EXIT
-            </button>
+            <span style={{ width: '8px', height: '8px', background: '#4ade80', borderRadius: '50%' }}></span>
+            {onlineCount.toLocaleString()}명 접속 중
           </div>
-        </>
+        </div>
+
+        {/* 오른쪽 설정 버튼 */}
+        <button
+          style={{
+            background: 'rgba(255, 0, 0, 0.6)',
+            border: 'none',
+            borderRadius: '50%',
+            width: '36px',
+            height: '36px',
+            color: 'white',
+            fontSize: '18px',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+          }}
+          onClick={() => {
+            if (window.confirm('로그아웃 하시겠습니까?')) {
+              window.location.href = '/login';
+            }
+          }}
+        >
+          ⚙️
+        </button>
+      </div>
+
+      {/* 조이스틱 UI (왼쪽 하단) - 모바일/PC 모두 표시 (선택사항) */}
+      <div style={{
+        position: 'absolute',
+        bottom: 50,
+        left: 30,
+        zIndex: 90,
+        opacity: 0.6 // 게임 화면 가리지 않게 살짝 투명
+      }}>
+        <Joystick
+          size={100}
+          sticky={false}
+          baseColor="rgba(255, 255, 255, 0.2)"
+          stickColor="rgba(255, 255, 255, 0.5)"
+          move={handleJoystickMove}
+          stop={handleJoystickMove}
+        />
+      </div>
+
+      {/* 하단 안내 메시지 */}
+      <div style={{
+        position: 'absolute',
+        bottom: 20,
+        left: 0,
+        right: 0,
+        textAlign: 'center',
+        pointerEvents: 'none',
+        zIndex: 80
+      }}>
+        <div style={{
+          color: 'white',
+          textShadow: '1px 1px 2px black',
+          fontSize: '12px',
+          opacity: 0.7
+        }}>
+          WASD 키 또는 조이스틱으로 이동하세요
+        </div>
+      </div>
+
+      {/* 모달 시스템 */}
+      {activeModal && (
+        <BuildingModal
+          buildingName={activeModal}
+          onClose={closeModal}
+        />
       )}
     </div>
   );

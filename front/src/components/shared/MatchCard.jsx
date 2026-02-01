@@ -8,7 +8,7 @@ export default function MatchCard({ user, onViewDetails }) {
     <Card variant="glass" padding="medium" className="match-card">
       <div className="match-card__header">
         <img
-          src={user.photo || 'https://via.placeholder.com/120'}
+          src={user.photo || 'https://placehold.co/120'}
           alt={user.name}
           className="match-card__photo"
         />

@@ -1,26 +1,36 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Sky, Stars } from '@react-three/drei';
+import { Sky, Stars } from '@react-three/drei';
 import RpgWorld from '../world/RpgWorld';
 
-const GameCanvas = () => {
+const GameCanvas = ({ onBuildingClick, input }) => {
   return (
     <Canvas
-      camera={{ position: [0, 5, 10], fov: 50 }}
+      camera={{
+        position: [0, 50, 0], // 완전 위에서 아래로 (Top-down)
+        rotation: [-Math.PI / 2, 0, 0], // 카메라를 바닥으로 숙임
+        zoom: 20, // 줌 조절
+        near: 0.1,
+        far: 1000,
+        up: [0, 0, -1] // 화면 위쪽이 북쪽(-Z)이 되도록 설정
+      }}
+      orthographic // 원근감 없는 아이소메트릭 뷰
       shadows
-      style={{ width: '100%', height: '100vh', background: '#111' }}
+      style={{ width: '100%', height: '100%', background: '#1a1a2e' }}
     >
-      {/* 기본 환경 설정 */}
-      <Sky sunPosition={[100, 20, 100]} />
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} intensity={1} castShadow />
+      {/* 환경 설정 (밤하늘 느낌) */}
+      <ambientLight intensity={0.6} />
+      <directionalLight
+        position={[10, 20, 10]}
+        intensity={1}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+      />
 
-      {/* 게임 월드 로드 */}
+      {/* 게임 월드 */}
       <Suspense fallback={null}>
-        <RpgWorld />
-        <OrbitControls makeDefault />
-        <gridHelper args={[100, 100]} />
+        <RpgWorld onBuildingClick={onBuildingClick} input={input} />
       </Suspense>
     </Canvas>
   );

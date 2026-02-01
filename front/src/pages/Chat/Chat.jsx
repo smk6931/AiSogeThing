@@ -24,7 +24,7 @@ export default function Chat() {
             <Card key={chat.id} variant="glass" padding="medium" hover className="chat__item">
               <div className="chat__avatar-wrapper">
                 <img
-                  src={`https://via.placeholder.com/60`}
+                  src={`https://placehold.co/60`}
                   alt={chat.name}
                   className="chat__avatar"
                 />

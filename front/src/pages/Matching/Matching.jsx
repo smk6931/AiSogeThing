@@ -13,7 +13,7 @@ export default function Matching() {
       id: 1,
       name: '지수',
       age: 28,
-      photo: 'https://via.placeholder.com/120',
+      photo: 'https://placehold.co/120',
       matchPercentage: 92,
       interests: ['🎵 인디음악', '🎬 SF영화', '☕️ 카페투어']
     },
@@ -21,7 +21,7 @@ export default function Matching() {
       id: 2,
       name: '민준',
       age: 30,
-      photo: 'https://via.placeholder.com/120',
+      photo: 'https://placehold.co/120',
       matchPercentage: 88,
       interests: ['🏃 러닝', '🎮 게임', '🍕 맛집탐방']
     },
@@ -29,7 +29,7 @@ export default function Matching() {
       id: 3,
       name: '서연',
       age: 26,
-      photo: 'https://via.placeholder.com/120',
+      photo: 'https://placehold.co/120',
       matchPercentage: 85,
       interests: ['💄 뷰티', '🎹 재즈', '📚 독서']
     },

@@ -24,37 +24,36 @@ function App() {
       <BrowserRouter>
         <div className="app">
           <Routes>
-            {/* Game Route (Full Screen, No UserStatus) */}
-            <Route path="/game" element={<GameEntry />} />
-
             {/* Main App Routes - Includes UserStatus */}
             <Route element={<><UserStatus /><Outlet /></>}>
-              {/* 온보딩 페이지는 네비게이션 바 없음 */}
+              {/* 로그인 & 온보딩만 UserStatus 포함 */}
               <Route path="/onboarding" element={<Onboarding />} />
-
-              {/* 로그인 페이지 */}
               <Route path="/login" element={<Login />} />
-
-              {/* 메인 페이지들 - 네비게이션 바 포함 */}
-              <Route path="/" element={<><Home /><BottomNav /></>} />
-              <Route path="/hotplace" element={<><HotPlace /><BottomNav /></>} />
-              <Route path="/youtube" element={<><YoutubeBoard /><BottomNav /></>} />
-              <Route path="/matching" element={<><Matching /><BottomNav /></>} />
-              <Route path="/chat" element={<><Chat /><BottomNav /></>} />
-              <Route path="/community" element={<><Community /><BottomNav /></>} />
-
-              {/* Novel */}
-              <Route path="/novel" element={<><NovelList /><BottomNav /></>} />
-              <Route path="/novel/portfolio" element={<><NovelPortfolio /><BottomNav /></>} />
-              <Route path="/novel/create" element={<><NovelCreate /><BottomNav /></>} />
-              <Route path="/novel/:id" element={<><NovelView /><BottomNav /></>} />
-
-              <Route path="/mypage" element={<><MyPage /><BottomNav /></>} />
             </Route>
+
+            {/* 메인 = 아이소메트릭 마을 (UserStatus 없음 - 게임에 통합) */}
+            <Route path="/" element={<GameEntry />} />
+
+            {/* 레거시 호환 라우트들 (나중에 정리) */}
+            <Route element={<><UserStatus /><Outlet /></>}>
+              <Route path="/home" element={<Navigate to="/" replace />} />
+            </Route>
+
+            {/* 
+              기존 페이지들은 이제 게임 내 건물 클릭으로만 접근 가능 
+              (라우트는 남겨두되 직접 접근 시 메인으로 리다이렉트)
+            */}
+            <Route path="/hotplace" element={<Navigate to="/" replace />} />
+            <Route path="/youtube" element={<Navigate to="/" replace />} />
+            <Route path="/matching" element={<Navigate to="/" replace />} />
+            <Route path="/chat" element={<Navigate to="/" replace />} />
+            <Route path="/community" element={<Navigate to="/" replace />} />
+            <Route path="/novel/*" element={<Navigate to="/" replace />} />
+            <Route path="/mypage" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
       </BrowserRouter>
-    </AuthProvider>
+    </AuthProvider >
   );
 }
 

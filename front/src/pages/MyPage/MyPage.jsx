@@ -16,9 +16,9 @@ export default function MyPage() {
 
   // 더미 데이터 (나중에 API 연동)
   const [posts] = useState([
-    { id: 1, image: 'https://via.placeholder.com/300/2a2a2a', likes: 45 },
-    { id: 2, image: 'https://via.placeholder.com/300/333333', likes: 32 },
-    { id: 3, image: 'https://via.placeholder.com/300/1a1a1a', likes: 67 },
+    { id: 1, image: 'https://placehold.co/300/2a2a2a', likes: 45 },
+    { id: 2, image: 'https://placehold.co/300/333333', likes: 32 },
+    { id: 3, image: 'https://placehold.co/300/1a1a1a', likes: 67 },
   ]);
 
   // 데이터 로드
