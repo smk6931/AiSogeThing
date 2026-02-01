@@ -4,7 +4,7 @@ import { Text } from '@react-three/drei';
 
 // forwardRef로 변경하여 부모(RpgWorld)가 플레이어의 위치에 접근할 수 있게 함
 const Player = forwardRef(({ input, onMove }, ref) => {
-  const speed = 2.0; // 모바일 터치 이동 속도 향상
+  const speed = 4.0; // 모바일 터치 이동 속도 향상
   const lastSendTime = React.useRef(0);
 
   useFrame((state) => {
