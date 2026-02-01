@@ -6,14 +6,27 @@ import { getNovel, deleteNovel } from '../../api/novel';
 import client from '../../api/client';
 import './NovelView.css';
 
-const NovelView = () => {
-  const { id } = useParams();
+const NovelView = ({ novelId, onNavigate }) => { // 게임 모드에서 ID와 네비게이션 함수를 받음
+  const params = useParams();
+  const id = novelId || params.id; // prop 우선 사용
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [novel, setNovel] = useState(null);
   const intervalRef = useRef(null);
 
+  // 뒤로가기 핸들러
+  const handleBack = (e) => {
+    if (onNavigate) {
+      e.preventDefault();
+      onNavigate(null); // 모달 닫기 (또는 '도서관 (웹툰/소설)'로 돌아가기 위해 type 전달 가능)
+      // 여기서는 목록으로 돌아가기 위해 onNavigate('도서관 (웹툰/소설)')을 호출해야 함
+      onNavigate('도서관 (웹툰/소설)');
+    }
+  };
+
   useEffect(() => {
+    if (!id) return; // ID가 없으면 중단
+
     const fetchNovel = async () => {
       try {
         const data = await getNovel(id);
@@ -25,7 +38,9 @@ const NovelView = () => {
           const errorMsg = data.error_message || '알 수 없는 오류';
           alert(`[Error] 웹툰 생성 실패\n\n${errorMsg}\n\n데이터를 삭제하고 목록으로 복귀합니다.`);
           try { await deleteNovel(id); } catch (e) { console.error(e); }
-          navigate('/novel');
+
+          if (onNavigate) onNavigate('도서관 (웹툰/소설)');
+          else navigate('/novel');
         }
 
         // Stop polling if completed
@@ -40,7 +55,9 @@ const NovelView = () => {
         if (err.response && err.response.status === 404) {
           clearInterval(intervalRef.current);
           alert("웹툰 생성 중 오류가 발생하여 작업이 취소되었습니다.\n(데이터가 삭제되었습니다)");
-          navigate('/novel');
+
+          if (onNavigate) onNavigate('도서관 (웹툰/소설)');
+          else navigate('/novel');
         }
       }
     };
@@ -52,7 +69,9 @@ const NovelView = () => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [id, navigate]);
+  }, [id, navigate, onNavigate]);
+
+  if (!id) return <div>Invalid ID</div>;
 
   if (!novel) {
     return (
@@ -123,7 +142,7 @@ const NovelView = () => {
   return (
     <div className="novel-view-page">
       <div className="view-nav">
-        <Link to="/novel" className="back-link">← Gallery</Link>
+        <Link to="/novel" className="back-link" onClick={handleBack}>← Gallery</Link>
       </div>
 
       {/* Header */}

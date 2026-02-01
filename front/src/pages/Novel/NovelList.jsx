@@ -5,10 +5,10 @@ import { listNovels } from '../../api/novel';
 import client from '../../api/client';
 import './NovelList.css';
 
-const NovelList = () => {
+const NovelList = ({ onNavigate }) => {
   const [novels, setNovels] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [debugInfo, setDebugInfo] = useState(null); // 디버깅용 상태
+  const [debugInfo, setDebugInfo] = useState(null);
 
   // Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -29,7 +29,6 @@ const NovelList = () => {
       } else {
         console.warn("Invalid novels data:", data);
         setNovels([]);
-        // HTML 응답이 오면 API 주소 문제임
         if (typeof data === 'string' && data.includes('<!doctype html>')) {
           setDebugInfo({
             type: 'API_MISCONFIG',
@@ -64,17 +63,29 @@ const NovelList = () => {
     if (password === ADMIN_PASSWORD) {
       setShowAuthModal(false);
       setPassword('');
-      window.location.href = "/novel/create";
+
+      // onNavigate가 있으면(게임 모드) 내부 이동, 없으면 URL 이동
+      if (onNavigate) {
+        onNavigate('NOVEL_CREATE');
+      } else {
+        window.location.href = "/novel/create";
+      }
     } else {
       setErrorMsg("관리자 암호가 일치하지 않습니다.");
     }
   };
 
-  // Image URL Helper for backward compatibility
+  // 상세 페이지 이동 핸들러
+  const handleNovelClick = (e, novelId) => {
+    if (onNavigate) {
+      e.preventDefault(); // URL 이동 막고
+      onNavigate('NOVEL_DETAIL', novelId); // 내부 상태로 이동
+    }
+  };
+
   const getImageUrl = (path) => {
     if (!path) return null;
     let cleanPath = path;
-    // If path starts with /novel/ but NOT /api/novel/, prepend /api
     if (cleanPath.startsWith('/novel/') && !cleanPath.startsWith('/api/novel/')) {
       cleanPath = '/api' + cleanPath;
     }
@@ -94,34 +105,32 @@ const NovelList = () => {
         </div>
       </div>
 
-      {/* DEBUG INFO PANEL (에러 발생 시 표시) */}
+      {/* ERROR PANEL */}
       {debugInfo && (
         <div style={{ background: '#330000', color: '#ffaaaa', padding: '15px', margin: '20px', borderRadius: '8px', border: '1px solid red', fontSize: '12px', whiteSpace: 'pre-wrap' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}><AlertTriangle size={16} /> API Connection Error</h3>
           <p><strong>Status:</strong> {debugInfo.type}</p>
-          <p><strong>Configured API URL:</strong> {client.defaults.baseURL}</p>
-          {debugInfo.message && <p><strong>Message:</strong> {debugInfo.message}</p>}
-          {debugInfo.response && <p><strong>Response Preview:</strong> {debugInfo.response}</p>}
-          <button
-            onClick={fetchNovels}
-            style={{ marginTop: '10px', background: '#550000', color: 'white', border: '1px solid #770000', padding: '5px 10px', cursor: 'pointer' }}>
-            Retry Connection
-          </button>
+          <button onClick={fetchNovels} style={{ marginTop: '10px', background: '#550000', color: 'white', border: '1px solid #770000', padding: '5px 10px', cursor: 'pointer' }}>Retry Connection</button>
         </div>
       )}
 
+      {/* List */}
       {loading ? (
         <div className="loading-state"><div className="loading-spinner-small"></div></div>
       ) : novels.length === 0 ? (
         <div className="empty-state">
           <BookOpen size={48} className="empty-icon" />
           <p>아직 생성된 웹툰이 없습니다.</p>
-          {!debugInfo && <p>새로운 이야기를 만들어보세요!</p>}
         </div>
       ) : (
         <div className="novel-grid">
           {novels.map((novel) => (
-            <Link to={`/novel/${novel.id}`} key={novel.id} className="novel-card">
+            <Link
+              to={`/novel/${novel.id}`}
+              key={novel.id}
+              className="novel-card"
+              onClick={(e) => handleNovelClick(e, novel.id)}
+            >
               <div className="card-thumbnail">
                 {novel.thumbnail_image ? (
                   <img src={getImageUrl(novel.thumbnail_image)} alt={novel.title} loading="lazy" />
@@ -141,6 +150,7 @@ const NovelList = () => {
         </div>
       )}
 
+      {/* Auth Modal */}
       {showAuthModal && (
         <div className="auth-modal-overlay" onClick={() => setShowAuthModal(false)}>
           <div className="auth-modal-content" onClick={e => e.stopPropagation()}>

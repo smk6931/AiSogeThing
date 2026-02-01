@@ -7,13 +7,12 @@ export default function BottomNav() {
   const { user } = useAuth();
 
   const navItems = [
-    { to: '/', icon: Home, label: '홈' },
+    { to: '/home', icon: Home, label: '홈' },
     { to: '/hotplace', icon: MapPin, label: '핫플' },
     { to: '/youtube', icon: Youtube, label: 'YouTube' },
     { to: '/novel', icon: BookOpen, label: '웹툰' },
     { to: '/matching', icon: Heart, label: '매칭' },
     { to: '/chat', icon: MessageCircle, label: '채팅' },
-    { to: '/community', icon: Users, label: '커뮤니티' },
     { to: '/mypage', icon: User, label: '마이' },
   ];
 
