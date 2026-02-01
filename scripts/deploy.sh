@@ -28,7 +28,7 @@ echo "⚛️ [3/4] 프론트엔드 업데이트 (npm install)..."
 cd "$FRONT_DIR"
 npm install
 # (프로덕션 빌드하려면 아래 주석 해제)
-# npm run build
+npm run build
 
 echo "🔥 [4/4] PM2 프로세스 재시작..."
 # PM2로 관리 중인 'backend', 'frontend' 프로세스 재시작
