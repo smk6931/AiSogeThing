@@ -8,9 +8,10 @@ PROJECT_DIR="/home/ubuntu/AiSogeThing"
 BACK_DIR="$PROJECT_DIR/back"
 FRONT_DIR="$PROJECT_DIR/front"
 
-echo "🚀 [1/4] 최신 코드 다운로드 (Git Pull)..."
+echo "🚀 [1/4] 최신 코드 다운로드 (Git Reset --hard)..."
 cd "$PROJECT_DIR"
-git pull origin main
+git fetch --all
+git reset --hard origin/main
 
 echo "🐍 [2/4] 백엔드 업데이트 (Pip & DB)..."
 cd "$BACK_DIR"
