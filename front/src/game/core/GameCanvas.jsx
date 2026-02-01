@@ -7,12 +7,10 @@ const GameCanvas = ({ onBuildingClick, input }) => {
   return (
     <Canvas
       camera={{
-        position: [0, 50, 0], // 완전 위에서 아래로 (Top-down)
-        rotation: [-Math.PI / 2, 0, 0], // 카메라를 바닥으로 숙임
-        zoom: 20, // 줌 조절
+        position: [0, 30, 20], // 초기 위치 (CameraRig 오프셋과 일치)
+        zoom: 40, // 줌 레벨 (적절한 크기)
         near: 0.1,
-        far: 1000,
-        up: [0, 0, -1] // 화면 위쪽이 북쪽(-Z)이 되도록 설정
+        far: 1000
       }}
       orthographic // 원근감 없는 아이소메트릭 뷰
       shadows

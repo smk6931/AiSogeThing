@@ -6,6 +6,8 @@ import NovelList from '../../pages/Novel/NovelList';
 import Community from '../../pages/Community/Community';
 import Matching from '../../pages/Matching/Matching';
 
+import './BuildingModal.css';
+
 const BuildingModal = ({ buildingName, onClose }) => {
 
   const renderContent = () => {
@@ -45,43 +47,41 @@ const BuildingModal = ({ buildingName, onClose }) => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '10px 15px',
-        background: 'rgba(0, 0, 0, 0.9)',
+        padding: '15px 20px',
+        background: '#1a1a1a', // 헤더도 살짝 어둡게
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
         <h3 style={{
           color: 'white',
           margin: 0,
-          fontSize: '16px'
+          fontSize: '18px',
+          fontWeight: 'bold'
         }}>
           {buildingName}
         </h3>
         <button
           onClick={onClose}
           style={{
-            background: 'rgba(255, 0, 0, 0.6)',
+            background: 'rgba(255, 255, 255, 0.1)',
             border: 'none',
             borderRadius: '50%',
-            width: '32px',
-            height: '32px',
+            width: '36px',
+            height: '36px',
             color: 'white',
-            fontSize: '18px',
+            fontSize: '20px',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            transition: 'background 0.2s'
           }}
         >
           ✕
         </button>
       </div>
 
-      {/* 컨텐츠 영역 */}
-      <div style={{
-        flex: 1,
-        overflow: 'auto',
-        background: 'white'
-      }}>
+      {/* 컨텐츠 영역 (스크롤바 숨김 적용) */}
+      <div className="building-modal-content">
         {renderContent()}
       </div>
     </div>
