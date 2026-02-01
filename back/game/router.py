@@ -1,20 +1,20 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from typing import Annotated, List, Dict
 import json
-from utils.socket_manager import ConnectionManager
 
 router = APIRouter(prefix="/api/game", tags=["Game"])
 
-# === Game Scoket Manager (Inherits from Generic Manager) ===
-class GameSocketManager(ConnectionManager):
+# === Game Scoket Manager (Self-contained) ===
+class GameSocketManager:
     def __init__(self):
-        super().__init__()
-        # 게임 전용 데이터: 플레이어 위치
+        # active_connections: Socket 객체 리스트
+        self.active_connections: List[WebSocket] = []
+        # player_positions: { user_id: {x, z, nickname} }
         self.player_positions: Dict[str, dict] = {}
 
     async def connect(self, websocket: WebSocket, user_id: str, nickname: str):
-        # 부모 클래스의 기본 connect 호출 (accept & list append)
-        await super().connect(websocket)
+        await websocket.accept()
+        self.active_connections.append(websocket)
         
         # 게임 전용 로직: 초기 위치 설정
         self.player_positions[user_id] = {"x": 0, "z": 0, "nickname": nickname}
@@ -24,15 +24,21 @@ class GameSocketManager(ConnectionManager):
         await self.broadcast({"event": "player_joined", "user_id": user_id, "nickname": nickname})
 
     def disconnect(self, websocket: WebSocket, user_id: str):
-        # 부모 클래스 disconnect
-        super().disconnect(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
         
         # 게임 전용 로직: 위치 데이터 삭제
         if user_id in self.player_positions:
             del self.player_positions[user_id]
         print(f"Game Player disconnected: {user_id}")
 
-    # broadcast는 부모 클래스 그대로 사용
+    async def broadcast(self, message: dict):
+        # 모든 접속자에게 메시지 전송
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception:
+                pass # 연결 끊긴 소켓 무시
 
 manager = GameSocketManager()
 

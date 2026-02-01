@@ -6,8 +6,8 @@ import Button from '../../components/common/Button';
 import './Login.css';
 
 export default function Login() {
-  const [username, setUsername] = useState('testuser'); // 임시 아이디 미리 입력
-  const [password, setPassword] = useState('1234');     // 임시 비번 미리 입력
+  const [username, setUsername] = useState('w@w.w'); // 자동 입력
+  const [password, setPassword] = useState('1234');     // 자동 입력
   const { login } = useAuth();
   const navigate = useNavigate();
 
