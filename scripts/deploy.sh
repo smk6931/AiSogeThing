@@ -27,15 +27,26 @@ alembic upgrade head
 echo "⚛️ [3/4] 프론트엔드 업데이트 (npm install)..."
 cd "$FRONT_DIR"
 npm install
-# (프로덕션 빌드하려면 아래 주석 해제)
+
+# Vite 캐시 삭제 (강제 최신화)
+echo "🧹 Vite 캐시 삭제 중..."
+rm -rf node_modules/.vite
+
+# 프로덕션 빌드
 npm run build
 
-echo "🔥 [4/4] PM2 프로세스 재시작..."
-# PM2로 관리 중인 'backend', 'frontend' 프로세스 재시작
-pm2 restart backend
-pm2 restart frontend
-# (만약 이름을 모른다면 'pm2 restart all' 사용 가능)
-# pm2 restart all
+echo "🔥 [4/4] PM2 프로세스 재시작 (완전 삭제 후 재시작)..."
+# 기존 프로세스 완전 삭제
+pm2 delete backend || true
+pm2 delete frontend || true
+
+# 새로 시작 (빌드된 파일 기준으로 시작해야 함. ecosystem.config.js 확인 필요)
+# 임시로 dev 서버 다시 시작 (나중에 serve로 바꿔야 함)
+cd "$BACK_DIR"
+pm2 start "uvicorn main:app --host 0.0.0.0 --port 8080" --name backend --update-env
+
+cd "$FRONT_DIR"
+pm2 start "npm run dev" --name frontend --update-env
 
 echo "� [Add-on] Nginx 설정 업데이트..."
 NGINX_CONF="$PROJECT_DIR/nginx_sogething.conf"
