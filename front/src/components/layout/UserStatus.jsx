@@ -1,12 +1,14 @@
+import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Bot } from 'lucide-react';
+import { Bot, Gamepad2 } from 'lucide-react';
 import userApi from '../../api/user';
 import OnlineUsersModal from '../common/OnlineUsersModal';
 import ChatbotWidget from '../ChatbotWidget';
 import './UserStatus.css';
 
 export default function UserStatus() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [onlineCount, setOnlineCount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,6 +60,29 @@ export default function UserStatus() {
           title="AI 도우미"
         >
           <Bot size={20} />
+        </button>
+
+        {/* RPG 게임 입장 버튼 (NEW) */}
+        <button
+          className="game-enter-btn"
+          onClick={() => navigate('/game')}
+          title="RPG 월드 입장"
+          style={{
+            marginLeft: '8px',
+            background: 'linear-gradient(135deg, #6e8efb, #a777e3)',
+            border: 'none',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            cursor: 'pointer',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+          }}
+        >
+          <Gamepad2 size={18} />
         </button>
       </div>
 

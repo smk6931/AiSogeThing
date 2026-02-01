@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import GameEntry from './game/GameEntry';
 import { AuthProvider } from './context/AuthContext';
 import BottomNav from './components/layout/BottomNav';
 import UserStatus from './components/layout/UserStatus';
@@ -22,31 +23,34 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <div className="app">
-          {/* 전역 미니 프로필 (로그인 상태) + AI 챗봇 */}
-          <UserStatus />
-
           <Routes>
-            {/* 온보딩 페이지는 네비게이션 바 없음 */}
-            <Route path="/onboarding" element={<Onboarding />} />
+            {/* Game Route (Full Screen, No UserStatus) */}
+            <Route path="/game" element={<GameEntry />} />
 
-            {/* 로그인 페이지 */}
-            <Route path="/login" element={<Login />} />
+            {/* Main App Routes - Includes UserStatus */}
+            <Route element={<><UserStatus /><Outlet /></>}>
+              {/* 온보딩 페이지는 네비게이션 바 없음 */}
+              <Route path="/onboarding" element={<Onboarding />} />
 
-            {/* 메인 페이지들 - 네비게이션 바 포함 */}
-            <Route path="/" element={<><Home /><BottomNav /></>} />
-            <Route path="/hotplace" element={<><HotPlace /><BottomNav /></>} />
-            <Route path="/youtube" element={<><YoutubeBoard /><BottomNav /></>} />
-            <Route path="/matching" element={<><Matching /><BottomNav /></>} />
-            <Route path="/chat" element={<><Chat /><BottomNav /></>} />
-            <Route path="/community" element={<><Community /><BottomNav /></>} />
+              {/* 로그인 페이지 */}
+              <Route path="/login" element={<Login />} />
 
-            {/* Novel */}
-            <Route path="/novel" element={<><NovelList /><BottomNav /></>} />
-            <Route path="/novel/portfolio" element={<><NovelPortfolio /><BottomNav /></>} />
-            <Route path="/novel/create" element={<><NovelCreate /><BottomNav /></>} />
-            <Route path="/novel/:id" element={<><NovelView /><BottomNav /></>} />
+              {/* 메인 페이지들 - 네비게이션 바 포함 */}
+              <Route path="/" element={<><Home /><BottomNav /></>} />
+              <Route path="/hotplace" element={<><HotPlace /><BottomNav /></>} />
+              <Route path="/youtube" element={<><YoutubeBoard /><BottomNav /></>} />
+              <Route path="/matching" element={<><Matching /><BottomNav /></>} />
+              <Route path="/chat" element={<><Chat /><BottomNav /></>} />
+              <Route path="/community" element={<><Community /><BottomNav /></>} />
 
-            <Route path="/mypage" element={<><MyPage /><BottomNav /></>} />
+              {/* Novel */}
+              <Route path="/novel" element={<><NovelList /><BottomNav /></>} />
+              <Route path="/novel/portfolio" element={<><NovelPortfolio /><BottomNav /></>} />
+              <Route path="/novel/create" element={<><NovelCreate /><BottomNav /></>} />
+              <Route path="/novel/:id" element={<><NovelView /><BottomNav /></>} />
+
+              <Route path="/mypage" element={<><MyPage /><BottomNav /></>} />
+            </Route>
           </Routes>
         </div>
       </BrowserRouter>

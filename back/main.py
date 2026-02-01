@@ -10,6 +10,7 @@ from chatbot.router import router as chatbot_router
 from admin.router import router as admin_router
 from search.router import router as search_router
 from novel.router import router as novel_router
+from game.router import router as game_router
 
 app = FastAPI()
 
@@ -55,6 +56,8 @@ app.include_router(chatbot_router)
 app.include_router(admin_router)
 app.include_router(search_router)  # 스마트 검색 추가
 app.include_router(novel_router)
+app.include_router(game_router)
+
 
 @app.get("/")
 def read_root():
