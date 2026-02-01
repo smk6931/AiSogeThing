@@ -9,6 +9,10 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
-    allowedHosts: ['sogething.com', 'www.sogething.com', 'localhost', '127.0.0.1']
+    allowedHosts: ['sogething.com', 'www.sogething.com', 'localhost', '127.0.0.1'],
+    fs: {
+      // 상위 디렉토리 접근 허용 (envDir: '../' 때문에 필요)
+      allow: ['..']
+    }
   }
 })
