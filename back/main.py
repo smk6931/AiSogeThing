@@ -40,7 +40,8 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    # allow_origins=origins, # allow_credentials=True일 때는 '*' 사용 불가. 대신 정규식 사용.
+    allow_origin_regex="https?://.*", # 모든 http, https 출처 허용
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
