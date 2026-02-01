@@ -51,8 +51,8 @@ pm2 start "npm run dev" --name frontend --update-env
 echo "� [Add-on] Nginx 설정 업데이트..."
 NGINX_CONF="$PROJECT_DIR/nginx_sogething.conf"
 if [ -f "$NGINX_CONF" ]; then
-    # 설정 파일 복사 및 적용 (sudo 권한 필요)
-    sudo cp "$NGINX_CONF" /etc/nginx/sites-available/default
+    # 설정 파일을 실제 사용되는 sogething 파일에 복사
+    sudo cp "$NGINX_CONF" /etc/nginx/sites-available/sogething
     # 설정 테스트 후 리로드
     sudo nginx -t && sudo systemctl reload nginx
     echo "✅ Nginx 설정이 업데이트되고 재시작되었습니다."
