@@ -10,11 +10,11 @@ export const useGameSocket = () => {
     useEffect(() => {
         if (!user) return;
 
-        // WebSocket URL 생성 (중앙 관리)
+        // WebSocket URL 생성 (중앙 관리 함수 사용)
         const wsUrl = getWebSocketUrl(`/api/game/ws/${user.id}/${user.nickname}`);
 
         console.log('Connecting to Game Socket:', wsUrl);
-        
+
         socketRef.current = new WebSocket(wsUrl);
 
         // 메시지 수신 핸들러
@@ -40,6 +40,8 @@ export const useGameSocket = () => {
                     delete newPlayers[message.user_id];
                     return newPlayers;
                 });
+            } else if (message.event === 'player_joined') {
+                console.log(`User joined: ${message.nickname}`);
             }
         };
 
@@ -47,8 +49,12 @@ export const useGameSocket = () => {
             console.log('Game Socket Connected! 🟢');
         };
 
-        socketRef.current.onclose = () => {
-            console.log('Game Socket Disconnected 🔴');
+        socketRef.current.onclose = (event) => {
+            console.log('Game Socket Disconnected 🔴', event.code, event.reason);
+        };
+
+        socketRef.current.onerror = (error) => {
+            console.error('Game Socket Error:', error);
         };
 
         return () => {
