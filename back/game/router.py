@@ -47,6 +47,8 @@ async def get_game_status():
     return {"status": "online", "active_players": len(manager.active_connections)}
 
 @router.websocket("/ws/{user_id}/{nickname}")
+@router.websocket("/game/ws/{user_id}/{nickname}")
+@router.websocket("/api/game/ws/{user_id}/{nickname}") # 3중 안전장치 (Nginx 경로 문제 해결)
 async def websocket_endpoint(websocket: WebSocket, user_id: str, nickname: str):
     await manager.connect(websocket, user_id, nickname)
     try:
