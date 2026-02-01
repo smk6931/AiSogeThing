@@ -3,21 +3,30 @@ import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 
 // forwardRef로 변경하여 부모(RpgWorld)가 플레이어의 위치에 접근할 수 있게 함
-const Player = forwardRef(({ input }, ref) => {
-  const speed = 0.4; // 속도 더 빠르게 증가 (0.25 -> 0.4)
+const Player = forwardRef(({ input, onMove }, ref) => {
+  const speed = 0.4;
+  const lastSendTime = React.useRef(0);
 
-  useFrame(() => {
+  useFrame((state) => {
     if (!ref.current) return;
 
     if (input.isMoving) {
-      // 45도 회전 제거 -> 직관적인 상하좌우 이동으로 변경
-      // 카메라가 정면(혹은 약간 위)에서 바라볼 것이므로 입력 방향 그대로 이동하면 됨
-
       ref.current.position.x += input.x * speed;
       ref.current.position.z += input.y * speed;
-
-      // 캐릭터 회전 (이동 방향 바라보기)
       ref.current.rotation.y = Math.atan2(input.x, input.y);
+
+      // 위치 전송 (0.1초마다)
+      const now = state.clock.elapsedTime;
+      if (now - lastSendTime.current > 0.1) {
+        if (onMove) {
+          onMove({
+            x: ref.current.position.x,
+            z: ref.current.position.z,
+            rotation: ref.current.rotation.y
+          });
+        }
+        lastSendTime.current = now;
+      }
     }
   });
 

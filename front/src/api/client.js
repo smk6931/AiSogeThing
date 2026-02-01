@@ -20,4 +20,12 @@ client.interceptors.response.use(
   }
 );
 
+// WebSocket URL 생성 헬퍼
+export const getWebSocketUrl = (endpoint) => {
+  const baseUrl = client.defaults.baseURL;
+  // http:// -> ws://, https:// -> wss:// 변환
+  const wsBaseUrl = baseUrl.replace(/^http/, 'ws');
+  return `${wsBaseUrl}${endpoint}`;
+};
+
 export default client;

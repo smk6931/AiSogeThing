@@ -3,7 +3,9 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import Player from '../entities/Player';
+import RemotePlayer from '../entities/RemotePlayer';
 import ZoomController from '../core/ZoomController';
+import { useGameSocket } from '../core/useGameSocket';
 
 // 건물 컴포넌트
 const Building = ({ position, color, label, onClick, icon }) => {
@@ -77,7 +79,6 @@ const CameraRig = ({ target }) => {
 };
 
 // 바닥 컴포넌트 (텍스처 로딩)
-// 바닥 컴포넌트 (텍스처 로딩)
 const MapFloor = () => {
   // 실제 RPG 느낌이 나는 잔디/지형 텍스처 (Three.js 예제 소스 활용)
   const texture = useTexture('/map_texture.jpg');
@@ -100,6 +101,7 @@ const MapFloor = () => {
 
 const RpgWorld = ({ onBuildingClick, input }) => {
   const playerRef = useRef();
+  const { otherPlayers, sendPosition } = useGameSocket();
 
   const handleBuildingClick = (buildingName) => {
     if (onBuildingClick) {
@@ -165,8 +167,18 @@ const RpgWorld = ({ onBuildingClick, input }) => {
         onClick={() => handleBuildingClick('카페 (매칭)')}
       />
 
-      {/* 플레이어 */}
-      <Player ref={playerRef} input={input} />
+      {/* 다른 플레이어들 (실시간 동기화) */}
+      {Object.entries(otherPlayers).map(([id, data]) => (
+        <RemotePlayer
+          key={id}
+          position={{ x: data.x, z: data.z }}
+          rotation={data.rotation}
+          nickname={data.nickname || 'Unknown'}
+        />
+      ))}
+
+      {/* 내 플레이어 */}
+      <Player ref={playerRef} input={input} onMove={sendPosition} />
 
       {/* 시작 지점 표시 */}
       <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
