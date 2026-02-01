@@ -3,6 +3,7 @@ import GameEntry from './game/GameEntry';
 import { AuthProvider } from './context/AuthContext';
 import BottomNav from './components/layout/BottomNav';
 import UserStatus from './components/layout/UserStatus';
+import Home from './pages/Home/Home'; // 추가
 import Onboarding from './pages/Onboarding/Onboarding';
 import Matching from './pages/Matching/Matching';
 import Chat from './pages/Chat/Chat';
@@ -46,7 +47,7 @@ function App() {
             {/* 메인 앱 (UserStatus + BottomNav) */}
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/home" replace />} />
-              <Route path="/home" element={<Community />} />
+              <Route path="/home" element={<Home />} />
               <Route path="/hotplace" element={<HotPlace />} />
               <Route path="/youtube" element={<YoutubeBoard />} />
               <Route path="/matching" element={<Matching />} />

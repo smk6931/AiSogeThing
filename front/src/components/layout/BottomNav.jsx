@@ -13,6 +13,7 @@ export default function BottomNav() {
     { to: '/novel', icon: BookOpen, label: '웹툰' },
     { to: '/matching', icon: Heart, label: '매칭' },
     { to: '/chat', icon: MessageCircle, label: '채팅' },
+    { to: '/community', icon: Users, label: '커뮤니티' },
     { to: '/mypage', icon: User, label: '마이' },
   ];
 
