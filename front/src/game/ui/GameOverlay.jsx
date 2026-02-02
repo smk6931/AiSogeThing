@@ -182,10 +182,10 @@ const GameOverlay = ({ onSimulateKey }) => {
           <div
             style={{
               position: 'absolute',
-              bottom: '40px', // 하단으로 내림 (퀵슬롯 제거됨)
-              right: '30px',
-              width: '80px',
-              height: '80px',
+              bottom: '40px', // 조이스틱과 높이 맞춤
+              right: '25px',
+              width: '60px',  // 크기 축소 (80 -> 60)
+              height: '60px',
               borderRadius: '50%',
               background: 'rgba(255, 0, 0, 0.5)',
               border: '2px solid rgba(255, 255, 255, 0.4)',
@@ -193,7 +193,7 @@ const GameOverlay = ({ onSimulateKey }) => {
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-              fontSize: '32px',
+              fontSize: '24px', // 폰트 축소
               backdropFilter: 'blur(4px)',
               zIndex: 90,
               cursor: 'pointer',

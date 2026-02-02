@@ -31,7 +31,7 @@ const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
     if (attackState.active) {
       setAttackState(prev => {
         const newTime = prev.time + state.clock.getDelta(); // 기본 시간 흐름 (초 단위)
-        if (newTime > 5.5) { // 5.5초 후 사라짐
+        if (newTime > 4.0) { // 4초 후 사라짐
           return { active: false, time: 0 };
         }
         return { ...prev, time: newTime };
@@ -62,13 +62,12 @@ const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
   });
 
   // 애니메이션 값 계산
-  // 0 ~ 0.2초: 뻗기 (빠름)
-  // 0.2 ~ 5.5초: 유지
+  // 0 ~ 0.5초: 양옆으로 뻗어나감
+  // 0.5 ~ 4.0초: 유지 (회전 등 효과 추가 가능)
   const punchPhase = attackState.time;
-  const isExtending = punchPhase < 0.2;
-  const extendProgress = isExtending ? punchPhase / 0.2 : 1;
-  const punchZ = 0.5 + extendProgress * 4; // 앞으로 4만큼 뻗음
-  const punchScaleX = 1 + extendProgress * 1.5; // 옆으로도 커짐 (1 -> 2.5배)
+  const isExtending = punchPhase < 0.5;
+  const extendProgress = isExtending ? punchPhase / 0.5 : 1;
+  const punchExtension = 0.5 + extendProgress * 4; // 몸통(0.5)에서 시작해서 4만큼 뻗음
 
   return (
     <group ref={ref} position={[0, 1, 0]}>
@@ -91,22 +90,33 @@ const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
       </mesh>
 
       {/* 피라미드 펀치 이펙트 */}
+      {/* 피라미드 펀치 이펙트 (양옆 발사) */}
       {attackState.active && (
-        <group position={[0, 0, punchZ]} rotation={[-Math.PI / 2, 0, 0]}>
-          {/* 황금 피라미드 세트 */}
-          {/* 1. 메인 펀치 */}
-          <mesh position={[0, 1, 0]} scale={[punchScaleX, 1, 1]}> {/* 옆으로 뚱뚱해짐 */}
-            {/* ConeGeometry: radius, height, radialSegments(4=pyramid) */}
-            <cylinderGeometry args={[0, 0.8, 3, 4]} />
-            <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.5} roughness={0.2} metalness={0.8} />
-          </mesh>
+        <>
+          {/* 오른쪽 펀치 */}
+          <group position={[punchExtension, 1, 0]} rotation={[0, 0, -Math.PI / 2]}>
+            <mesh>
+              <cylinderGeometry args={[0, 0.5, 2, 4]} />
+              <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.5} roughness={0.2} metalness={0.8} />
+            </mesh>
+            <mesh position={[0, -1.2, 0]}> {/* 연결부 */}
+              <cylinderGeometry args={[0.1, 0.1, 1, 8]} />
+              <meshStandardMaterial color="#333" />
+            </mesh>
+          </group>
 
-          {/* 2. 연결 부위 (스프링 느낌) */}
-          <mesh position={[0, -0.5, 0]}>
-            <cylinderGeometry args={[0.2, 0.2, 1.5, 8]} />
-            <meshStandardMaterial color="#333" />
-          </mesh>
-        </group>
+          {/* 왼쪽 펀치 */}
+          <group position={[-punchExtension, 1, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <mesh>
+              <cylinderGeometry args={[0, 0.5, 2, 4]} />
+              <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.5} roughness={0.2} metalness={0.8} />
+            </mesh>
+            <mesh position={[0, -1.2, 0]}> {/* 연결부 */}
+              <cylinderGeometry args={[0.1, 0.1, 1, 8]} />
+              <meshStandardMaterial color="#333" />
+            </mesh>
+          </group>
+        </>
       )}
 
       {/* 이름표 */}

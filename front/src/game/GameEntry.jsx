@@ -46,7 +46,8 @@ const GameEntry = () => {
       overflow: 'hidden',
       position: 'relative',
       background: '#0a0a0a',
-      color: 'white'
+      color: 'white',
+      touchAction: 'none' // 터치 스크롤 방지 (중요)
     }}>
 
       {/* ================= 3D Game World ================= */}
@@ -72,8 +73,8 @@ const GameEntry = () => {
       {/* ================= Joystick ================= */}
       <div style={{
         position: 'absolute',
-        bottom: 110,
-        left: 30,
+        bottom: 30, // 더 아래로 내림
+        left: 20,   // 더 왼쪽으로 붙임
         zIndex: 90,
         opacity: 0.8
       }}>
