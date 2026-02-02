@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { Sky, Stars } from '@react-three/drei';
 import RpgWorld from '../world/RpgWorld';
 
-const GameCanvas = ({ onBuildingClick, input, active = true }) => {
+const GameCanvas = ({ onBuildingClick, input, active = true, otherPlayers, sendPosition, latestChatMap }) => {
   return (
     <Canvas
       frameloop={active ? 'always' : 'never'} // 앱 모드일 땐 렌더링 중지 (리소스 절약 & 에러 방지)
@@ -32,7 +32,13 @@ const GameCanvas = ({ onBuildingClick, input, active = true }) => {
 
       {/* 게임 월드 */}
       <Suspense fallback={null}>
-        <RpgWorld onBuildingClick={onBuildingClick} input={input} />
+        <RpgWorld
+          onBuildingClick={onBuildingClick}
+          input={input}
+          otherPlayers={otherPlayers}
+          sendPosition={sendPosition}
+          latestChatMap={latestChatMap}
+        />
       </Suspense>
     </Canvas>
   );

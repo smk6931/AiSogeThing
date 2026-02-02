@@ -6,6 +6,8 @@ export const useGameSocket = () => {
     const { user } = useAuth();
     const socketRef = useRef(null);
     const [otherPlayers, setOtherPlayers] = useState({}); // { userId: { x, z, rotation... } }
+    const [chatMessages, setChatMessages] = useState([]); // 채팅 메시지 목록
+    const [latestChatMap, setLatestChatMap] = useState({}); // 유저별 최신 메시지 (말풍선용)
 
     useEffect(() => {
         if (!user) return;
@@ -42,6 +44,22 @@ export const useGameSocket = () => {
                 });
             } else if (message.event === 'player_joined') {
                 console.log(`User joined: ${message.nickname}`);
+            } else if (message.event === 'chat') {
+                // 채팅 메시지 수신
+                setChatMessages(prev => {
+                    const newMessages = [...prev, message];
+                    if (newMessages.length > 50) return newMessages.slice(-50); // 최대 50개 유지
+                    return newMessages;
+                });
+
+                // 말풍선용 최신 메시지 업데이트
+                setLatestChatMap(prev => ({
+                    ...prev,
+                    [message.user_id]: {
+                        message: message.message,
+                        timestamp: message.timestamp
+                    }
+                }));
             }
         };
 
@@ -65,11 +83,24 @@ export const useGameSocket = () => {
     }, [user]);
 
     // 내 위치 전송 함수
+
     const sendPosition = (positionData) => {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
             socketRef.current.send(JSON.stringify(positionData));
         }
     };
 
-    return { otherPlayers, sendPosition };
+    // 채팅 메시지 전송 함수
+    const sendChatMessage = (text) => {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+            const payload = {
+                event: 'chat',
+                message: text,
+                timestamp: new Date().toISOString()
+            };
+            socketRef.current.send(JSON.stringify(payload));
+        }
+    };
+
+    return { otherPlayers, sendPosition, chatMessages, sendChatMessage, latestChatMap };
 };

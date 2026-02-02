@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import Player from '../entities/Player';
 import RemotePlayer from '../entities/RemotePlayer';
 import ZoomController from '../core/ZoomController';
-import { useGameSocket } from '../core/useGameSocket';
+import { useAuth } from '../../context/AuthContext';
+
 
 // 건물 컴포넌트
 const Building = ({ position, color, label, onClick, icon }) => {
@@ -99,9 +100,9 @@ const MapFloor = () => {
   );
 };
 
-const RpgWorld = ({ onBuildingClick, input }) => {
+const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestChatMap }) => {
   const playerRef = useRef();
-  const { otherPlayers, sendPosition } = useGameSocket();
+  const { user } = useAuth();
 
   const handleBuildingClick = (buildingName) => {
     if (onBuildingClick) {
@@ -136,11 +137,17 @@ const RpgWorld = ({ onBuildingClick, input }) => {
           position={{ x: data.x, z: data.z }}
           rotation={data.rotation}
           nickname={data.nickname || 'Unknown'}
+          chat={latestChatMap[id]}
         />
       ))}
 
       {/* 내 플레이어 */}
-      <Player ref={playerRef} input={input} onMove={sendPosition} />
+      <Player
+        ref={playerRef}
+        input={input}
+        onMove={sendPosition}
+        chat={user && latestChatMap ? latestChatMap[user.id] : null}
+      />
 
       {/* 시작 지점 표시 */}
       {/* 시작 지점 표시 (제거) */}

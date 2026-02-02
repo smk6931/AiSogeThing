@@ -3,11 +3,22 @@ import { Joystick } from 'react-joystick-component';
 import GameCanvas from './core/GameCanvas';
 import userApi from '../api/user';
 import { useGameInput } from './core/useGameInput';
+import { useGameSocket } from './core/useGameSocket';
 import GameOverlay from './ui/GameOverlay';
+import ChatBox from './ui/ChatBox';
 
 const GameEntry = () => {
   const [onlineCount, setOnlineCount] = useState(0);
   const { input, handleJoystickMove } = useGameInput();
+  const { otherPlayers, sendPosition, chatMessages, sendChatMessage, latestChatMap } = useGameSocket();
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  // 화면 크기 감지
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // 접속자 수 폴링
   useEffect(() => {
@@ -40,11 +51,21 @@ const GameEntry = () => {
 
       {/* ================= 3D Game World ================= */}
       <div style={{ width: '100%', height: '100%' }}>
-        <GameCanvas onBuildingClick={() => { }} input={input} active={true} />
+        <GameCanvas
+          onBuildingClick={() => { }}
+          input={input}
+          active={true}
+          otherPlayers={otherPlayers}
+          sendPosition={sendPosition}
+          latestChatMap={latestChatMap}
+        />
       </div>
 
       {/* ================= Game UI Overlay (HP, Skill, Minimap) ================= */}
       <GameOverlay />
+
+      {/* ================= Chat Box ================= */}
+      <ChatBox messages={chatMessages} onSend={sendChatMessage} isMobile={isMobile} />
 
       {/* ================= Joystick ================= */}
       <div style={{

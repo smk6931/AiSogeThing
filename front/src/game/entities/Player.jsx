@@ -1,9 +1,18 @@
-import React, { forwardRef, useEffect } from 'react';
+import React, { forwardRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
+import { Text, Html } from '@react-three/drei';
 
 // forwardRef로 변경하여 부모(RpgWorld)가 플레이어의 위치에 접근할 수 있게 함
-const Player = forwardRef(({ input, onMove }, ref) => {
+const Player = forwardRef(({ input, onMove, chat }, ref) => {
+  const [showChat, setShowChat] = useState(false);
+
+  useEffect(() => {
+    if (chat && chat.timestamp) {
+      setShowChat(true);
+      const timer = setTimeout(() => setShowChat(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [chat]);
   const speed = 4.0; // 모바일 터치 이동 속도 향상
   const lastSendTime = React.useRef(0);
 
@@ -66,6 +75,45 @@ const Player = forwardRef(({ input, onMove }, ref) => {
       >
         Me
       </Text> */}
+
+      {/* 말풍선 */}
+      {showChat && (
+        <Html position={[0, 4.0, 0]} center>
+          <div style={{
+            background: 'white',
+            color: 'black',
+            padding: '8px 12px',
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            whiteSpace: 'nowrap',
+            border: '2px solid #333',
+            position: 'relative',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+            animation: 'popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            zIndex: 100
+          }}>
+            {chat.message}
+            <div style={{
+              position: 'absolute',
+              bottom: '-6px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '6px solid transparent',
+              borderRight: '6px solid transparent',
+              borderTop: '6px solid white'
+            }}></div>
+          </div>
+          <style>{`
+            @keyframes popIn {
+              from { transform: scale(0); opacity: 0; }
+              to { transform: scale(1); opacity: 1; }
+            }
+          `}</style>
+        </Html>
+      )}
     </group>
   );
 });

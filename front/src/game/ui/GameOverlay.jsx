@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Zap, Sword, Backpack, Map as MapIcon } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const GameOverlay = () => {
+  const { user } = useAuth();
   // Mobile Resizing Logic
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -77,7 +79,7 @@ const GameOverlay = () => {
 
   // Dummy Data
   const playerStats = {
-    hp: 75, maxHp: 100, mp: 40, maxMp: 100, level: 12, nickname: 'Hero'
+    hp: 75, maxHp: 100, mp: 40, maxMp: 100, level: 12, nickname: user?.nickname || 'Hero'
   };
 
   const skills = [
