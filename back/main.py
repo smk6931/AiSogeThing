@@ -35,7 +35,7 @@ async def startup_event():
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://localhost:5173", # Vite 기본 포트도 추가 (혹시 몰라서)
+
     "*" # 개발 편의상 유지하되, 위 명시적 주소가 우선됨
 ]
 

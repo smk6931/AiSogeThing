@@ -3,6 +3,7 @@ import { Joystick } from 'react-joystick-component';
 import GameCanvas from './core/GameCanvas';
 import userApi from '../api/user';
 import { useGameInput } from './core/useGameInput';
+import GameOverlay from './ui/GameOverlay';
 
 const GameEntry = () => {
   const [onlineCount, setOnlineCount] = useState(0);
@@ -41,6 +42,9 @@ const GameEntry = () => {
       <div style={{ width: '100%', height: '100%' }}>
         <GameCanvas onBuildingClick={() => { }} input={input} active={true} />
       </div>
+
+      {/* ================= Game UI Overlay (HP, Skill, Minimap) ================= */}
+      <GameOverlay />
 
       {/* ================= Joystick ================= */}
       <div style={{

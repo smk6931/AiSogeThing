@@ -23,7 +23,7 @@ export const useGameSocket = () => {
 
             if (message.event === 'player_move') {
                 // 나 자신의 움직임은 제외
-                if (message.user_id === user.id) return;
+                if (String(message.user_id) === String(user.id)) return;
 
                 setOtherPlayers(prev => ({
                     ...prev,

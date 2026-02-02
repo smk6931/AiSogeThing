@@ -119,53 +119,15 @@ const RpgWorld = ({ onBuildingClick, input }) => {
       <MapFloor />
 
       {/* 오브젝트: 건물들 */}
-      <Building
-        position={[-8, 1.5, -8]}
-        color="#ff6b6b"
-        label="영화관"
-        icon="🎬"
-        onClick={() => handleBuildingClick('영화관 (YouTube)')}
-      />
-
-      <Building
-        position={[8, 1.5, -8]}
-        color="#4ecdc4"
-        label="우체국"
-        icon="📮"
-        onClick={() => handleBuildingClick('우체국 (채팅)')}
-      />
-
-      <Building
-        position={[-8, 1.5, 8]}
-        color="#ffe66d"
-        label="안내소"
-        icon="🗺️"
-        onClick={() => handleBuildingClick('안내소 (지도/데이트코스)')}
-      />
-
-      <Building
-        position={[8, 1.5, 8]}
-        color="#a8dadc"
-        label="도서관"
-        icon="📚"
-        onClick={() => handleBuildingClick('도서관 (웹툰/소설)')}
-      />
-
-      <Building
-        position={[0, 1.5, -12]}
-        color="#b5838d"
-        label="구청"
-        icon="📢"
-        onClick={() => handleBuildingClick('구청 (커뮤니티/피드)')}
-      />
-
-      <Building
-        position={[0, 1.5, 12]}
-        color="#ffb4a2"
-        label="카페"
-        icon="☕"
-        onClick={() => handleBuildingClick('카페 (매칭)')}
-      />
+      {/* 오브젝트: 건물들 (임시 비활성화) */}
+      {/* 
+      <Building position={[-8, 1.5, -8]} color="#ff6b6b" label="영화관" icon="🎬" onClick={() => handleBuildingClick('영화관 (YouTube)')} />
+      <Building position={[8, 1.5, -8]} color="#4ecdc4" label="우체국" icon="📮" onClick={() => handleBuildingClick('우체국 (채팅)')} />
+      <Building position={[-8, 1.5, 8]} color="#ffe66d" label="안내소" icon="🗺️" onClick={() => handleBuildingClick('안내소 (지도/데이트코스)')} />
+      <Building position={[8, 1.5, 8]} color="#a8dadc" label="도서관" icon="📚" onClick={() => handleBuildingClick('도서관 (웹툰/소설)')} />
+      <Building position={[0, 1.5, -12]} color="#b5838d" label="구청" icon="📢" onClick={() => handleBuildingClick('구청 (커뮤니티/피드)')} />
+      <Building position={[0, 1.5, 12]} color="#ffb4a2" label="카페" icon="☕" onClick={() => handleBuildingClick('카페 (매칭)')} />
+      */}
 
       {/* 다른 플레이어들 (실시간 동기화) */}
       {Object.entries(otherPlayers).map(([id, data]) => (
@@ -181,10 +143,11 @@ const RpgWorld = ({ onBuildingClick, input }) => {
       <Player ref={playerRef} input={input} onMove={sendPosition} />
 
       {/* 시작 지점 표시 */}
-      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* 시작 지점 표시 (제거) */}
+      {/* <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.8, 1, 32]} />
         <meshBasicMaterial color="white" opacity={0.5} transparent />
-      </mesh>
+      </mesh> */}
     </group>
   );
 };

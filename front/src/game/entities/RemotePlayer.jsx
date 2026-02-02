@@ -19,12 +19,19 @@ const RemotePlayer = ({ position, rotation, animation, nickname }) => {
 
   return (
     <group ref={meshRef} position={[position.x || 0, 1, position.z || 0]}>
-      {/* 캐릭터 몸체 (다른 색상으로 구분) */}
-      <mesh castShadow position={[0, 0.5, 0]}>
-        <boxGeometry args={[1, 2, 1]} />
-        <meshStandardMaterial color="#ff6b6b" /> {/* 적색 계열 */}
+      {/* 캐릭터 몸체 (플레이어와 동일한 원통형) */}
+      <mesh castShadow position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.5, 0.5, 1, 16]} />
+        <meshStandardMaterial color="#ff6b6b" />
       </mesh>
 
+      {/* 머리/장식 (방향 확인용) */}
+      <mesh position={[0, 0.3, 0.4]}>
+        <boxGeometry args={[0.2, 0.2, 0.2]} />
+        <meshStandardMaterial color="white" />
+      </mesh>
+
+      {/* 닉네임 표시 */}
       {/* 닉네임 표시 */}
       <Html position={[0, 2.5, 0]} center>
         <div style={{

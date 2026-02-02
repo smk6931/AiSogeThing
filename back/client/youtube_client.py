@@ -168,8 +168,7 @@ def discover_new_channels(category: str = "reality"):
     encoded_query = urllib.parse.quote(query)
     url = f"{BASE_URL}/search?part=snippet&q={encoded_query}&maxResults=10&type=channel&key={API_KEY}"
     
-    headers = {"Referer": "http://localhost:5173"}
-    data, error = safe_http_get(url, headers=headers)
+    data, error = safe_http_get(url)
     
     if error: return {"error": error}
     
@@ -203,8 +202,7 @@ def search_videos(query: str, max_results: int = 50):
     if not API_KEY: return {"error": "No Key"}
     encoded_query = urllib.parse.quote(query)
     url = f"{BASE_URL}/search?part=snippet&q={encoded_query}&maxResults={max_results}&type=video&key={API_KEY}"
-    headers = {"Referer": "http://localhost:5173"}
-    data, error = safe_http_get(url, headers=headers)
+    data, error = safe_http_get(url)
     if error: return {"error": error}
     remaining, limit = _manage_quota(cost=100)
     return {"items": _parse_videos(data.get('items', [])), "meta": {"remaining": str(remaining), "limit": str(limit)}}
@@ -219,8 +217,7 @@ def get_popular_videos(max_results: int = 50, category_id: str = None, region_co
     if page_token:
         url += f"&pageToken={page_token}"
         
-    headers = {"Referer": "http://localhost:5173"}
-    data, error = safe_http_get(url, headers=headers)
+    data, error = safe_http_get(url)
     
     if error: return {"error": error}
     
@@ -295,8 +292,7 @@ def discover_interest_channels(keyword: str):
     encoded_query = urllib.parse.quote(keyword)
     url = f"{BASE_URL}/search?part=snippet&q={encoded_query}&maxResults=50&type=channel&key={API_KEY}"
     
-    headers = {"Referer": "http://localhost:5173"}
-    data, error = safe_http_get(url, headers=headers)
+    data, error = safe_http_get(url)
     
     if error: return {"error": error}
     

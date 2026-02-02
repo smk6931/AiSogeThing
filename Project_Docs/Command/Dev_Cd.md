@@ -36,10 +36,10 @@
    .\venv\Scripts\activate
 
 2. Next.js (Frontend)
-   npm run dev
+   cd front; npm run dev
 
 3. FastAPI (Uvicorn)
-   python -m uvicorn main:app --reload --port 8001
+   .\venv\Scripts\activate; python -m uvicorn main:app --reload --port 8000
 
 [ Git (자주 쓰는 명령어) ]
 --------------------------------------------------------------------------------

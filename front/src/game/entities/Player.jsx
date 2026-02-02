@@ -51,6 +51,7 @@ const Player = forwardRef(({ input, onMove }, ref) => {
       </mesh>
 
       {/* 이름표 */}
+      {/* 이름표 */}
       <Text
         position={[0, 1.3, 0]}
         fontSize={0.4}
