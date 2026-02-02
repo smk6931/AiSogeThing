@@ -42,28 +42,28 @@ const GameOverlay = () => {
         position: 'absolute',
         top: '70px', // Below the top HUD
         left: '20px',
-        width: '250px',
+        width: '320px',
         background: 'rgba(0, 0, 0, 0.5)',
-        padding: '10px',
-        borderRadius: '10px',
+        padding: '12px',
+        borderRadius: '12px',
         backdropFilter: 'blur(4px)',
         border: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
         {/* Level & Name */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px', gap: '10px' }}>
           <div style={{
             background: '#fbbf24', color: 'black', fontWeight: 'bold',
-            borderRadius: '50%', width: '24px', height: '24px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px'
+            borderRadius: '50%', width: '28px', height: '28px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px'
           }}>
             {playerStats.level}
           </div>
-          <span style={{ color: 'white', fontWeight: 'bold', fontSize: '16px' }}>{playerStats.nickname}</span>
+          <span style={{ color: 'white', fontWeight: 'bold', fontSize: '18px' }}>{playerStats.nickname}</span>
         </div>
 
         {/* HP Bar */}
-        <div style={{ marginBottom: '4px' }}>
-          <div style={{ height: '14px', background: '#333', borderRadius: '7px', overflow: 'hidden', position: 'relative' }}>
+        <div style={{ marginBottom: '6px' }}>
+          <div style={{ height: '18px', background: '#333', borderRadius: '9px', overflow: 'hidden', position: 'relative' }}>
             <div style={{
               width: `${(playerStats.hp / playerStats.maxHp) * 100}%`,
               background: 'linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)',
@@ -72,7 +72,7 @@ const GameOverlay = () => {
             }} />
             <span style={{
               position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-              fontSize: '10px', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '11px', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
               textShadow: '1px 1px 1px black'
             }}>
               {playerStats.hp} / {playerStats.maxHp}
@@ -82,7 +82,7 @@ const GameOverlay = () => {
 
         {/* MP Bar */}
         <div>
-          <div style={{ height: '14px', background: '#333', borderRadius: '7px', overflow: 'hidden', position: 'relative' }}>
+          <div style={{ height: '18px', background: '#333', borderRadius: '9px', overflow: 'hidden', position: 'relative' }}>
             <div style={{
               width: `${(playerStats.mp / playerStats.maxMp) * 100}%`,
               background: 'linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)',
@@ -91,7 +91,7 @@ const GameOverlay = () => {
             }} />
             <span style={{
               position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-              fontSize: '10px', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '11px', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
               textShadow: '1px 1px 1px black'
             }}>
               {playerStats.mp} / {playerStats.maxMp}
@@ -105,8 +105,8 @@ const GameOverlay = () => {
         position: 'absolute',
         top: '70px',
         right: '20px',
-        width: '120px',
-        height: '120px',
+        width: '160px',
+        height: '160px',
         background: 'rgba(0, 0, 0, 0.6)',
         borderRadius: '50%',
         border: '2px solid rgba(255, 255, 255, 0.3)',
@@ -126,7 +126,7 @@ const GameOverlay = () => {
 
         {/* Player Marker */}
         <div style={{
-          width: '10px', height: '10px', background: '#4ade80', borderRadius: '50%',
+          width: '12px', height: '12px', background: '#4ade80', borderRadius: '50%',
           boxShadow: '0 0 5px #4ade80', zIndex: 2
         }}></div>
 
@@ -148,10 +148,10 @@ const GameOverlay = () => {
         <div style={{ display: 'flex', gap: '6px' }}>
           {skills.map((skill, idx) => (
             <div key={idx} style={{
-              width: '48px', height: '48px',
+              width: '60px', height: '60px',
               background: 'rgba(0,0,0,0.7)',
               border: '1px solid #555',
-              borderRadius: '6px',
+              borderRadius: '8px',
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
@@ -185,10 +185,10 @@ const GameOverlay = () => {
         <div style={{ display: 'flex', gap: '6px' }}>
           {items.map((item, idx) => (
             <div key={idx} style={{
-              width: '40px', height: '40px',
+              width: '50px', height: '50px',
               background: 'rgba(0,0,0,0.5)',
               border: '1px solid #444',
-              borderRadius: '6px',
+              borderRadius: '8px',
               position: 'relative',
               display: 'flex',
               alignItems: 'center',

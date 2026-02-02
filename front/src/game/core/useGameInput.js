@@ -49,7 +49,7 @@ export const useGameInput = () => {
         x /= length;
         y /= length;
       }
-      setInput(prev => ({ ...prev, x, y, isMoving }));
+      setInput(prev => ({ ...prev, x, y, isMoving, source: 'keyboard' }));
     }
   }, [keys]);
 
@@ -60,7 +60,8 @@ export const useGameInput = () => {
         x: event.x / 50, // 정규화 (-1 ~ 1)
         y: -event.y / 50, // Y축 반전
         isMoving: true,
-        joystickActive: true
+        joystickActive: true,
+        source: 'joystick'
       });
     } else {
       setInput(prev => ({ ...prev, x: 0, y: 0, isMoving: false, joystickActive: false }));
