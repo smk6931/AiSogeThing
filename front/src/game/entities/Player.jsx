@@ -2,9 +2,10 @@ import React, { forwardRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, Html } from '@react-three/drei';
 
-// forwardRef로 변경하여 부모(RpgWorld)가 플레이어의 위치에 접근할 수 있게 함
-const Player = forwardRef(({ input, onMove, chat }, ref) => {
+const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
   const [showChat, setShowChat] = useState(false);
+  const [attackState, setAttackState] = useState({ active: false, time: 0 }); // 공격 상태 관리
+  const prevSkillRef = React.useRef(false); // 스킬 키 엣지 트리거용
 
   useEffect(() => {
     if (chat && chat.timestamp) {
@@ -18,6 +19,24 @@ const Player = forwardRef(({ input, onMove, chat }, ref) => {
 
   useFrame((state) => {
     if (!ref.current) return;
+
+    // 공격 트리거 (R키)
+    if (actions?.skill1 && !prevSkillRef.current && !attackState.active) {
+      setAttackState({ active: true, time: 0 });
+      if (onAction) onAction({ type: 'skill1' }); // 서버 전송
+    }
+    prevSkillRef.current = actions?.skill1;
+
+    // 공격 애니메이션 처리
+    if (attackState.active) {
+      setAttackState(prev => {
+        const newTime = prev.time + state.clock.getDelta() * 5; // 속도 조절
+        if (newTime > 1.5) { // 애니메이션 종료 조건
+          return { active: false, time: 0 };
+        }
+        return { ...prev, time: newTime };
+      });
+    }
 
     if (input.isMoving) {
       // 입력 소스에 따른 속도 조절 (키보드는 정밀 조작을 위해 조금 느리게)
@@ -42,6 +61,13 @@ const Player = forwardRef(({ input, onMove, chat }, ref) => {
     }
   });
 
+  // 애니메이션 값 계산 (0 ~ 1.5 사이)
+  // 0 -> 0.5 (Extend), 0.5 -> 1.5 (Retract/Fade)
+  const punchScale = attackState.active
+    ? (attackState.time < 0.5 ? attackState.time * 2 : (1.5 - attackState.time))
+    : 0;
+  const punchZ = 0.5 + punchScale * 2; // 몸통 앞에서 시작해서 뻗어나감
+
   return (
     <group ref={ref} position={[0, 1, 0]}>
       {/* 몸통 */}
@@ -61,6 +87,25 @@ const Player = forwardRef(({ input, onMove, chat }, ref) => {
         <circleGeometry args={[0.6, 32]} />
         <meshBasicMaterial color="black" opacity={0.3} transparent />
       </mesh>
+
+      {/* 피라미드 펀치 이펙트 */}
+      {attackState.active && (
+        <group position={[0, 0, punchZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          {/* 황금 피라미드 세트 */}
+          {/* 1. 메인 펀치 */}
+          <mesh position={[0, 1, 0]}> {/* 로컬 좌표계 조정 */}
+            {/* ConeGeometry: radius, height, radialSegments(4=pyramid) */}
+            <cylinderGeometry args={[0, 0.6, 2, 4]} />
+            <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.5} roughness={0.2} metalness={0.8} />
+          </mesh>
+
+          {/* 2. 연결 부위 (스프링 느낌) */}
+          <mesh position={[0, -0.5, 0]}>
+            <cylinderGeometry args={[0.2, 0.2, 1.5, 8]} />
+            <meshStandardMaterial color="#333" />
+          </mesh>
+        </group>
+      )}
 
       {/* 이름표 */}
       {/* 이름표 */}

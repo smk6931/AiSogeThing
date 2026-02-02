@@ -100,7 +100,7 @@ const MapFloor = () => {
   );
 };
 
-const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestChatMap }) => {
+const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestChatMap, inputActions }) => {
   const playerRef = useRef();
   const { user } = useAuth();
 
@@ -145,6 +145,7 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
       <Player
         ref={playerRef}
         input={input}
+        actions={inputActions}
         onMove={sendPosition}
         chat={user && latestChatMap ? latestChatMap[user.id] : null}
       />

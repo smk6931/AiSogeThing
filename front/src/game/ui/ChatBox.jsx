@@ -50,9 +50,9 @@ const ChatBox = ({ messages, onSend, isMobile }) => {
     background: 'rgba(0, 0, 0, 0.7)',
     border: '1px solid #555',
     borderRadius: '4px',
-    padding: isMobile ? '4px 6px' : '6px 10px',
+    padding: isMobile ? '6px 8px' : '6px 10px',
     color: 'white',
-    fontSize: isMobile ? '11px' : '14px',
+    fontSize: isMobile ? '16px' : '14px', // 16px 이상이어야 모바일 브라우저 자동 확대 방지
     outline: 'none',
     width: '100%'
   };

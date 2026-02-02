@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Zap, Sword, Backpack, Map as MapIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-const GameOverlay = () => {
+const GameOverlay = ({ onSimulateKey }) => {
   const { user } = useAuth();
   // Mobile Resizing Logic
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -172,9 +172,46 @@ const GameOverlay = () => {
             </div>
           ))}
         </div>
+
+
       </div>
 
-    </div>
+      {/* 4. Mobile Attack Button (Right Side) */}
+      {
+        isMobile && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '120px', // 조이스틱 대칭 위치
+              right: '40px',
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: 'rgba(255, 0, 0, 0.5)',
+              border: '2px solid rgba(255, 255, 255, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '32px',
+              backdropFilter: 'blur(4px)',
+              zIndex: 90,
+              cursor: 'pointer',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              touchAction: 'manipulation'
+            }}
+            onTouchStart={(e) => { e.preventDefault(); onSimulateKey('r', true); }}
+            onTouchEnd={(e) => { e.preventDefault(); onSimulateKey('r', false); }}
+            onMouseDown={() => onSimulateKey('r', true)} // PC 테스트용
+            onMouseUp={() => onSimulateKey('r', false)}
+          >
+            👊
+          </div>
+        )
+      }
+
+    </div >
   );
 };
 

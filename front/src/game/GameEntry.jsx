@@ -9,7 +9,7 @@ import ChatBox from './ui/ChatBox';
 
 const GameEntry = () => {
   const [onlineCount, setOnlineCount] = useState(0);
-  const { input, handleJoystickMove } = useGameInput();
+  const { input, actions, handleJoystickMove, simulateKey } = useGameInput();
   const { otherPlayers, sendPosition, chatMessages, sendChatMessage, latestChatMap } = useGameSocket();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -42,7 +42,7 @@ const GameEntry = () => {
   return (
     <div style={{
       width: '100vw',
-      height: '100vh',
+      height: '100dvh', // 모바일 브라우저 상단바 이슈 해결
       overflow: 'hidden',
       position: 'relative',
       background: '#0a0a0a',
@@ -57,12 +57,14 @@ const GameEntry = () => {
           active={true}
           otherPlayers={otherPlayers}
           sendPosition={sendPosition}
+
           latestChatMap={latestChatMap}
+          inputActions={actions}
         />
       </div>
 
       {/* ================= Game UI Overlay (HP, Skill, Minimap) ================= */}
-      <GameOverlay />
+      <GameOverlay onSimulateKey={simulateKey} />
 
       {/* ================= Chat Box ================= */}
       <ChatBox messages={chatMessages} onSend={sendChatMessage} isMobile={isMobile} />

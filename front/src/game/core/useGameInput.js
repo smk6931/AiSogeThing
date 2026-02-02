@@ -3,20 +3,20 @@ import { useState, useEffect } from 'react';
 // 입력 상태 관리 훅 (키보드 + 조이스틱 통합)
 export const useGameInput = () => {
   const [input, setInput] = useState({ x: 0, y: 0, isMoving: false });
-  const [keys, setKeys] = useState({ w: false, a: false, s: false, d: false });
+  const [keys, setKeys] = useState({ w: false, a: false, s: false, d: false, r: false });
 
   // 키보드 이벤트 리스너
   useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key.toLowerCase();
-      if (['w', 'a', 's', 'd'].includes(key)) {
+      if (['w', 'a', 's', 'd', 'r'].includes(key)) {
         setKeys(prev => ({ ...prev, [key]: true }));
       }
     };
 
     const handleKeyUp = (e) => {
       const key = e.key.toLowerCase();
-      if (['w', 'a', 's', 'd'].includes(key)) {
+      if (['w', 'a', 's', 'd', 'r'].includes(key)) {
         setKeys(prev => ({ ...prev, [key]: false }));
       }
     };
@@ -68,5 +68,14 @@ export const useGameInput = () => {
     }
   };
 
-  return { input, handleJoystickMove };
+  const actions = {
+    skill1: keys.r
+  };
+
+  // 모바일 버튼 입력을 위한 함수
+  const simulateKey = (key, pressed) => {
+    setKeys(prev => ({ ...prev, [key]: pressed }));
+  };
+
+  return { input, actions, handleJoystickMove, simulateKey };
 };
