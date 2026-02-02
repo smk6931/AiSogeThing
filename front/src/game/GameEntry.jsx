@@ -99,17 +99,7 @@ const GameEntry = () => {
         zIndex: 100
       }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <div style={{
-            fontSize: '16px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: 'white',
-            textShadow: '1px 1px 3px black',
-          }}>
-            <span>🏘️ 소개팅 마을</span>
-          </div>
+
 
           <div style={{
             color: '#4ade80',

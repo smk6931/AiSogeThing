@@ -55,7 +55,8 @@ const Player = forwardRef(({ input, onMove }, ref) => {
 
       {/* 이름표 */}
       {/* 이름표 */}
-      <Text
+      {/* 이름표 (숨김 처리) */}
+      {/* <Text
         position={[0, 1.3, 0]}
         fontSize={0.4}
         color="white"
@@ -64,7 +65,7 @@ const Player = forwardRef(({ input, onMove }, ref) => {
         outlineColor="#000000"
       >
         Me
-      </Text>
+      </Text> */}
     </group>
   );
 });
