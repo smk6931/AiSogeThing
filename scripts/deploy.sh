@@ -27,7 +27,7 @@ alembic upgrade head
 echo "⚛️ [3/4] 프론트엔드 업데이트 (npm install)..."
 cd "$FRONT_DIR"
 npm install
-
+ 
 # Vite 캐시 삭제 (강제 최신화)
 echo "🧹 Vite 캐시 삭제 중..."
 rm -rf node_modules/.vite
