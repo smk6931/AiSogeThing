@@ -20,9 +20,10 @@ const ChatBox = ({ messages, onSend, isMobile }) => {
   // Styles
   const containerStyle = {
     position: 'absolute',
-    bottom: isMobile ? '180px' : '130px', // Quick Slot 위로 배치 (모바일은 조이스틱 위)
-    left: isMobile ? '10px' : '20px',
-    width: isMobile ? '200px' : '260px',
+    bottom: isMobile ? '10px' : '130px', // 모바일: 중앙 하단 배치
+    left: isMobile ? '50%' : '20px',
+    transform: isMobile ? 'translateX(-50%)' : 'none',
+    width: isMobile ? '220px' : '260px',
     height: isMobile ? '120px' : '160px',
     display: 'flex',
     flexDirection: 'column',

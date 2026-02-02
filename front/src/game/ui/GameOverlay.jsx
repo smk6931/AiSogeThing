@@ -48,7 +48,7 @@ const GameOverlay = ({ onSimulateKey }) => {
       bottom: isMobile ? '120px' : '30px', // 모바일은 조이스틱/하단바 고려하여 위로
       left: '50%',
       transform: 'translateX(-50%)',
-      display: 'flex',
+      display: isMobile ? 'none' : 'flex',
       gap: isMobile ? '12px' : '24px',
       alignItems: 'flex-end',
       transition: 'all 0.3s ease'
@@ -182,8 +182,8 @@ const GameOverlay = ({ onSimulateKey }) => {
           <div
             style={{
               position: 'absolute',
-              bottom: '120px', // 조이스틱 대칭 위치
-              right: '40px',
+              bottom: '40px', // 하단으로 내림 (퀵슬롯 제거됨)
+              right: '30px',
               width: '80px',
               height: '80px',
               borderRadius: '50%',

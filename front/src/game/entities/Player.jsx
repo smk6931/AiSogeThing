@@ -30,8 +30,8 @@ const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
     // 공격 애니메이션 처리
     if (attackState.active) {
       setAttackState(prev => {
-        const newTime = prev.time + state.clock.getDelta() * 5; // 속도 조절
-        if (newTime > 1.5) { // 애니메이션 종료 조건
+        const newTime = prev.time + state.clock.getDelta(); // 기본 시간 흐름 (초 단위)
+        if (newTime > 5.5) { // 5.5초 후 사라짐
           return { active: false, time: 0 };
         }
         return { ...prev, time: newTime };
@@ -61,12 +61,14 @@ const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
     }
   });
 
-  // 애니메이션 값 계산 (0 ~ 1.5 사이)
-  // 0 -> 0.5 (Extend), 0.5 -> 1.5 (Retract/Fade)
-  const punchScale = attackState.active
-    ? (attackState.time < 0.5 ? attackState.time * 2 : (1.5 - attackState.time))
-    : 0;
-  const punchZ = 0.5 + punchScale * 2; // 몸통 앞에서 시작해서 뻗어나감
+  // 애니메이션 값 계산
+  // 0 ~ 0.2초: 뻗기 (빠름)
+  // 0.2 ~ 5.5초: 유지
+  const punchPhase = attackState.time;
+  const isExtending = punchPhase < 0.2;
+  const extendProgress = isExtending ? punchPhase / 0.2 : 1;
+  const punchZ = 0.5 + extendProgress * 4; // 앞으로 4만큼 뻗음
+  const punchScaleX = 1 + extendProgress * 1.5; // 옆으로도 커짐 (1 -> 2.5배)
 
   return (
     <group ref={ref} position={[0, 1, 0]}>
@@ -93,9 +95,9 @@ const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
         <group position={[0, 0, punchZ]} rotation={[-Math.PI / 2, 0, 0]}>
           {/* 황금 피라미드 세트 */}
           {/* 1. 메인 펀치 */}
-          <mesh position={[0, 1, 0]}> {/* 로컬 좌표계 조정 */}
+          <mesh position={[0, 1, 0]} scale={[punchScaleX, 1, 1]}> {/* 옆으로 뚱뚱해짐 */}
             {/* ConeGeometry: radius, height, radialSegments(4=pyramid) */}
-            <cylinderGeometry args={[0, 0.6, 2, 4]} />
+            <cylinderGeometry args={[0, 0.8, 3, 4]} />
             <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.5} roughness={0.2} metalness={0.8} />
           </mesh>
 
