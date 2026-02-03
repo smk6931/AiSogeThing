@@ -53,7 +53,7 @@ export const usePlayerSkills = (ref, actions, onAction) => {
         z: snapshotPos.z + dirLeft.z * 1.5
       };
 
-      spawnProjectiles(startPosLeft, velocityLeft, rotationLeft, 2000, 'left');
+      spawnProjectiles(startPosLeft, velocityLeft, rotationLeft, 5000, 'left');
 
       // 2. 오른쪽 스트림 (Right Stream)
       const dirRight = {
@@ -72,7 +72,7 @@ export const usePlayerSkills = (ref, actions, onAction) => {
         z: snapshotPos.z + dirRight.z * 1.5
       };
 
-      spawnProjectiles(startPosRight, velocityRight, rotationRight, 2000, 'right');
+      spawnProjectiles(startPosRight, velocityRight, rotationRight, 5000, 'right');
     });
   };
 

@@ -101,10 +101,12 @@ const MapFloor = () => {
 };
 
 // 펀치 발사체 컴포넌트
-const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish, side }) => {
+const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish, side, onSplit, canSplit = true }) => {
   const meshRef = useRef();
   const startTime = useRef(Date.now());
   const posRef = useRef({ x: startPos.x, y: startPos.y, z: startPos.z });
+  const velocityRef = useRef({ x: velocity.x, z: velocity.z });
+  const hasSplit = useRef(false); // 분열 여부 추적
 
   // 왼쪽/오른쪽 색상 구분
   const color = side === 'left' ? '#60a5fa' : '#f87171'; // 파란색 vs 빨간색
@@ -119,14 +121,44 @@ const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish,
       return;
     }
 
+    // 2초 후 분열 (1회만)
+    if (canSplit && !hasSplit.current && elapsed > 2000) {
+      hasSplit.current = true;
+
+      // 현재 방향 계산
+      const currentAngle = Math.atan2(velocityRef.current.x, velocityRef.current.z);
+      const speed = Math.sqrt(velocityRef.current.x ** 2 + velocityRef.current.z ** 2);
+
+      // 1. 현재 펀치: 45도 왼쪽으로 방향 전환
+      const newAngle = currentAngle + Math.PI / 4; // +45도
+      velocityRef.current.x = Math.sin(newAngle) * speed;
+      velocityRef.current.z = Math.cos(newAngle) * speed;
+
+      // 2. 새 펀치: 오른쪽 90도 방향으로 생성
+      const splitAngle = currentAngle - Math.PI / 2; // -90도
+      const splitVelocity = {
+        x: Math.sin(splitAngle) * speed,
+        z: Math.cos(splitAngle) * speed
+      };
+
+      if (onSplit) {
+        onSplit({
+          startPos: { ...posRef.current },
+          velocity: splitVelocity,
+          side: side,
+          canSplit: false // 새로 생성된 펀치는 더 이상 분열 안 함
+        });
+      }
+    }
+
     // 월드 좌표로 직접 이동
-    posRef.current.x += velocity.x * delta;
-    posRef.current.z += velocity.z * delta;
+    posRef.current.x += velocityRef.current.x * delta;
+    posRef.current.z += velocityRef.current.z * delta;
     
     meshRef.current.position.set(posRef.current.x, posRef.current.y, posRef.current.z);
     
     // 뾰족한 부분이 나아가는 방향을 향하도록 회전
-    const angle = Math.atan2(velocity.x, velocity.z);
+    const angle = Math.atan2(velocityRef.current.x, velocityRef.current.z);
     meshRef.current.rotation.y = angle;
   });
 
@@ -155,7 +187,8 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
     if (action.type === 'shoot') {
       const newProjectile = {
         id: Date.now() + Math.random(),
-        ...action
+        ...action,
+        canSplit: true // 처음 생성된 펀치는 분열 가능
       };
       setProjectiles(prev => [...prev, newProjectile]);
     }
@@ -163,6 +196,21 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
 
   const removeProjectile = (id) => {
     setProjectiles(prev => prev.filter(p => p.id !== id));
+  };
+
+  // 펀치 분열 핸들러
+  const handleSplit = (splitData) => {
+    const newProjectile = {
+      id: Date.now() + Math.random(),
+      type: 'shoot',
+      startPos: splitData.startPos,
+      velocity: splitData.velocity,
+      rotation: [0, Math.atan2(splitData.velocity.x, splitData.velocity.z), 0],
+      duration: 1000, // 분열된 펀치는 3초 동안 날아감
+      side: splitData.side,
+      canSplit: splitData.canSplit
+    };
+    setProjectiles(prev => [...prev, newProjectile]);
   };
 
   return (
@@ -217,6 +265,8 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
           duration={p.duration}
           onFinish={removeProjectile}
           side={p.side}
+          onSplit={handleSplit}
+          canSplit={p.canSplit !== false}
         />
       ))}
 
