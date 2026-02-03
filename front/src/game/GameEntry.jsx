@@ -9,7 +9,7 @@ import ChatBox from './ui/ChatBox';
 
 const GameEntry = () => {
   const [onlineCount, setOnlineCount] = useState(0);
-  const { input, actions, handleJoystickMove, simulateKey } = useGameInput();
+  const { input, actions, handleJoystickMove, skillInput, handleSkillMove, handleSkillStop, simulateKey } = useGameInput();
   const { otherPlayers, sendPosition, chatMessages, sendChatMessage, latestChatMap } = useGameSocket();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -66,7 +66,7 @@ const GameEntry = () => {
       </div>
 
       {/* ================= Game UI Overlay (HP, Skill, Minimap) ================= */}
-      <GameOverlay onSimulateKey={simulateKey} />
+      <GameOverlay onSimulateKey={simulateKey} hideMobileButton={true} />
 
       {/* ================= Chat Box ================= */}
       <ChatBox messages={chatMessages} onSend={sendChatMessage} isMobile={isMobile} />
@@ -89,6 +89,24 @@ const GameEntry = () => {
         />
       </div>
 
+      {/* ================= Right Joystick (Skill) ================= */}
+      <div style={{
+        position: 'absolute',
+        bottom: 30,
+        right: 20,
+        zIndex: 90,
+        opacity: 0.8
+      }}>
+        <Joystick
+          size={80}
+          sticky={false}
+          baseColor="rgba(255, 0, 0, 0.2)"
+          stickColor="rgba(255, 0, 0, 0.5)"
+          move={handleSkillMove}
+          stop={handleSkillStop}
+        />
+      </div>
+
       {/* ================= Game Info (Bottom Center) ================= */}
       <div style={{
         position: 'absolute',
@@ -105,7 +123,7 @@ const GameEntry = () => {
           fontSize: '12px',
           opacity: 0.7
         }}>
-          Use WASD keys or joystick to move
+          {/* Use WASD keys or joystick to move */}
         </div>
       </div>
 

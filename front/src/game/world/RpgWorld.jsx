@@ -100,6 +100,37 @@ const MapFloor = () => {
   );
 };
 
+// 펀치 발사체 컴포넌트
+const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish }) => {
+  const meshRef = useRef();
+  const startTime = useRef(Date.now());
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return;
+
+    const elapsed = Date.now() - startTime.current;
+    if (elapsed > duration) {
+      if (onFinish) onFinish(id);
+      return;
+    }
+
+    // 이동 로직 (초기 위치 + 속도 * 시간)
+    // 간단하게: 매 프레임 위치 이동
+    meshRef.current.position.x += velocity.x * delta;
+    meshRef.current.position.z += velocity.z * delta;
+  });
+
+  return (
+    <group position={[startPos.x, startPos.y, startPos.z]} rotation={rotation}>
+      {/* 펀치 메쉬: 기본형은 위로 솟아있으므로 눕혀서 진행 방향(Z)을 보게 함 */}
+      <mesh ref={meshRef} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0, 0.5, 2, 4]} />
+        <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.8} />
+      </mesh>
+    </group>
+  );
+};
+
 const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestChatMap, inputActions }) => {
   const playerRef = useRef();
   const { user } = useAuth();
@@ -108,6 +139,23 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
     if (onBuildingClick) {
       onBuildingClick(buildingName);
     }
+  };
+
+  // 발사체 관리
+  const [projectiles, setProjectiles] = useState([]);
+
+  const handleAction = (action) => {
+    if (action.type === 'shoot') {
+      const newProjectile = {
+        id: Date.now() + Math.random(),
+        ...action
+      };
+      setProjectiles(prev => [...prev, newProjectile]);
+    }
+  };
+
+  const removeProjectile = (id) => {
+    setProjectiles(prev => prev.filter(p => p.id !== id));
   };
 
   return (
@@ -147,8 +195,22 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
         input={input}
         actions={inputActions}
         onMove={sendPosition}
+        onAction={handleAction} // 액션 핸들러 연동
         chat={user && latestChatMap ? latestChatMap[user.id] : null}
       />
+
+      {/* 발사체 렌더링 */}
+      {projectiles.map(p => (
+        <PunchProjectile
+          key={p.id}
+          id={p.id}
+          startPos={p.startPos}
+          velocity={p.velocity}
+          rotation={p.rotation}
+          duration={p.duration}
+          onFinish={removeProjectile}
+        />
+      ))}
 
       {/* 시작 지점 표시 */}
       {/* 시작 지점 표시 (제거) */}

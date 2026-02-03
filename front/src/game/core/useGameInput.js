@@ -68,8 +68,19 @@ export const useGameInput = () => {
     }
   };
 
+  // Skill Joystick (Right)
+  const [skillInput, setSkillInput] = useState({ x: 0, y: 0, active: false });
+
+  const handleSkillMove = (event) => {
+    setSkillInput({ x: event.x, y: event.y, active: true });
+  };
+
+  const handleSkillStop = () => {
+    setSkillInput({ x: 0, y: 0, active: false });
+  };
+
   const actions = {
-    skill1: keys.r
+    skill1: keys.r || skillInput.active // 키보드 R 또는 조이스틱 활성화
   };
 
   // 모바일 버튼 입력을 위한 함수
@@ -77,5 +88,5 @@ export const useGameInput = () => {
     setKeys(prev => ({ ...prev, [key]: pressed }));
   };
 
-  return { input, actions, handleJoystickMove, simulateKey };
+  return { input, actions, handleJoystickMove, skillInput, handleSkillMove, handleSkillStop, simulateKey };
 };

@@ -4,7 +4,6 @@ import { Text, Html } from '@react-three/drei';
 
 const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
   const [showChat, setShowChat] = useState(false);
-  const [attackState, setAttackState] = useState({ active: false, time: 0 }); // 공격 상태 관리
   const prevSkillRef = React.useRef(false); // 스킬 키 엣지 트리거용
 
   useEffect(() => {
@@ -20,23 +19,11 @@ const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
   useFrame((state) => {
     if (!ref.current) return;
 
-    // 공격 트리거 (R키)
-    if (actions?.skill1 && !prevSkillRef.current && !attackState.active) {
-      setAttackState({ active: true, time: 0 });
-      if (onAction) onAction({ type: 'skill1' }); // 서버 전송
+    // 공격 트리거 (R키 & 조이스틱)
+    if (actions?.skill1 && !prevSkillRef.current) {
+      triggerPyramidSkill();
     }
     prevSkillRef.current = actions?.skill1;
-
-    // 공격 애니메이션 처리
-    if (attackState.active) {
-      setAttackState(prev => {
-        const newTime = prev.time + state.clock.getDelta(); // 기본 시간 흐름 (초 단위)
-        if (newTime > 4.0) { // 4초 후 사라짐
-          return { active: false, time: 0 };
-        }
-        return { ...prev, time: newTime };
-      });
-    }
 
     if (input.isMoving) {
       // 입력 소스에 따른 속도 조절 (키보드는 정밀 조작을 위해 조금 느리게)
@@ -61,13 +48,95 @@ const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
     }
   });
 
-  // 애니메이션 값 계산
-  // 0 ~ 0.5초: 양옆으로 뻗어나감
-  // 0.5 ~ 4.0초: 유지 (회전 등 효과 추가 가능)
-  const punchPhase = attackState.time;
-  const isExtending = punchPhase < 0.5;
-  const extendProgress = isExtending ? punchPhase / 0.5 : 1;
-  const punchExtension = 0.5 + extendProgress * 4; // 몸통(0.5)에서 시작해서 4만큼 뻗음
+  const triggerPyramidSkill = () => {
+    // 얍카 피라미드 펀치: 1 -> 2 -> 4 -> 8 분열
+    const waves = [1, 2, 4, 8, 16, 32];
+    const waveDelay = 250; // 0.25초마다 분열
+    const projectileSpeed = 8.0; // 투사체 이동 속도
+
+    // ==========================================
+    // [각도 조절] 여기서 왼쪽/오른쪽 발사 각도를 조절하세요
+    // Math.PI / 2 = 90도 (완전 옆)
+    // Math.PI / 4 = 45도 (대각선)
+    const angleLeft = Math.PI / 2;  // 왼쪽 방향 (약 90도)
+    const angleRight = -Math.PI / 2; // 오른쪽 방향 (약 -90도)
+    // ==========================================
+
+    waves.forEach((count, waveIndex) => {
+      setTimeout(() => {
+        if (!ref.current) return;
+        const playerRot = ref.current.rotation.y;
+        const playerPos = ref.current.position;
+
+        // 투사체가 날아간 거리 계산 (분열 위치)
+        // 이전 웨이브가 날아간 거리만큼 떨어진 곳에서 생성됨
+        const distanceTraveled = waveIndex * (waveDelay / 1000) * projectileSpeed;
+
+        // 1. 왼쪽 스트림 (Left Stream)
+        // 플레이어 회전 + 왼쪽 각도
+        const dirLeft = {
+          x: Math.sin(playerRot + angleLeft),
+          z: Math.cos(playerRot + angleLeft)
+        };
+        // 시작 위치: 플레이어 위치 + (방향 * 거리)
+        const startPosLeft = {
+          x: playerPos.x + dirLeft.x * distanceTraveled,
+          y: 1,
+          z: playerPos.z + dirLeft.z * distanceTraveled
+        };
+        spawnProjectiles(startPosLeft, dirLeft, count, projectileSpeed, waveDelay);
+
+
+        // 2. 오른쪽 스트림 (Right Stream)
+        // 플레이어 회전 + 오른쪽 각도
+        const dirRight = {
+          x: Math.sin(playerRot + angleRight),
+          z: Math.cos(playerRot + angleRight)
+        };
+        const startPosRight = {
+          x: playerPos.x + dirRight.x * distanceTraveled,
+          y: 1,
+          z: playerPos.z + dirRight.z * distanceTraveled
+        };
+        spawnProjectiles(startPosRight, dirRight, count, projectileSpeed, waveDelay);
+
+      }, waveIndex * waveDelay);
+    });
+  };
+
+  const spawnProjectiles = (origin, dir, count, speed, duration) => {
+    // 진행 방향의 수직 벡터 (Spread 용)
+    // Forward(Dir) -> Right Vector = (dir.z, -dir.x) ? 
+    // Standard 2D norm: (-y, x) or (y, -x).
+    const spreadVec = { x: -dir.z, z: dir.x };
+
+    for (let i = 0; i < count; i++) {
+      // 퍼짐 간격 (점점 넓게)
+      // 1발일때 0. 2발일때 -0.4, 0.4
+      const offset = (i - (count - 1) / 2) * 0.8;
+
+      const startPos = {
+        x: origin.x + spreadVec.x * offset,
+        y: origin.y,
+        z: origin.z + spreadVec.z * offset
+      };
+
+      const velocity = {
+        x: dir.x * speed,
+        z: dir.z * speed
+      };
+
+      if (onAction) {
+        onAction({
+          type: 'shoot',
+          startPos,
+          velocity,
+          rotation: [Math.PI / 2, Math.atan2(dir.x, dir.z), 0], // 진행 방향 보기
+          duration: duration + 50 // 약간의 오버랩
+        });
+      }
+    }
+  };
 
   return (
     <group ref={ref} position={[0, 1, 0]}>
@@ -90,34 +159,7 @@ const Player = forwardRef(({ input, actions, onMove, onAction, chat }, ref) => {
       </mesh>
 
       {/* 피라미드 펀치 이펙트 */}
-      {/* 피라미드 펀치 이펙트 (양옆 발사) */}
-      {attackState.active && (
-        <>
-          {/* 오른쪽 펀치 */}
-          <group position={[punchExtension, 1, 0]} rotation={[0, 0, -Math.PI / 2]}>
-            <mesh>
-              <cylinderGeometry args={[0, 0.5, 2, 4]} />
-              <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.5} roughness={0.2} metalness={0.8} />
-            </mesh>
-            <mesh position={[0, -1.2, 0]}> {/* 연결부 */}
-              <cylinderGeometry args={[0.1, 0.1, 1, 8]} />
-              <meshStandardMaterial color="#333" />
-            </mesh>
-          </group>
 
-          {/* 왼쪽 펀치 */}
-          <group position={[-punchExtension, 1, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <mesh>
-              <cylinderGeometry args={[0, 0.5, 2, 4]} />
-              <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.5} roughness={0.2} metalness={0.8} />
-            </mesh>
-            <mesh position={[0, -1.2, 0]}> {/* 연결부 */}
-              <cylinderGeometry args={[0.1, 0.1, 1, 8]} />
-              <meshStandardMaterial color="#333" />
-            </mesh>
-          </group>
-        </>
-      )}
 
       {/* 이름표 */}
       {/* 이름표 */}
