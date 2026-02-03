@@ -15,13 +15,12 @@ export const usePlayerSkills = (ref, actions, onAction) => {
   });
 
   const triggerPyramidSkill = () => {
-    // [스킬 설명: 얍카 피라미드 펀치 (Golden Pyramid Punch)]
-    // 1. 설치형 (Installation): 스킬 시전 시점의 캐릭터 위치(`snapshotPos`)와 회전(`snapshotRot`)을 스냅샷으로 저장합니다.
-    // 2. 양방향 발사 (Side Fire): 캐릭터 기준 정확히 90도 왼쪽과 오른쪽으로 발사됩니다.
-    // 3. 독립 궤적 (Independent Velocity): 속도 벡터를 명시적으로 계산하여 각자의 방향으로 직진합니다.
+    // [스킬 설명: 얍카 피라미드 펀치 - 분열 시스템]
+    // 처음 양옆으로 1개씩 발사 → 0.5초마다 각각 2개로 분열
+    // 0초: 2개 → 0.5초: 4개 → 1초: 8개 → 1.5초: 16개
 
-    const waves = [1];
     const projectileSpeed = 8.0;
+    const initialDuration = 500; // 첫 generation은 0.5초 후 분열
 
     // ==========================================
     // [각도 조절] 90도 (완전 옆)
@@ -33,47 +32,41 @@ export const usePlayerSkills = (ref, actions, onAction) => {
     const snapshotRot = ref.current.rotation.y;
     const snapshotPos = ref.current.position.clone();
 
-    waves.forEach((count) => {
-      // 1. 왼쪽 스트림 (Left Stream)
-      const dirLeft = {
-        x: Math.sin(snapshotRot + angleLeft),
-        z: Math.cos(snapshotRot + angleLeft)
-      };
-      // [핵심] 속도 벡터 명시적 계산
-      const velocityLeft = {
-        x: dirLeft.x * projectileSpeed,
-        z: dirLeft.z * projectileSpeed
-      };
-      // [핵심] 회전값 명시적 계산 (Y축 회전)
-      const rotationLeft = [0, Math.atan2(dirLeft.x, dirLeft.z), 0];
+    // 1. 왼쪽 발사
+    const dirLeft = {
+      x: Math.sin(snapshotRot + angleLeft),
+      z: Math.cos(snapshotRot + angleLeft)
+    };
+    const velocityLeft = {
+      x: dirLeft.x * projectileSpeed,
+      z: dirLeft.z * projectileSpeed
+    };
+    const rotationLeft = [0, Math.atan2(dirLeft.x, dirLeft.z), 0];
+    const startPosLeft = {
+      x: snapshotPos.x + dirLeft.x * 1.5,
+      y: 1,
+      z: snapshotPos.z + dirLeft.z * 1.5
+    };
 
-      const startPosLeft = {
-        x: snapshotPos.x + dirLeft.x * 1.5,
-        y: 1,
-        z: snapshotPos.z + dirLeft.z * 1.5
-      };
+    spawnProjectiles(startPosLeft, velocityLeft, rotationLeft, initialDuration, 'left');
 
-      spawnProjectiles(startPosLeft, velocityLeft, rotationLeft, 5000, 'left');
+    // 2. 오른쪽 발사
+    const dirRight = {
+      x: Math.sin(snapshotRot + angleRight),
+      z: Math.cos(snapshotRot + angleRight)
+    };
+    const velocityRight = {
+      x: dirRight.x * projectileSpeed,
+      z: dirRight.z * projectileSpeed
+    };
+    const rotationRight = [0, Math.atan2(dirRight.x, dirRight.z), 0];
+    const startPosRight = {
+      x: snapshotPos.x + dirRight.x * 1.5,
+      y: 1,
+      z: snapshotPos.z + dirRight.z * 1.5
+    };
 
-      // 2. 오른쪽 스트림 (Right Stream)
-      const dirRight = {
-        x: Math.sin(snapshotRot + angleRight),
-        z: Math.cos(snapshotRot + angleRight)
-      };
-      const velocityRight = {
-        x: dirRight.x * projectileSpeed,
-        z: dirRight.z * projectileSpeed
-      };
-      const rotationRight = [0, Math.atan2(dirRight.x, dirRight.z), 0];
-
-      const startPosRight = {
-        x: snapshotPos.x + dirRight.x * 1.5,
-        y: 1,
-        z: snapshotPos.z + dirRight.z * 1.5
-      };
-
-      spawnProjectiles(startPosRight, velocityRight, rotationRight, 5000, 'right');
-    });
+    spawnProjectiles(startPosRight, velocityRight, rotationRight, initialDuration, 'right');
   };
 
   const spawnProjectiles = (startPos, velocity, rotation, duration, side) => {

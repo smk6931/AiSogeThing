@@ -100,13 +100,13 @@ const MapFloor = () => {
   );
 };
 
-// 펀치 발사체 컴포넌트
-const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish, side, onSplit, canSplit = true }) => {
+// 펀치 발사체 컴포넌트 - 피라미드 분열 방식
+const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish, side, onSplit, generation = 0 }) => {
   const meshRef = useRef();
   const startTime = useRef(Date.now());
   const posRef = useRef({ x: startPos.x, y: startPos.y, z: startPos.z });
   const velocityRef = useRef({ x: velocity.x, z: velocity.z });
-  const hasSplit = useRef(false); // 분열 여부 추적
+  const hasSplit = useRef(false);
 
   // 왼쪽/오른쪽 색상 구분
   const color = side === 'left' ? '#60a5fa' : '#f87171'; // 파란색 vs 빨간색
@@ -116,39 +116,56 @@ const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish,
     if (!meshRef.current) return;
 
     const elapsed = Date.now() - startTime.current;
+    
+    // 분열 타이밍: duration 끝나기 직전 (50ms 전)
+    const splitTime = duration - 50;
+    
+    if (!hasSplit.current && elapsed >= splitTime && generation < 3) {
+      hasSplit.current = true;
+      
+      // 현재 위치와 방향
+      const currentAngle = Math.atan2(velocityRef.current.x, velocityRef.current.z);
+      const speed = Math.sqrt(velocityRef.current.x ** 2 + velocityRef.current.z ** 2);
+      
+      // 양옆으로 분열 (±20도)
+      const spreadAngle = Math.PI / 9; // 20도
+      
+      // 왼쪽 펀치
+      const leftAngle = currentAngle - spreadAngle;
+      const leftVelocity = {
+        x: Math.sin(leftAngle) * speed,
+        z: Math.cos(leftAngle) * speed
+      };
+      
+      // 오른쪽 펀치
+      const rightAngle = currentAngle + spreadAngle;
+      const rightVelocity = {
+        x: Math.sin(rightAngle) * speed,
+        z: Math.cos(rightAngle) * speed
+      };
+      
+      if (onSplit) {
+        // 왼쪽으로 분열
+        onSplit({
+          startPos: { ...posRef.current },
+          velocity: leftVelocity,
+          side: side,
+          generation: generation + 1
+        });
+        
+        // 오른쪽으로 분열
+        onSplit({
+          startPos: { ...posRef.current },
+          velocity: rightVelocity,
+          side: side,
+          generation: generation + 1
+        });
+      }
+    }
+    
     if (elapsed > duration) {
       if (onFinish) onFinish(id);
       return;
-    }
-
-    // 2초 후 분열 (1회만)
-    if (canSplit && !hasSplit.current && elapsed > 2000) {
-      hasSplit.current = true;
-
-      // 현재 방향 계산
-      const currentAngle = Math.atan2(velocityRef.current.x, velocityRef.current.z);
-      const speed = Math.sqrt(velocityRef.current.x ** 2 + velocityRef.current.z ** 2);
-
-      // 1. 현재 펀치: 45도 왼쪽으로 방향 전환
-      const newAngle = currentAngle + Math.PI / 4; // +45도
-      velocityRef.current.x = Math.sin(newAngle) * speed;
-      velocityRef.current.z = Math.cos(newAngle) * speed;
-
-      // 2. 새 펀치: 오른쪽 90도 방향으로 생성
-      const splitAngle = currentAngle - Math.PI / 2; // -90도
-      const splitVelocity = {
-        x: Math.sin(splitAngle) * speed,
-        z: Math.cos(splitAngle) * speed
-      };
-
-      if (onSplit) {
-        onSplit({
-          startPos: { ...posRef.current },
-          velocity: splitVelocity,
-          side: side,
-          canSplit: false // 새로 생성된 펀치는 더 이상 분열 안 함
-        });
-      }
     }
 
     // 월드 좌표로 직접 이동
@@ -188,7 +205,7 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
       const newProjectile = {
         id: Date.now() + Math.random(),
         ...action,
-        canSplit: true // 처음 생성된 펀치는 분열 가능
+        generation: 0 // 처음 발사는 generation 0
       };
       setProjectiles(prev => [...prev, newProjectile]);
     }
@@ -206,9 +223,9 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
       startPos: splitData.startPos,
       velocity: splitData.velocity,
       rotation: [0, Math.atan2(splitData.velocity.x, splitData.velocity.z), 0],
-      duration: 1000, // 분열된 펀치는 3초 동안 날아감
+      duration: splitData.generation < 3 ? 500 : 2000, // 마지막 generation은 2초, 나머지는 0.5초
       side: splitData.side,
-      canSplit: splitData.canSplit
+      generation: splitData.generation
     };
     setProjectiles(prev => [...prev, newProjectile]);
   };
@@ -266,7 +283,7 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
           onFinish={removeProjectile}
           side={p.side}
           onSplit={handleSplit}
-          canSplit={p.canSplit !== false}
+          generation={p.generation || 0}
         />
       ))}
 
