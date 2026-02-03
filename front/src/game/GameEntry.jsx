@@ -41,13 +41,14 @@ const GameEntry = () => {
 
   return (
     <div style={{
-      width: '100vw',
-      height: '100dvh', // 모바일 브라우저 상단바 이슈 해결
+      position: 'fixed', // 화면 고정 (스크롤/밀림 방지)
+      inset: 0,
+      width: '100%',
+      height: '100%',
       overflow: 'hidden',
-      position: 'relative',
       background: '#0a0a0a',
       color: 'white',
-      touchAction: 'none' // 터치 스크롤 방지 (중요)
+      touchAction: 'none' // 터치 제스처 방지
     }}>
 
       {/* ================= 3D Game World ================= */}
@@ -114,15 +115,20 @@ const GameEntry = () => {
         top: 0,
         left: 0,
         right: 0,
-        height: '60px',
+        height: 'auto',
+        minHeight: '60px',
+        paddingTop: 'max(10px, env(safe-area-inset-top))', // 노치 대응
+        paddingBottom: '10px',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '0 15px',
+        alignItems: 'flex-start', // 상단 정렬
+        paddingLeft: '15px',
+        paddingRight: '15px',
         background: 'linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%)',
-        zIndex: 100
+        zIndex: 100,
+        pointerEvents: 'none' // 클릭 통과 (버튼만 클릭 가능하게)
       }}>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', pointerEvents: 'auto' }}>
 
 
           <div style={{
@@ -141,7 +147,7 @@ const GameEntry = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', pointerEvents: 'auto' }}>
           {/* 홈으로 돌아가기 버튼 */}
           <button
             onClick={goBackToHome}

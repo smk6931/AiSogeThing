@@ -17,8 +17,8 @@ const GameOverlay = ({ onSimulateKey }) => {
   const styles = {
     statusBar: {
       position: 'absolute',
-      top: isMobile ? '10px' : '70px',
-      left: isMobile ? '10px' : '20px',
+      top: isMobile ? 'max(10px, env(safe-area-inset-top))' : '70px',
+      left: isMobile ? 'max(10px, env(safe-area-inset-left))' : '20px',
       width: isMobile ? '160px' : '320px',
       padding: isMobile ? '8px' : '12px',
       borderRadius: '12px',
@@ -29,8 +29,8 @@ const GameOverlay = ({ onSimulateKey }) => {
     },
     minimap: {
       position: 'absolute',
-      top: isMobile ? '10px' : '70px',
-      right: isMobile ? '10px' : '20px',
+      top: isMobile ? 'max(10px, env(safe-area-inset-top))' : '70px',
+      right: isMobile ? 'max(10px, env(safe-area-inset-right))' : '20px',
       width: isMobile ? '90px' : '160px',
       height: isMobile ? '90px' : '160px',
       background: 'rgba(0, 0, 0, 0.6)',

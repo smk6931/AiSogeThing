@@ -36,18 +36,15 @@
   box-sizing: border-box;
 }
 
-body {
-  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+html, body {
+  width: 100%;
+  height: 100%;
+  overscroll-behavior: none; /* 스크롤 바운싱 방지 */
 }
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
 }
 
 /* 스크롤바 스타일 */
