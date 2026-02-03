@@ -6,6 +6,8 @@ import Player from '../entities/Player';
 import RemotePlayer from '../entities/RemotePlayer';
 import ZoomController from '../core/ZoomController';
 import { useAuth } from '../../context/AuthContext';
+import { PunchProjectile } from '../entities/projectile/PunchProjectile';
+import { useProjectiles } from '../hooks/useProjectiles';
 
 
 // 건물 컴포넌트
@@ -100,93 +102,6 @@ const MapFloor = () => {
   );
 };
 
-// 펀치 발사체 컴포넌트 - 피라미드 분열 방식
-const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish, side, onSplit, generation = 0 }) => {
-  const meshRef = useRef();
-  const startTime = useRef(Date.now());
-  const posRef = useRef({ x: startPos.x, y: startPos.y, z: startPos.z });
-  const velocityRef = useRef({ x: velocity.x, z: velocity.z });
-  const hasSplit = useRef(false);
-
-  // 왼쪽/오른쪽 색상 구분
-  const color = side === 'left' ? '#60a5fa' : '#f87171'; // 파란색 vs 빨간색
-  const emissive = side === 'left' ? '#3b82f6' : '#ef4444';
-
-  useFrame((state, delta) => {
-    if (!meshRef.current) return;
-
-    const elapsed = Date.now() - startTime.current;
-    
-    // 분열 타이밍: duration 끝나기 직전 (50ms 전)
-    const splitTime = duration - 50;
-    
-    if (!hasSplit.current && elapsed >= splitTime && generation < 3) {
-      hasSplit.current = true;
-      
-      // 현재 위치와 방향
-      const currentAngle = Math.atan2(velocityRef.current.x, velocityRef.current.z);
-      const speed = Math.sqrt(velocityRef.current.x ** 2 + velocityRef.current.z ** 2);
-      
-      // 양옆으로 분열 (±20도)
-      const spreadAngle = Math.PI / 9; // 20도
-      
-      // 왼쪽 펀치
-      const leftAngle = currentAngle - spreadAngle;
-      const leftVelocity = {
-        x: Math.sin(leftAngle) * speed,
-        z: Math.cos(leftAngle) * speed
-      };
-      
-      // 오른쪽 펀치
-      const rightAngle = currentAngle + spreadAngle;
-      const rightVelocity = {
-        x: Math.sin(rightAngle) * speed,
-        z: Math.cos(rightAngle) * speed
-      };
-      
-      if (onSplit) {
-        // 왼쪽으로 분열
-        onSplit({
-          startPos: { ...posRef.current },
-          velocity: leftVelocity,
-          side: side,
-          generation: generation + 1
-        });
-        
-        // 오른쪽으로 분열
-        onSplit({
-          startPos: { ...posRef.current },
-          velocity: rightVelocity,
-          side: side,
-          generation: generation + 1
-        });
-      }
-    }
-    
-    if (elapsed > duration) {
-      if (onFinish) onFinish(id);
-      return;
-    }
-
-    // 월드 좌표로 직접 이동
-    posRef.current.x += velocityRef.current.x * delta;
-    posRef.current.z += velocityRef.current.z * delta;
-    
-    meshRef.current.position.set(posRef.current.x, posRef.current.y, posRef.current.z);
-    
-    // 뾰족한 부분이 나아가는 방향을 향하도록 회전
-    const angle = Math.atan2(velocityRef.current.x, velocityRef.current.z);
-    meshRef.current.rotation.y = angle;
-  });
-
-  return (
-    <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
-      <cylinderGeometry args={[0, 0.5, 2, 4]} />
-      <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={0.8} />
-    </mesh>
-  );
-};
-
 const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestChatMap, inputActions }) => {
   const playerRef = useRef();
   const { user } = useAuth();
@@ -197,38 +112,8 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
     }
   };
 
-  // 발사체 관리
-  const [projectiles, setProjectiles] = useState([]);
-
-  const handleAction = (action) => {
-    if (action.type === 'shoot') {
-      const newProjectile = {
-        id: Date.now() + Math.random(),
-        ...action,
-        generation: 0 // 처음 발사는 generation 0
-      };
-      setProjectiles(prev => [...prev, newProjectile]);
-    }
-  };
-
-  const removeProjectile = (id) => {
-    setProjectiles(prev => prev.filter(p => p.id !== id));
-  };
-
-  // 펀치 분열 핸들러
-  const handleSplit = (splitData) => {
-    const newProjectile = {
-      id: Date.now() + Math.random(),
-      type: 'shoot',
-      startPos: splitData.startPos,
-      velocity: splitData.velocity,
-      rotation: [0, Math.atan2(splitData.velocity.x, splitData.velocity.z), 0],
-      duration: splitData.generation < 3 ? 500 : 2000, // 마지막 generation은 2초, 나머지는 0.5초
-      side: splitData.side,
-      generation: splitData.generation
-    };
-    setProjectiles(prev => [...prev, newProjectile]);
-  };
+  // 투사체 관리 (커스텀 훅)
+  const { projectiles, addProjectile, removeProjectile, handleSplit } = useProjectiles();
 
   return (
     <group>
@@ -267,7 +152,7 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
         input={input}
         actions={inputActions}
         onMove={sendPosition}
-        onAction={handleAction} // 액션 핸들러 연동
+        onAction={addProjectile}
         chat={user && latestChatMap ? latestChatMap[user.id] : null}
       />
 
