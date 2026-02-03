@@ -101,9 +101,14 @@ const MapFloor = () => {
 };
 
 // 펀치 발사체 컴포넌트
-const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish }) => {
+const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish, side }) => {
   const meshRef = useRef();
   const startTime = useRef(Date.now());
+  const posRef = useRef({ x: startPos.x, y: startPos.y, z: startPos.z });
+
+  // 왼쪽/오른쪽 색상 구분
+  const color = side === 'left' ? '#60a5fa' : '#f87171'; // 파란색 vs 빨간색
+  const emissive = side === 'left' ? '#3b82f6' : '#ef4444';
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
@@ -114,20 +119,22 @@ const PunchProjectile = ({ id, startPos, velocity, rotation, duration, onFinish 
       return;
     }
 
-    // 이동 로직 (초기 위치 + 속도 * 시간)
-    // 간단하게: 매 프레임 위치 이동
-    meshRef.current.position.x += velocity.x * delta;
-    meshRef.current.position.z += velocity.z * delta;
+    // 월드 좌표로 직접 이동
+    posRef.current.x += velocity.x * delta;
+    posRef.current.z += velocity.z * delta;
+    
+    meshRef.current.position.set(posRef.current.x, posRef.current.y, posRef.current.z);
+    
+    // 뾰족한 부분이 나아가는 방향을 향하도록 회전
+    const angle = Math.atan2(velocity.x, velocity.z);
+    meshRef.current.rotation.y = angle;
   });
 
   return (
-    <group position={[startPos.x, startPos.y, startPos.z]} rotation={rotation}>
-      {/* 펀치 메쉬: 기본형은 위로 솟아있으므로 눕혀서 진행 방향(Z)을 보게 함 */}
-      <mesh ref={meshRef} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0, 0.5, 2, 4]} />
-        <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.8} />
-      </mesh>
-    </group>
+    <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
+      <cylinderGeometry args={[0, 0.5, 2, 4]} />
+      <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={0.8} />
+    </mesh>
   );
 };
 
@@ -209,6 +216,7 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
           rotation={p.rotation}
           duration={p.duration}
           onFinish={removeProjectile}
+          side={p.side}
         />
       ))}
 
