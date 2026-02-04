@@ -9,7 +9,7 @@ import Matching from './apps/content/pages/Matching/Matching';
 import Chat from './apps/content/pages/Chat/Chat';
 import Community from './apps/content/pages/Community/Community';
 import MyPage from './apps/content/pages/MyPage/MyPage';
-import Login from './apps/content/pages/Login/Login';
+import Login from './apps/auth/pages/Login/Login';
 import HotPlace from './apps/content/pages/HotPlace/HotPlace';
 import YoutubeBoard from './apps/content/pages/Youtube/YoutubeBoardNew';
 import NovelCreate from './apps/content/pages/Novel/NovelCreate';

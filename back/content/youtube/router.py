@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Annotated
 from content.youtube import service
-from content.user import service as user_service # UUID 조회를 위해 추가
-from content.user.router import get_current_user
-from content.user import models
+from user import service as user_service # UUID 조회를 위해 추가
+from user.router import get_current_user
+from user import models
 from core.database import fetch_all, fetch_one, execute
 
 router = APIRouter(prefix="/api/content/youtube", tags=["Youtube"])

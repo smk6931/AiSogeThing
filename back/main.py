@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from content.hotplace.router import router as hotplace_router
 from content.youtube.router import router as youtube_router
-from content.user.router import router as user_router
+from user.router import router as user_router
 from content.chatbot.router import router as chatbot_router
 from admin.router import router as admin_router
 from content.search.router import router as search_router

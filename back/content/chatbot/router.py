@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Body
 from pydantic import BaseModel
-from content.user.router import get_current_user
+from user.router import get_current_user
 from content.chatbot.service import process_chat
 
 router = APIRouter(prefix="/api/content/chatbot", tags=["Chatbot"])

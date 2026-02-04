@@ -4,7 +4,7 @@
 - 의도 분류 후 적절한 Tool 실행
 """
 from fastapi import APIRouter, Depends
-from content.user.router import get_current_user
+from user.router import get_current_user
 from content.search.service import classify_search_intent
 from content.search.tools import (
     keyword_search_videos, keyword_search_channels,

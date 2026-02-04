@@ -3,13 +3,13 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import timedelta
 from typing import Annotated
 
-from content.user import schemas, service, auth, models
+from . import schemas, service, auth, models
 from jose import JWTError, jwt
 
-router = APIRouter(prefix="/api/content/auth", tags=["Auth"])
+router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 # OAuth2 스킴 (토큰 추출용)
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/content/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # ========================================================
 #  회원가입 API

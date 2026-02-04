@@ -115,6 +115,6 @@ async def get_db():
 
 # 모델 Import
 # 모델 Import (content 도메인 분리 반영)
-from content.user.models import User
+from user.models import User
 from content.youtube.models import Comment, UserLog, YoutubeList
 from content.novel.models import Novel, NovelCut

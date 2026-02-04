@@ -19,8 +19,8 @@ export const usePlayerSkills = (ref, actions, onAction) => {
     // 처음 양옆으로 1개씩 발사 → 0.5초마다 각각 2개로 분열
     // 0초: 2개 → 0.5초: 4개 → 1초: 8개 → 1.5초: 16개
 
-    const projectileSpeed = 3.0;
-    const initialDuration = 1000; // 첫 generation은 0.5초 후 분열
+    const projectileSpeed = 2.0;
+    const initialDuration = 100; // 첫 generation은 0.5초 후 분열
 
     // ==========================================
     // [각도 조절] 90도 (완전 옆)
