@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import client, { getWebSocketUrl } from '../../../../shared/api/client';
+import client, { getWebSocketUrl } from '../../../shared/api/client';
 
 export const useGameSocket = () => {
     const { user } = useAuth();
