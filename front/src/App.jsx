@@ -1,21 +1,21 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import GameEntry from './game/GameEntry';
-import { AuthProvider } from './context/AuthContext';
-import BottomNav from './components/layout/BottomNav';
-import UserStatus from './components/layout/UserStatus';
-import Home from './pages/Home/Home'; // 추가
-import Onboarding from './pages/Onboarding/Onboarding';
-import Matching from './pages/Matching/Matching';
-import Chat from './pages/Chat/Chat';
-import Community from './pages/Community/Community';
-import MyPage from './pages/MyPage/MyPage';
-import Login from './pages/Login/Login';
-import HotPlace from './pages/HotPlace/HotPlace';
-import YoutubeBoard from './pages/Youtube/YoutubeBoardNew';
-import NovelCreate from './pages/Novel/NovelCreate';
-import NovelView from './pages/Novel/NovelView';
-import NovelList from './pages/Novel/NovelList';
-import NovelPortfolio from './pages/Novel/NovelPortfolio';
+import GameEntry from './apps/game/GameEntry';
+import { AuthProvider } from './apps/content/context/AuthContext';
+import BottomNav from './apps/content/components/layout/BottomNav';
+import UserStatus from './apps/content/components/layout/UserStatus';
+import Home from './apps/content/pages/Home/Home'; // 추가
+import Onboarding from './apps/content/pages/Onboarding/Onboarding';
+import Matching from './apps/content/pages/Matching/Matching';
+import Chat from './apps/content/pages/Chat/Chat';
+import Community from './apps/content/pages/Community/Community';
+import MyPage from './apps/content/pages/MyPage/MyPage';
+import Login from './apps/content/pages/Login/Login';
+import HotPlace from './apps/content/pages/HotPlace/HotPlace';
+import YoutubeBoard from './apps/content/pages/Youtube/YoutubeBoardNew';
+import NovelCreate from './apps/content/pages/Novel/NovelCreate';
+import NovelView from './apps/content/pages/Novel/NovelView';
+import NovelList from './apps/content/pages/Novel/NovelList';
+import NovelPortfolio from './apps/content/pages/Novel/NovelPortfolio';
 import './App.css';
 
 // 메인 앱 레이아웃 (UserStatus + BottomNav 포함)

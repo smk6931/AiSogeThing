@@ -43,7 +43,7 @@ pm2 delete frontend || true
 # 새로 시작 (빌드된 파일 기준으로 시작해야 함. ecosystem.config.js 확인 필요)
 # 임시로 dev 서버 다시 시작 (나중에 serve로 바꿔야 함)
 cd "$BACK_DIR"
-pm2 start "uvicorn main:app --host 0.0.0.0 --port 8001" --name backend --update-env
+pm2 start "uvicorn main:app --host 0.0.0.0 --port 8400" --name backend --update-env
 
 cd "$FRONT_DIR"
 pm2 start "npm run dev" --name frontend --update-env

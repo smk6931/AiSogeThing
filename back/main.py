@@ -3,13 +3,13 @@ load_dotenv(override=True) # .env 파일 로드 (시스템 환경변수 덮어�
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from hotplace.router import router as hotplace_router
-from youtube.router import router as youtube_router
-from user.router import router as user_router
-from chatbot.router import router as chatbot_router
+from content.hotplace.router import router as hotplace_router
+from content.youtube.router import router as youtube_router
+from content.user.router import router as user_router
+from content.chatbot.router import router as chatbot_router
 from admin.router import router as admin_router
-from search.router import router as search_router
-from novel.router import router as novel_router
+from content.search.router import router as search_router
+from content.novel.router import router as novel_router
 from game.router import router as game_router
 
 app = FastAPI()
