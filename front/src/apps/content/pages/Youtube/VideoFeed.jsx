@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Calendar, Eye, UserPlus } from 'lucide-react';
-import { getVideosFeed } from '@content/api/channels';
+import { getVideosFeed } from '@api/content/channels';
 import './VideoFeed.css';
 
 export default function VideoFeed({ onVideoClick }) {
@@ -28,7 +28,7 @@ export default function VideoFeed({ onVideoClick }) {
   const handleSubscribe = async (video) => {
     try {
       // client 동적 import
-      const { default: client } = await import('../../../../shared/api/client');
+      const { default: client } = await import('@api/client');
 
       const channelId = video.channelId || video.channel_id;
       if (!channelId) {

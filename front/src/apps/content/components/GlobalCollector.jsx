@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Loader, Check, X, ShieldCheck, RefreshCw, Video, Users, ChevronDown, ChevronUp } from 'lucide-react';
-import client from '../../../shared/api/client';
+import client from '@api/client';
 
 export default function GlobalCollector({ embedded = false }) {
   const [isOpen, setIsOpen] = useState(false);

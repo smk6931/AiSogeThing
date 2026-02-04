@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Video, Search, TrendingUp, Calendar, UserPlus, ShieldCheck, Shuffle } from 'lucide-react';
-import { getVideosFeed, subscribeChannel } from '@content/api/channels';
+import { getVideosFeed, subscribeChannel } from '@api/content/channels';
 import YoutubePlayer from './YoutubePlayer';
 import GlobalCollector from '../../components/GlobalCollector';
 import './YoutubeBoardNew.css';

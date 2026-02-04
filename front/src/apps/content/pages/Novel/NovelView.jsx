@@ -2,8 +2,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Users, BookText, ImageIcon, Loader2 } from 'lucide-react';
-import { getNovel, deleteNovel } from '@content/api/novel';
-import client from '../../../../shared/api/client';
+import { getNovel, deleteNovel } from '@api/content/novel';
+import client from '@api/client';
 import './NovelView.css';
 
 const NovelView = ({ novelId, onNavigate }) => { // 게임 모드에서 ID와 네비게이션 함수를 받음

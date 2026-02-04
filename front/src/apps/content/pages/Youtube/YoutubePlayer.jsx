@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Loader } from 'lucide-react';
-import { getRandomVideo, logYoutubeVideo, updateWatchTime } from '@content/api/youtube';
+import { getRandomVideo, logYoutubeVideo, updateWatchTime } from '@api/content/youtube';
 import './YoutubePlayer.css';
 
 // 전역 변수: API 로드 상태
@@ -208,7 +208,7 @@ export default function YoutubePlayer({ video: initialVideo, onClose }) {
     if (!channelId) return alert('채널 정보가 없습니다.');
 
     try {
-      const { default: client } = await import('../../../../shared/api/client');
+      const { default: client } = await import('@api/client');
       await client.post('/api/youtube/channel/subscribe', { channel_id: channelId });
       alert(`✅ "${channelName}" 구독 완료!`);
     } catch (error) {

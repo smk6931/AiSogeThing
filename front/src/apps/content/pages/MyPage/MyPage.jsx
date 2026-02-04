@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, Grid, Heart, LogOut, History, PlayCircle } from 'lucide-react';
 import { useAuth } from '@shared/context/AuthContext';
-import { getHistory, getMySubscriptions } from '@content/api/youtube';
+import { getHistory, getMySubscriptions } from '@api/content/youtube';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import AuthModal from '../../components/common/AuthModal';

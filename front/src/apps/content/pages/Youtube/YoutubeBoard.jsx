@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, PlayCircle, Eye, Sparkles, XCircle, PlusCircle } from 'lucide-react';
-import { searchYoutube, getPopularYoutube, getDatingYoutube, discoverDatingChannels, discoverInterest, getInterestYoutube, subscribeChannel, unsubscribeChannel, getMySubscriptions, getAdhocRssVideos, getDBVideos } from '@content/api/youtube';
+import { searchYoutube, getPopularYoutube, getDatingYoutube, discoverDatingChannels, discoverInterest, getInterestYoutube, subscribeChannel, unsubscribeChannel, getMySubscriptions, getAdhocRssVideos, getDBVideos } from '@api/content/youtube';
 import YoutubePlayer from './YoutubePlayer';
 import ApiInfo from '../../components/common/ApiInfo';
 import GlobalCollector from '../../components/GlobalCollector';

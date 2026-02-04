@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Image as ImageIcon, Info, BookOpen, AlertTriangle } from 'lucide-react';
-import { listNovels } from '@content/api/novel';
-import client from '../../../../shared/api/client';
+import { listNovels } from '@api/content/novel';
+import client from '@api/client';
 import './NovelList.css';
 
 const NovelList = ({ onNavigate }) => {

@@ -45,7 +45,22 @@
 
 ---
 
-## 5. 코딩 시 주의사항
+## 5. API 통신 규정 (HTTP & WebSocket)
+
+### 중앙 클라이언트 (`@api/client.js`)
+- 모든 통신 주소는 `@api/client.js`를 통해 관리됩니다.
+- **HTTP**: `import client from '@api/client'`를 사용하여 Axios 인스턴스를 활용합니다.
+- **WebSocket**: `import { getWebSocketUrl } from '@api/client'`를 사용하여 현재 배포 환경(Secure 여부 포함)에 맞는 소켓 URL을 동적으로 생성합니다.
+
+### 도메인 API 레이어 (@api/[domain]/[file])
+- 비즈니스 로직(Hook/Component)에서 직접 `axios.post`나 `new WebSocket`을 호출하지 않습니다.
+- 반드시 `@api/content/youtube.js`와 같이 정의된 API 레이어 함수를 호출하십시오.
+- **WebSocket 예시**: `gameApi.createSocket()`과 같은 형태로 소켓 객체 생성을 위임합니다.
+
+---
+
+## 6. 코딩 시 주의사항 (Updated)
 - **임포트 금지**: 도메인 간의 직접적인 참조는 가급적 피하며, 필요한 경우 `shared`를 통해 소통합니다.
 - **파일명 준수**: API 파일명과 폴더명은 도메인 이름을 따라 일관성을 유지합니다. (예: `@api/content/youtube`)
 - **파일 이동**: 새로운 기능을 추가할 때 위 구조를 위반하는 위치(예: `apps/content/api/...`)에 파일을 생성하지 마십시오.
+- **경로 정규화**: 임포트 시 상대 경로(`../../`) 대신 반드시 `@api`, `@content` 등 Alias를 우선 사용합니다.
