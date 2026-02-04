@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../../../shared/context/AuthContext';
+import { useAuth } from '@shared/context/AuthContext';
 import { Bot, Gamepad2 } from 'lucide-react';
-import userApi from '../../../../shared/api/user';
+import userApi from '@auth/api/auth';
 import OnlineUsersModal from '../common/OnlineUsersModal';
 import ChatbotWidget from '../ChatbotWidget';
 import './UserStatus.css';

@@ -1,4 +1,4 @@
-import client from './client';
+import client from '@api/client';
 
 /**
  * 사용자 및 인증 관련 API 모음

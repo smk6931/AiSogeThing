@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Eye, Heart, Target, X, Clock } from 'lucide-react';
-import userApi from '../../../shared/api/user';
+import userApi from '@auth/api/auth';
 import ChannelVideoModal from './ChannelVideoModal';
 import './UserProfile.css';
 

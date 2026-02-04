@@ -1,4 +1,4 @@
-import client from './client';
+import client from '@api/client';
 
 // ========== 채널 관련 API ==========
 export const getChannelsList = async (params = {}) => {

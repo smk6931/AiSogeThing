@@ -1,4 +1,4 @@
-import client from './client';
+import client from '@api/client';
 
 /**
  * 챗봇 API 모듈

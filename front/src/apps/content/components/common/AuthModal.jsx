@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../../../../shared/context/AuthContext';
+import { useAuth } from '@shared/context/AuthContext';
 import './AuthModal.css';
 
 export default function AuthModal({ isOpen, onClose }) {

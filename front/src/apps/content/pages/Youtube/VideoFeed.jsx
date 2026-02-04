@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Calendar, Eye, UserPlus } from 'lucide-react';
-import { getVideosFeed } from '../../../../shared/api/channelsApi';
+import { getVideosFeed } from '@content/api/channels';
 import './VideoFeed.css';
 
 export default function VideoFeed({ onVideoClick }) {

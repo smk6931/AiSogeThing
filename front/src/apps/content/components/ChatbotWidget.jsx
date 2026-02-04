@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MessageCircle, X, Send, TrendingUp, Users, HelpCircle, Sparkles } from 'lucide-react';
-import chatbotAPI from '../../../shared/api/chatbot';
+import chatbotAPI from '@content/api/chatbot';
 import './ChatbotWidget.css';
 
 export default function ChatbotWidget({ isOpen, onClose }) {

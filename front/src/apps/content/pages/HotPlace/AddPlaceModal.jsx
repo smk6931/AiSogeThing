@@ -3,7 +3,7 @@ import { Search, MapPin, Plus, X } from 'lucide-react';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import ApiInfo from '../../components/common/ApiInfo';
-import { searchPlace } from '../../../../shared/api/hotplace'; // API 함수 임포트
+import { searchPlace } from '@content/api/hotplace'; // API 함수 임포트
 import './AddPlaceModal.css';
 
 export default function AddPlaceModal({ isOpen, onClose, onAddPlace }) {

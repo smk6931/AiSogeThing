@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Joystick } from 'react-joystick-component';
 import GameCanvas from './core/GameCanvas';
-import userApi from '../../shared/api/user';
+import userApi from '@auth/api/auth';
 import { useGameInput } from './core/useGameInput';
 import { useGameSocket } from './core/useGameSocket';
 import GameOverlay from './ui/GameOverlay';

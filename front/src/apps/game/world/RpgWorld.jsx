@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import Player from '../entities/Player';
 import RemotePlayer from '../entities/RemotePlayer';
 import ZoomController from '../core/ZoomController';
-import { useAuth } from '../../../shared/context/AuthContext';
+import { useAuth } from '@shared/context/AuthContext';
 import { PunchProjectile } from '../entities/projectile/PunchProjectile';
 import { useProjectiles } from '../hooks/useProjectiles';
 

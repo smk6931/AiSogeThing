@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Loader } from 'lucide-react';
-import { getRandomVideo, logYoutubeVideo, updateWatchTime } from '../../../../shared/api/youtube';
+import { getRandomVideo, logYoutubeVideo, updateWatchTime } from '@content/api/youtube';
 import './YoutubePlayer.css';
 
 // 전역 변수: API 로드 상태

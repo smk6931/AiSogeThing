@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, PlayCircle, Eye, Check, Heart } from 'lucide-react';
-import { getAdhocRssVideos, subscribeChannel, unsubscribeChannel, getMySubscriptions, logYoutubeVideo } from '../../../shared/api/youtube';
+import { getAdhocRssVideos, subscribeChannel, unsubscribeChannel, getMySubscriptions, logYoutubeVideo } from '@content/api/youtube';
 import YoutubePlayer from '../pages/Youtube/YoutubePlayer'; // 플레이어 import
 import './ChannelVideoModal.css';
 

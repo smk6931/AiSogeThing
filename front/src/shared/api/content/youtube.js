@@ -1,4 +1,4 @@
-import client from './client';
+import client from '@api/client';
 
 /**
  * 🎥 유튜브 관련 API (Youtube API)

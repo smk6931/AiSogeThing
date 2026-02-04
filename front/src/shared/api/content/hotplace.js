@@ -1,4 +1,4 @@
-import client from './client';
+import client from '@api/client';
 
 /**
  * 네이버 장소 검색 API 호출

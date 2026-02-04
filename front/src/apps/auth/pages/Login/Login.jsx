@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../../shared/context/AuthContext';
+import { useAuth } from '@shared/context/AuthContext';
 import Card from '../../../content/components/common/Card';
 import Button from '../../../content/components/common/Button';
 import './Login.css';

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateNovel } from '../../../../shared/api/novel';
+import { generateNovel } from '@content/api/novel';
 import './NovelCreate.css';
 
 const NovelCreate = () => {

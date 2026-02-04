@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Users, BookText, ImageIcon, Loader2 } from 'lucide-react';
-import { getNovel, deleteNovel } from '../../../../shared/api/novel';
+import { getNovel, deleteNovel } from '@content/api/novel';
 import client from '../../../../shared/api/client';
 import './NovelView.css';
 

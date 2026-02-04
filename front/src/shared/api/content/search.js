@@ -1,4 +1,4 @@
-import client from './client';
+import client from '@api/client';
 
 /**
  * 스마트 검색 API 모듈

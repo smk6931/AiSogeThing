@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Tag } from 'lucide-react';
-import { subscribeChannel, unsubscribeChannel } from '../../../../shared/api/channelsApi';
-import searchAPI from '../../../../shared/api/search';
+import { subscribeChannel, unsubscribeChannel } from '@content/api/channels';
+import searchAPI from '@content/api/search';
 import './ChannelExplorer.css';
 
 export default function ChannelExplorer({ onChannelClick }) {
