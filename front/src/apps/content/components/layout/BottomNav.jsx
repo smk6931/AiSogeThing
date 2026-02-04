@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { Home, Heart, MessageCircle, Users, User, MapPin, Youtube, BookOpen } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../../../shared/context/AuthContext';
 import './BottomNav.css';
 
 export default function BottomNav() {

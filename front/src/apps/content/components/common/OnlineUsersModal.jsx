@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, User, MessageCircle, UserPlus } from 'lucide-react';
 import userApi from '../../../../shared/api/user';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../../../shared/context/AuthContext';
 import UserProfile from '../UserProfile';
 import './OnlineUsersModal.css';
 

@@ -2,7 +2,8 @@ import os
 import re
 
 root_dir = "front/src"
-shared_folders = ["api", "hooks", "utils", "styles"]
+# Added 'context' to shared_folders
+shared_folders = ["api", "hooks", "utils", "styles", "context"]
 
 def fix_imports(file_path):
     rel_from_src = os.path.relpath(file_path, root_dir).replace("\\", "/")
@@ -19,21 +20,29 @@ def fix_imports(file_path):
     changed = False
     
     for folder in shared_folders:
-        # Match any relative import that eventually leads to the target folder, 
-        # optionally through 'shared/'
-        # Group 1: Quote, Group 3: Optional 'shared/', Group 4: Folder name
-        pattern = rf"(['\"`])(\.\./)+(shared/)?({folder}/?)"
-        replacement = rf"\1{src_prefix}shared/\4"
+        # Match any relative import that leads to the folder
+        # We need to be careful with paths like '../../context' 
+        # which might have been correct in the old structure but are now wrong.
         
-        new_content = re.sub(pattern, replacement, content)
-        if new_content != content:
-            content = new_content
-            changed = True
+        # This matches:
+        # 1. Old paths: ../context or ../../context
+        # 2. Over-corrected paths: ../../../shared/context etc.
+        pattern = rf"(['\"`])(\.\./)+(shared/|apps/content/)?({folder}/?)"
+        replacement = rf"\1{src_prefix}shared/{folder}/"
+        
+        # Special case: don't double add / if folder already has it or is a file name used as folder
+        # For simplicity, we'll just fix the prefix
+        
+        # Let's use a more robust regex to target specifically the relative prefix
+        # and ensure it points to src/shared/folder
+        
+        # Find any import to a shared folder name, regardless of how many ../ it has
+        content = re.sub(rf"(['\"`])(\.\./)+({folder})\b", rf"\1{src_prefix}shared/\3", content)
+        # Also handle cases where they were moved into content
+        content = re.sub(rf"(['\"`])(\.\./)+(apps/content/)?({folder})\b", rf"\1{src_prefix}shared/\4", content)
 
-    if changed:
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
-        print(f"Fixed Depth {depth}: {rel_from_src}")
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(content)
 
 for root, dirs, files in os.walk(root_dir):
     if "shared" in root: continue
@@ -41,4 +50,4 @@ for root, dirs, files in os.walk(root_dir):
         if file.endswith((".js", ".jsx", ".css")):
             fix_imports(os.path.join(root, file))
 
-print("Final Precision Refactoring Complete.")
+print("Context-inclusive precision refactoring complete.")

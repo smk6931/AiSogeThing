@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Zap, Sword, Backpack, Map as MapIcon } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../../shared/context/AuthContext';
 
 const GameOverlay = ({ onSimulateKey }) => {
   const { user } = useAuth();

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../../../shared/context/AuthContext';
 import { Bot, Gamepad2 } from 'lucide-react';
 import userApi from '../../../../shared/api/user';
 import OnlineUsersModal from '../common/OnlineUsersModal';
