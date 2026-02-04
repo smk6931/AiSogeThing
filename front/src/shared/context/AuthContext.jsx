@@ -1,6 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
-import apiClient from '../../../shared/api/client';
-import userApi from '../../../shared/api/user';
+import apiClient from '../api/client';
+import userApi from '../api/user';
 
 const AuthContext = createContext(null);
 

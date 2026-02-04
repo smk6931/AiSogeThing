@@ -54,7 +54,6 @@ const GameEntry = () => {
       {/* ================= 3D Game World ================= */}
       <div style={{ width: '100%', height: '100%' }}>
         <GameCanvas
-          onBuildingClick={() => { }}
           input={input}
           active={true}
           otherPlayers={otherPlayers}

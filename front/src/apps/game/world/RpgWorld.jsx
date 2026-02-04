@@ -7,7 +7,7 @@ import RemotePlayer from '../entities/RemotePlayer';
 import ZoomController from '../core/ZoomController';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { PunchProjectile } from '../entities/projectile/PunchProjectile';
-import { useProjectiles } from '../../../shared/hooks/useProjectiles';
+import { useProjectiles } from '../hooks/useProjectiles';
 
 
 // 건물 컴포넌트
@@ -102,15 +102,9 @@ const MapFloor = () => {
   );
 };
 
-const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestChatMap, inputActions }) => {
+const RpgWorld = ({ input, otherPlayers, sendPosition, latestChatMap, inputActions }) => {
   const playerRef = useRef();
   const { user } = useAuth();
-
-  const handleBuildingClick = (buildingName) => {
-    if (onBuildingClick) {
-      onBuildingClick(buildingName);
-    }
-  };
 
   // 투사체 관리 (커스텀 훅)
   const { projectiles, addProjectile, removeProjectile, handleSplit } = useProjectiles();
@@ -124,16 +118,8 @@ const RpgWorld = ({ onBuildingClick, input, otherPlayers, sendPosition, latestCh
       {/* 환경: 바닥(지도) */}
       <MapFloor />
 
-      {/* 오브젝트: 건물들 */}
-      {/* 오브젝트: 건물들 (임시 비활성화) */}
-      {/* 
-      <Building position={[-8, 1.5, -8]} color="#ff6b6b" label="영화관" icon="🎬" onClick={() => handleBuildingClick('영화관 (YouTube)')} />
-      <Building position={[8, 1.5, -8]} color="#4ecdc4" label="우체국" icon="📮" onClick={() => handleBuildingClick('우체국 (채팅)')} />
-      <Building position={[-8, 1.5, 8]} color="#ffe66d" label="안내소" icon="🗺️" onClick={() => handleBuildingClick('안내소 (지도/데이트코스)')} />
-      <Building position={[8, 1.5, 8]} color="#a8dadc" label="도서관" icon="📚" onClick={() => handleBuildingClick('도서관 (웹툰/소설)')} />
-      <Building position={[0, 1.5, -12]} color="#b5838d" label="구청" icon="📢" onClick={() => handleBuildingClick('구청 (커뮤니티/피드)')} />
-      <Building position={[0, 1.5, 12]} color="#ffb4a2" label="카페" icon="☕" onClick={() => handleBuildingClick('카페 (매칭)')} />
-      */}
+      {/* 오브젝트: 건물들 (컴포넌트는 추후 포탈 등으로 활용 가능) */}
+      {/* <Building position={[-8, 1.5, -8]} color="#ff6b6b" label="영화관" icon="🎬" /> */}
 
       {/* 다른 플레이어들 (실시간 동기화) */}
       {Object.entries(otherPlayers).map(([id, data]) => (

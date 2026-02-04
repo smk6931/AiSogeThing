@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import GameEntry from './apps/game/GameEntry';
-import { AuthProvider } from './apps/content/context/AuthContext';
+import { AuthProvider } from './shared/context/AuthContext';
 import BottomNav from './apps/content/components/layout/BottomNav';
 import UserStatus from './apps/content/components/layout/UserStatus';
 import Home from './apps/content/pages/Home/Home'; // 추가
