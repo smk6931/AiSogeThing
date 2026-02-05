@@ -2,12 +2,13 @@ import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 
-// [도 -> 라디안 변환기] 90 넣으면 1.57이 나옵니다.
+// [도 -> 라디안 변환기]
 const circulate = (deg) => deg * (Math.PI / 180);
 
 export const PunchProjectile = ({
   id, startPos, playerRot, onFinish, onUpdate, onAdd,
-  generation = 0, side, velocity
+  generation = 0, side, velocity,
+  baseAng // [추가] 부모로부터 물려받은 '기준 각도' 선물
 }) => {
   const spriteRef = useRef();
   const tick = useRef(0); // [언리얼 스타일] 누적 시간(초)
@@ -45,17 +46,19 @@ export const PunchProjectile = ({
     spriteRef.current.material.rotation = -moveAng + Math.PI;
 
     // ==========================================================
-    // [★ 사용자 로직 구역 - 1초 분열 (1 -> 2발)] 
+    // [★ 1초 시점 분열 (1 -> 2발)] 
     // ==========================================================
     if (tick.current > 1.0 && !hasSplit.current && generation === 0) {
       hasSplit.current = true;
 
+      // [저장] 현재 내 방향(꺾이기 직전 각도)을 계산해서 자식들에게 물려줍니다.
       const myCurrentAng = Math.atan2(vel.current.x, vel.current.z);
 
       onAdd?.({
         startPos: { ...pos.current },
         velocity: { x: Math.sin(myCurrentAng + circulate(45)) * speed, z: Math.cos(myCurrentAng + circulate(45)) * speed },
         generation: 1,
+        baseAng: myCurrentAng, // [선물] "얘야, 이게 우리 가문의 기준 각도란다"
         side
       });
 
@@ -63,41 +66,40 @@ export const PunchProjectile = ({
         startPos: { ...pos.current },
         velocity: { x: Math.sin(myCurrentAng - circulate(45)) * speed, z: Math.cos(myCurrentAng - circulate(45)) * speed },
         generation: 1,
+        baseAng: myCurrentAng, // [선물]
         side
       });
     }
 
     // ==========================================================
-    // [★ 사용자 로직 구역 - 2초 분열 (2 -> 4발) 및 본체 삭제]
+    // [★ 2초 시점 분열 (2 -> 4발)] 
     // ==========================================================
     if (tick.current > 1.0 && !hasSplitSecond.current && generation === 1) {
       hasSplitSecond.current = true;
+      onFinish?.(id); // 현재 1세대는 삭제
 
-      // 1. [교체] 현재 펀치(1세대)는 그만 날아가고 삭제합니다.
-      onFinish?.(id);
+      // [사용] 부모한테 물려받은 'baseAng'가 있다면 그걸 쓰고, 없으면 현재 각도 씀
+      // const standardAng = baseAng || Math.atan2(vel.current.x, vel.current.z);
 
-      // 2. [계승] 현재 날아가던 방향을 기준으로 45도씩 다시 쪼갭니다.
-      const myCurrentAng = Math.atan2(vel.current.x, vel.current.z);
-
-      // 자식 소환 A (2세대)
+      // 자식 소환 A (2세대 - 기준선 기준 위로 45도)
       onAdd?.({
         startPos: { ...pos.current },
-        velocity: { x: Math.sin(myCurrentAng + circulate(45)) * speed, z: Math.cos(myCurrentAng + circulate(45)) * speed },
+        velocity: { x: Math.sin(baseAng + circulate(45)) * speed, z: Math.cos(baseAng + circulate(45)) * speed },
         generation: 2,
         side
       });
 
-      // 자식 소환 B (2세대)
+      // 자식 소환 B (2세대 - 기준선 기준 아래로 45도)
       onAdd?.({
         startPos: { ...pos.current },
-        velocity: { x: Math.sin(myCurrentAng - circulate(45)) * speed, z: Math.cos(myCurrentAng - circulate(45)) * speed },
+        velocity: { x: Math.sin(baseAng - circulate(45)) * speed, z: Math.cos(baseAng - circulate(45)) * speed },
         generation: 2,
         side
       });
     }
-    // ==========================================================
 
-    if (tick.current > 4.0) onFinish?.(id);
+    // 수명 만료 시 삭제
+    if (tick.current > 1.0) onFinish?.(id);
   });
 
   return (
