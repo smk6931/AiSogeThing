@@ -1,86 +1,22 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 
-export const usePlayerSkills = (ref, actions, onAction) => {
-  const prevSkillRef = useRef(false); // 스킬 키 엣지 트리거용
+/**
+ * [플레이어 스킬 입력 관리]
+ * 입력만 감지해서 부모(World)에게 "쏴줘!"라고 신호만 보냅니다.
+ * 모든 발사 로직은 world의 useProjectiles에서 처리하도록 통합했습니다.
+ */
+export const usePlayerSkills = (ref, actions, onTrigger) => {
+  const prevSkillRef = useRef(false);
 
   useFrame(() => {
     if (!ref.current) return;
 
-    // 공격 트리거 (R키 & 조이스틱)
+    // R키 또는 조이스틱 버튼 클릭 감지
     if (actions?.skill1 && !prevSkillRef.current) {
-      triggerPyramidSkill();
+      // 부모에게 현재 위치와 회전값을 넘겨주며 발사 요청
+      onTrigger(ref.current.position, ref.current.rotation.y);
     }
     prevSkillRef.current = actions?.skill1;
   });
-
-  const triggerPyramidSkill = () => {
-    // [스킬 설명: 얍카 피라미드 펀치 - 분열 시스템]
-    // 처음 양옆으로 1개씩 발사 → 0.5초마다 각각 2개로 분열
-    // 0초: 2개 → 0.5초: 4개 → 1초: 8개 → 1.5초: 16개
-
-    const projectileSpeed = 2.0; // 속도를 대폭 상향하여 시원하게 날아가게 함
-    const initialDuration = 400; // 첫 분열까지의 시간을 늘려 간격을 확보 (0.4초)
-
-    // ==========================================
-    // [각도 조절] 85도 (약간 앞으로 쏠리게 조정)
-    const angleLeft = Math.PI * 0.45;
-    const angleRight = -Math.PI * 0.45;
-    // ==========================================
-
-    if (!ref.current) return;
-    const snapshotRot = ref.current.rotation.y;
-    const snapshotPos = ref.current.position.clone();
-
-    // 1. 왼쪽 발사
-    const dirLeft = {
-      x: Math.sin(snapshotRot + angleLeft),
-      z: Math.cos(snapshotRot + angleLeft)
-    };
-    const velocityLeft = {
-      x: dirLeft.x * projectileSpeed,
-      z: dirLeft.z * projectileSpeed
-    };
-    const rotationLeft = [0, Math.atan2(dirLeft.x, dirLeft.z), 0];
-    const startPosLeft = {
-      x: snapshotPos.x + dirLeft.x * 2.5, // 시작 거리를 2.5로 키움
-      y: 1.5,
-      z: snapshotPos.z + dirLeft.z * 2.5
-    };
-
-    spawnProjectiles(startPosLeft, velocityLeft, rotationLeft, initialDuration, 'left');
-
-    // 2. 오른쪽 발사
-    const dirRight = {
-      x: Math.sin(snapshotRot + angleRight),
-      z: Math.cos(snapshotRot + angleRight)
-    };
-    const velocityRight = {
-      x: dirRight.x * projectileSpeed,
-      z: dirRight.z * projectileSpeed
-    };
-    const rotationRight = [0, Math.atan2(dirRight.x, dirRight.z), 0];
-    const startPosRight = {
-      x: snapshotPos.x + dirRight.x * 2.5, // 시작 거리를 2.5로 키움
-      y: 1.5,
-      z: snapshotPos.z + dirRight.z * 2.5
-    };
-
-    spawnProjectiles(startPosRight, velocityRight, rotationRight, initialDuration, 'right');
-  };
-
-  const spawnProjectiles = (startPos, velocity, rotation, duration, side) => {
-    // [투사체 생성]
-    // 계산된 velocity와 rotation을 그대로 사용하여 발사
-    if (onAction) {
-      onAction({
-        type: 'shoot',
-        startPos,
-        velocity,
-        rotation,
-        duration,
-        side // 'left' or 'right' 구분용
-      });
-    }
-  };
 };

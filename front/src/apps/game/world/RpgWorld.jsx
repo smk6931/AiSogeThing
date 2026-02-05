@@ -9,161 +9,80 @@ import { useAuth } from '@shared/context/AuthContext';
 import { PunchProjectile } from '../entities/projectile/PunchProjectile';
 import { useProjectiles } from '../hooks/useProjectiles';
 
-
-// 건물 컴포넌트
-const Building = ({ position, color, label, onClick, icon }) => {
-  const meshRef = useRef();
-  const [hovered, setHovered] = useState(false);
-
-  useFrame((state) => {
-    if (meshRef.current && hovered) {
-      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 3) * 0.1;
-    } else if (meshRef.current) {
-      meshRef.current.position.y = position[1];
-    }
-  });
-
-  return (
-    <group position={position}>
-      <mesh
-        ref={meshRef}
-        castShadow
-        receiveShadow
-        onClick={onClick}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-      >
-        <boxGeometry args={[2, 3, 2]} />
-        <meshStandardMaterial
-          color={hovered ? '#ff8787' : color}
-          emissive={hovered ? '#ff0000' : '#000000'}
-          emissiveIntensity={hovered ? 0.2 : 0}
-        />
-      </mesh>
-      <Text position={[0, 2.8, 0]} fontSize={0.5} color="white" anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="black">
-        {label}
-      </Text>
-      <Text position={[0, 1.2, 1.1]} fontSize={1} anchorX="center" anchorY="middle">
-        {icon}
-      </Text>
-    </group>
-  );
-};
-
-// 카메라맨 컴포넌트 (플레이어를 따라다님 + 고정 앵글)
 const CameraRig = ({ target }) => {
   const { camera } = useThree();
   const vec = new THREE.Vector3();
-
-  // 1. 초기 각도 고정 (딱 한 번만 실행)
   useEffect(() => {
-    const initialOffset = new THREE.Vector3(0, 30, 20); // 오프셋 기준 (가디언 테일즈 뷰)
-    const tempPos = camera.position.clone();
-
-    // 초기 카메라 위치를 잠시 오프셋 위치로 옮겨서 lookAt으로 각도를 잡음
-    camera.position.copy(initialOffset);
+    camera.position.set(0, 30, 20);
     camera.lookAt(0, 0, 0);
-
-    // 다시 원래 위치(혹은 타겟 위치 근처)로 되돌릴 준비는 useFrame에서 처리
-    // 여기서는 '각도(Rotation/Quaternion)'를 세팅하는 것이 목적
   }, [camera]);
-
   useFrame(() => {
     if (target.current) {
-      // 2. 위치만 부드럽게 추적 (회전 X)
-      const offset = new THREE.Vector3(0, 30, 20);
       const targetPos = target.current.position;
-
-      // lerp로 위치만 따라가고, lookAt은 호출하지 않음으로써 회전 고정
-      camera.position.lerp(vec.copy(targetPos).add(offset), 0.1);
+      camera.position.lerp(vec.set(targetPos.x, targetPos.y + 30, targetPos.z + 20), 0.1);
     }
   });
   return null;
 };
 
-// 바닥 컴포넌트 (텍스처 로딩)
 const MapFloor = () => {
-  // 실제 RPG 느낌이 나는 잔디/지형 텍스처 (Three.js 예제 소스 활용)
   const texture = useTexture('/map_texture.jpg');
-
-  // 텍스처 반복 설정 (20x20으로 촘촘하게 타일링)
-  texture.repeat.set(1, 1);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-
   return (
-    <group>
-      {/* 텍스처 바닥 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.1, 0]}>
-        <planeGeometry args={[100, 100]} />
-        {/* 잔디 느낌을 살리기 위해 약간 어둡고(dark) 거칠게 표현 */}
-        <meshStandardMaterial map={texture} />
-      </mesh>
-    </group>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.1, 0]}>
+      <planeGeometry args={[100, 100]} />
+      <meshStandardMaterial map={texture} />
+    </mesh>
   );
 };
 
 const RpgWorld = ({ input, otherPlayers, sendPosition, latestChatMap, inputActions }) => {
   const playerRef = useRef();
   const { user } = useAuth();
-
-  // 투사체 관리 (커스텀 훅)
-  const { projectiles, addProjectile, removeProjectile, handleSplit } = useProjectiles();
+  const { projectiles, add, update, remove } = useProjectiles();
 
   return (
     <group>
-      {/* 시스템: 카메라맨 & 줌 */}
       <CameraRig target={playerRef} />
       <ZoomController />
-
-      {/* 환경: 바닥(지도) */}
       <MapFloor />
 
-      {/* 오브젝트: 건물들 (컴포넌트는 추후 포탈 등으로 활용 가능) */}
-      {/* <Building position={[-8, 1.5, -8]} color="#ff6b6b" label="영화관" icon="🎬" /> */}
-
-      {/* 다른 플레이어들 (실시간 동기화) */}
+      {/* 다른 플레이어들 */}
       {Object.entries(otherPlayers).map(([id, data]) => (
-        <RemotePlayer
-          key={id}
-          position={{ x: data.x, z: data.z }}
-          rotation={data.rotation}
-          nickname={data.nickname || 'Unknown'}
-          chat={latestChatMap[id]}
-        />
+        <RemotePlayer key={id} position={{ x: data.x, z: data.z }} rotation={data.rotation} nickname={data.nickname || 'Unknown'} chat={latestChatMap[id]} />
       ))}
 
-      {/* 내 플레이어 */}
+      {/* 내 플레이어 (여기가 스킬 소환소입니다) */}
       <Player
         ref={playerRef}
         input={input}
         actions={inputActions}
         onMove={sendPosition}
-        onAction={addProjectile}
+        onAction={(pos, rot) => {
+          // 여기서 최초 2발 소환 (완벽한 양옆 일직선: 1.57)
+          const spawn = (ang, side) => {
+            add({
+              startPos: {
+                x: pos.x + Math.sin(rot + ang) * 2.5,
+                y: 1.5,
+                z: pos.z + Math.cos(rot + ang) * 2.5
+              },
+              playerRot: rot,
+              side
+            });
+          };
+          spawn(1.57, 'left');
+          spawn(-1.57, 'right');
+        }}
         chat={user && latestChatMap ? latestChatMap[user.id] : null}
       />
 
-      {/* 발사체 렌더링 */}
+      {/* 발사체 렌더 룸 */}
       {projectiles.map(p => (
         <PunchProjectile
-          key={p.id}
-          id={p.id}
-          startPos={p.startPos}
-          velocity={p.velocity}
-          rotation={p.rotation}
-          duration={p.duration}
-          onFinish={removeProjectile}
-          side={p.side}
-          onSplit={handleSplit}
-          generation={p.generation || 0}
+          key={p.id} id={p.id} onFinish={remove} onUpdate={update} onAdd={add}
+          {...p} // 나머지 모든 데이터(pos, rot, side 등) 전달
         />
       ))}
-
-      {/* 시작 지점 표시 */}
-      {/* 시작 지점 표시 (제거) */}
-      {/* <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.8, 1, 32]} />
-        <meshBasicMaterial color="white" opacity={0.5} transparent />
-      </mesh> */}
     </group>
   );
 };
