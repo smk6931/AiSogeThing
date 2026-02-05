@@ -8,7 +8,7 @@ export const useProjectiles = () => {
   const addProjectile = useCallback((action) => {
     if (action.type === 'shoot') {
       setProjectiles(prev => [...prev, {
-        id: Date.now() + Math.random(),
+        id: crypto.randomUUID(),
         ...action,
         generation: 0
       }]);
@@ -23,7 +23,7 @@ export const useProjectiles = () => {
   // 분열 처리
   const handleSplit = useCallback((splitData) => {
     setProjectiles(prev => [...prev, {
-      id: Date.now() + Math.random(),
+      id: crypto.randomUUID(),
       type: 'shoot',
       startPos: splitData.startPos,
       velocity: splitData.velocity,

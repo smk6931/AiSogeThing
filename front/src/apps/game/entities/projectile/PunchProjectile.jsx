@@ -1,7 +1,8 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useTexture } from '@react-three/drei';
 
-// 피라미드 펀치 컴포넌트 - 분열 시스템
+// 피라미드 펀치 컴포넌트 - 분열 시스템 (황금 펀치 에디션)
 export const PunchProjectile = ({ id, startPos, velocity, duration, onFinish, side, onSplit, generation = 0 }) => {
   const meshRef = useRef();
   const startTime = useRef(Date.now());
@@ -9,9 +10,8 @@ export const PunchProjectile = ({ id, startPos, velocity, duration, onFinish, si
   const velocityRef = useRef({ x: velocity.x, z: velocity.z });
   const hasSplit = useRef(false);
 
-  // 왼쪽/오른쪽 색상 구분
-  const color = side === 'left' ? '#60a5fa' : '#f87171';
-  const emissive = side === 'left' ? '#3b82f6' : '#ef4444';
+  // 황금 펀치 텍스처 로딩
+  const texture = useTexture('/golden_punch.png');
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
@@ -19,13 +19,13 @@ export const PunchProjectile = ({ id, startPos, velocity, duration, onFinish, si
     const elapsed = Date.now() - startTime.current;
     const splitTime = duration - 50; // duration 끝나기 50ms 전에 분열
 
-    // 분열 로직 (generation 3 미만일 때만)
+    // 분열 로직 (간격을 더 벌리기 위해 spreadAngle을 45도(PI/4)로 증가)
     if (!hasSplit.current && elapsed >= splitTime && generation < 3) {
       hasSplit.current = true;
 
       const currentAngle = Math.atan2(velocityRef.current.x, velocityRef.current.z);
       const speed = Math.sqrt(velocityRef.current.x ** 2 + velocityRef.current.z ** 2);
-      const spreadAngle = Math.PI / 9; // ±20도
+      const spreadAngle = Math.PI / 4; // 더 넓어진 간격 (45도)
 
       // 양옆으로 2개 생성
       [currentAngle - spreadAngle, currentAngle + spreadAngle].forEach(angle => {
@@ -51,13 +51,16 @@ export const PunchProjectile = ({ id, startPos, velocity, duration, onFinish, si
     posRef.current.x += velocityRef.current.x * delta;
     posRef.current.z += velocityRef.current.z * delta;
     meshRef.current.position.set(posRef.current.x, posRef.current.y, posRef.current.z);
-    meshRef.current.rotation.y = Math.atan2(velocityRef.current.x, velocityRef.current.z);
+
+    // 외형이 항상 카메라를 보게 하거나 (Sprite), 진행 방향을 보게 함
+    // 여기서는 Sprite를 사용하여 깔끔하게 표현함
   });
 
   return (
-    <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
-      <cylinderGeometry args={[0, 0.5, 2, 4]} />
-      <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={0.8} />
-    </mesh>
+    <group ref={meshRef}>
+      <sprite scale={[1.5, 1.5, 1]}> {/* 크기를 1.5배로 키움 */}
+        <spriteMaterial map={texture} transparent={true} />
+      </sprite>
+    </group>
   );
 };

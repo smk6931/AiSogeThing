@@ -11,11 +11,15 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (username.trim()) {
-      login(username);
-      navigate(-1); // 이전 페이지로 복귀
+      const result = await login(username, password);
+      if (result.success) {
+        navigate('/entry'); // 진입 플랫폼 선택 화면으로 이동
+      } else {
+        alert(result.error);
+      }
     }
   };
 

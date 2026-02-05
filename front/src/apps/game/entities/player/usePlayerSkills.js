@@ -19,13 +19,13 @@ export const usePlayerSkills = (ref, actions, onAction) => {
     // 처음 양옆으로 1개씩 발사 → 0.5초마다 각각 2개로 분열
     // 0초: 2개 → 0.5초: 4개 → 1초: 8개 → 1.5초: 16개
 
-    const projectileSpeed = 2.0;
-    const initialDuration = 100; // 첫 generation은 0.5초 후 분열
+    const projectileSpeed = 2.0; // 속도를 대폭 상향하여 시원하게 날아가게 함
+    const initialDuration = 400; // 첫 분열까지의 시간을 늘려 간격을 확보 (0.4초)
 
     // ==========================================
-    // [각도 조절] 90도 (완전 옆)
-    const angleLeft = Math.PI / 2;
-    const angleRight = -Math.PI / 2;
+    // [각도 조절] 85도 (약간 앞으로 쏠리게 조정)
+    const angleLeft = Math.PI * 0.45;
+    const angleRight = -Math.PI * 0.45;
     // ==========================================
 
     if (!ref.current) return;
@@ -43,9 +43,9 @@ export const usePlayerSkills = (ref, actions, onAction) => {
     };
     const rotationLeft = [0, Math.atan2(dirLeft.x, dirLeft.z), 0];
     const startPosLeft = {
-      x: snapshotPos.x + dirLeft.x * 1.5,
-      y: 1,
-      z: snapshotPos.z + dirLeft.z * 1.5
+      x: snapshotPos.x + dirLeft.x * 2.5, // 시작 거리를 2.5로 키움
+      y: 1.5,
+      z: snapshotPos.z + dirLeft.z * 2.5
     };
 
     spawnProjectiles(startPosLeft, velocityLeft, rotationLeft, initialDuration, 'left');
@@ -61,9 +61,9 @@ export const usePlayerSkills = (ref, actions, onAction) => {
     };
     const rotationRight = [0, Math.atan2(dirRight.x, dirRight.z), 0];
     const startPosRight = {
-      x: snapshotPos.x + dirRight.x * 1.5,
-      y: 1,
-      z: snapshotPos.z + dirRight.z * 1.5
+      x: snapshotPos.x + dirRight.x * 2.5, // 시작 거리를 2.5로 키움
+      y: 1.5,
+      z: snapshotPos.z + dirRight.z * 2.5
     };
 
     spawnProjectiles(startPosRight, velocityRight, rotationRight, initialDuration, 'right');

@@ -10,6 +10,7 @@ import Chat from './apps/content/pages/Chat/Chat';
 import Community from './apps/content/pages/Community/Community';
 import MyPage from './apps/content/pages/MyPage/MyPage';
 import Login from './apps/auth/pages/Login/Login';
+import PlatformEntry from './apps/auth/pages/Entry/PlatformEntry';
 import HotPlace from './apps/content/pages/HotPlace/HotPlace';
 import YoutubeBoard from './apps/content/pages/Youtube/YoutubeBoardNew';
 import NovelCreate from './apps/content/pages/Novel/NovelCreate';
@@ -39,6 +40,7 @@ function App() {
           <Routes>
             {/* 로그인 & 온보딩 (레이아웃 없음) */}
             <Route path="/login" element={<Login />} />
+            <Route path="/entry" element={<PlatformEntry />} />
             <Route path="/onboarding" element={<Onboarding />} />
 
             {/* 3D 게임 (독립) */}
@@ -46,7 +48,7 @@ function App() {
 
             {/* 메인 앱 (UserStatus + BottomNav) */}
             <Route element={<AppLayout />}>
-              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/" element={<Navigate to="/entry" replace />} />
               <Route path="/home" element={<Home />} />
               <Route path="/hotplace" element={<HotPlace />} />
               <Route path="/youtube" element={<YoutubeBoard />} />
