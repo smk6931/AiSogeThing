@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Text, useTexture } from '@react-three/drei';
+import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import Player from '../entities/Player';
 import RemotePlayer from '../entities/RemotePlayer';
@@ -46,41 +46,30 @@ const RpgWorld = ({ input, otherPlayers, sendPosition, latestChatMap, inputActio
       <ZoomController />
       <MapFloor />
 
-      {/* 다른 플레이어들 */}
       {Object.entries(otherPlayers).map(([id, data]) => (
         <RemotePlayer key={id} position={{ x: data.x, z: data.z }} rotation={data.rotation} nickname={data.nickname || 'Unknown'} chat={latestChatMap[id]} />
       ))}
 
-      {/* 내 플레이어 (여기가 스킬 소환소입니다) */}
       <Player
         ref={playerRef}
         input={input}
         actions={inputActions}
         onMove={sendPosition}
         onAction={(pos, rot) => {
-          // 여기서 최초 2발 소환 (완벽한 양옆 일직선: 1.57)
-          const spawn = (ang, side) => {
-            add({
-              startPos: {
-                x: pos.x + Math.sin(rot + ang) * 2.5,
-                y: 1.5,
-                z: pos.z + Math.cos(rot + ang) * 2.5
-              },
-              playerRot: rot,
-              side
-            });
-          };
-          spawn(1.57, 'left');
-          spawn(-1.57, 'right');
+          // [테스트 모드] 왼쪽 방향(1.57)으로 딱 한 발만 쏩니다.
+          add({
+            startPos: { x: pos.x, y: 1.5, z: pos.z },
+            playerRot: rot,
+            side: 'left'
+          });
         }}
         chat={user && latestChatMap ? latestChatMap[user.id] : null}
       />
 
-      {/* 발사체 렌더 룸 */}
       {projectiles.map(p => (
         <PunchProjectile
           key={p.id} id={p.id} onFinish={remove} onUpdate={update} onAdd={add}
-          {...p} // 나머지 모든 데이터(pos, rot, side 등) 전달
+          {...p}
         />
       ))}
     </group>

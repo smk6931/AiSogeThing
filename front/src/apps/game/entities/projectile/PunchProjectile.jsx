@@ -2,83 +2,72 @@ import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 
-/**
- * [피라미드 펀치 - 진짜 2D 방식 Yaw 회전 버전]
- * Pitch/Roll 무시! 오직 Yaw(Y축) 회전만 사용하여 2D 스프라이트처럼 처리합니다.
- */
+// [도 -> 라디안 변환기] 90 넣으면 1.57이 나옵니다.
+const circulate = (deg) => deg * (Math.PI / 180);
+
 export const PunchProjectile = ({
   id, startPos, playerRot, onFinish, onUpdate, onAdd,
   generation = 0, side, velocity
 }) => {
   const spriteRef = useRef();
-  const startTime = useRef(Date.now());
-  const posRef = useRef({ ...startPos });
-  const velRef = useRef(velocity);
-  const hasSplit = useRef(false);
-
-  // 황금 펀치 텍스처
+  const tick = useRef(0); // [언리얼 스타일] 누적 시간(초)
+  const pos = useRef({ ...startPos });
+  const vel = useRef(velocity);
   const texture = useTexture('/golden_punch.png');
 
-  // 부모가 "꺾어!"라고 하면 내 속도(velRef)를 즉시 업데이트
-  useEffect(() => {
-    if (velocity) velRef.current = velocity;
-  }, [velocity]);
+  const speed = 2.5; // 속도
+
+  // 부모나 외부에서 속도가 바뀌면 내 속도에 반영
+  useEffect(() => { if (velocity) vel.current = velocity; }, [velocity]);
 
   useFrame((_, delta) => {
     if (!spriteRef.current) return;
+    tick.current += delta; // 프레임마다 시간 누적
 
-    // 0. 최초 발사 (옆구리 90도 = 1.57 방향)
-    if (!velRef.current) {
-      const startAng = playerRot + (side === 'left' ? 1.57 : -1.57);
-      velRef.current = {
-        x: Math.sin(startAng) * 2.0,
-        z: Math.cos(startAng) * 2.0
+    // 0. 초기 속도 세팅 (방향 * 속도)
+    if (!vel.current) {
+      const ang = playerRot + circulate(90); // 초기에 90도 (왼쪽)로 발사
+      vel.current = {
+        x: Math.sin(ang) * speed,
+        z: Math.cos(ang) * speed
       };
     }
 
-    const elapsed = Date.now() - startTime.current;
+    // 1. 이동
+    pos.current.x += vel.current.x * delta;
+    pos.current.z += vel.current.z * delta;
+    spriteRef.current.position.set(pos.current.x, 1.5, pos.current.z);
 
-    // 1. [Tick 이동] 2.0 속도로 매 프레임 전진
-    posRef.current.x += velRef.current.x * delta;
-    posRef.current.z += velRef.current.z * delta;
-    spriteRef.current.position.set(posRef.current.x, posRef.current.y, posRef.current.z);
+    // 2. 방향 회전
+    const moveAng = Math.atan2(vel.current.x, vel.current.z);
+    spriteRef.current.material.rotation = -moveAng + Math.PI;
 
-    // [핵심] 진행 방향에 맞춰 스프라이트 이미지 회전 (2D Yaw 회전)
-    const moveAng = Math.atan2(velRef.current.x, velRef.current.z);
-    spriteRef.current.material.rotation = -moveAng + Math.PI; // 텍스처 방향 보정
+    // ==========================================================
+    // [★ 1->2->4 기하급수 분열 로직] (매 1.0초마다 실행)
+    // ==========================================================
+    if (tick.current > 1.0 && generation < 2) {
+      tick.current = 0; // 타이머 리셋 (다음 1초를 위해)
 
-    // 2. [V자 분열 로직] (1단계 전용: 1개 -> 2개)
-    if (!hasSplit.current && elapsed >= 1000 && generation < 1) {
-      hasSplit.current = true;
+      const currentAng = Math.atan2(vel.current.x, vel.current.z);
 
-      const curAng = Math.atan2(velRef.current.x, velRef.current.z);
-      let myNextAng, friendAng;
+      // [본체 변경] 현재 방향에서 +45도 회전
+      const myNewAng = currentAng + circulate(45);
+      const myNewVel = { x: Math.sin(myNewAng) * speed, z: Math.cos(myNewAng) * speed };
+      vel.current = myNewVel;
+      onUpdate?.(id, { velocity: myNewVel, generation: generation + 1 });
 
-      // 오른쪽 펀치 기준: 본체는 45도(0.78) 앞으로 꺾고, 분신은 거기서 90도(1.57) 뒤로 꺾음
-      if (side === 'right') {
-        myNextAng = curAng + 0.78;
-        friendAng = myNextAng - 1.57;
-      } else {
-        myNextAng = curAng - 0.78;
-        friendAng = myNextAng + 1.57;
-      }
-
-      // 본체 속도/각도 업데이트
-      const newVel = { x: Math.sin(myNextAng) * 2.0, z: Math.cos(myNextAng) * 2.0 };
-      velRef.current = newVel;
-      onUpdate?.(id, { velocity: newVel, generation: generation + 1 });
-
-      // 분신(새 친구) 소환
+      // [분신 생성] 현재 방향에서 -45도 꺾어서 새로 소환
+      const friendAng = currentAng - circulate(45);
       onAdd?.({
-        startPos: { ...posRef.current },
-        velocity: { x: Math.sin(friendAng) * 2.0, z: Math.cos(friendAng) * 2.0 },
+        startPos: { ...pos.current },
+        velocity: { x: Math.sin(friendAng) * speed, z: Math.cos(friendAng) * speed },
         generation: generation + 1,
         side
       });
     }
+    // ==========================================================
 
-    // 전체 수명 3초
-    if (elapsed > 3000) onFinish?.(id);
+    if (tick.current > 10.0) onFinish?.(id);
   });
 
   return (
