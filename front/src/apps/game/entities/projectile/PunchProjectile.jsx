@@ -70,9 +70,8 @@ export const PunchProjectile = ({
       });
     }
 
-    // 수명 관리 (마지막 16발일 때만 오랫동안 날아감)
-    const lifeTime = (generation === MAX_GEN) ? 6.0 : 1.1;
-    if (tick.current > lifeTime) onFinish?.(id);
+    // 모든 펀치는 1초 뒤에 사라집니다 (마지막 16발 포함)
+    if (tick.current > 1.0) onFinish?.(id);
   });
 
   return (
