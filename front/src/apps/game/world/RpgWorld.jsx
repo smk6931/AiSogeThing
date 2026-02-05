@@ -56,12 +56,9 @@ const RpgWorld = ({ input, otherPlayers, sendPosition, latestChatMap, inputActio
         actions={inputActions}
         onMove={sendPosition}
         onAction={(pos, rot) => {
-          // [테스트 모드] 왼쪽 방향(1.57)으로 딱 한 발만 쏩니다.
-          add({
-            startPos: { x: pos.x, y: 1.5, z: pos.z },
-            playerRot: rot,
-            side: 'left'
-          });
+          const params = { startPos: { x: pos.x, y: 1.5, z: pos.z }, playerRot: rot };
+          add({ ...params, side: 'left' });
+          add({ ...params, side: 'right' });
         }}
         chat={user && latestChatMap ? latestChatMap[user.id] : null}
       />

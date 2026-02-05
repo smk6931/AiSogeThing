@@ -7,33 +7,29 @@ const circulate = (deg) => deg * (Math.PI / 180);
 
 export const PunchProjectile = ({
   id, startPos, playerRot, onFinish, onUpdate, onAdd,
-  generation = 0, side, velocity,
-  baseAng // [추가] 부모로부터 물려받은 '기준 각도' 선물
+  generation = 0, side, velocity, baseAng
 }) => {
   const spriteRef = useRef();
-  const tick = useRef(0); // [언리얼 스타일] 누적 시간(초)
+  const tick = useRef(0);
   const pos = useRef({ ...startPos });
   const vel = useRef(velocity);
-  const hasSplit = useRef(false); // [분열 방지용 스위치]
-  const hasSplitSecond = useRef(false); // [2초 분열용 스위치]
+  const isSplit = useRef(false);
   const texture = useTexture('/golden_punch.png');
 
-  const speed = 2.5; // 속도
+  const MAX_GEN = 4; // 2^4 = 16발까지 증식
+  const speed = 2.5;
 
-  // 부모나 외부에서 속도가 바뀌면 내 속도에 반영
   useEffect(() => { if (velocity) vel.current = velocity; }, [velocity]);
 
   useFrame((_, delta) => {
     if (!spriteRef.current) return;
-    tick.current += delta; // 프레임마다 시간 누적
+    tick.current += delta;
 
-    // 0. 초기 속도 세팅 (방향 * 속도)
+    // 0. 초기 속도 세팅 (side에 따라 왼쪽/오른쪽 자동 결정)
     if (!vel.current) {
-      const ang = playerRot + circulate(90); // 90도 (왼쪽)
-      vel.current = {
-        x: Math.sin(ang) * speed,
-        z: Math.cos(ang) * speed
-      };
+      const sideDeg = side === 'left' ? 90 : -90;
+      const ang = playerRot + circulate(sideDeg);
+      vel.current = { x: Math.sin(ang) * speed, z: Math.cos(ang) * speed };
     }
 
     // 1. 이동
@@ -46,60 +42,37 @@ export const PunchProjectile = ({
     spriteRef.current.material.rotation = -moveAng + Math.PI;
 
     // ==========================================================
-    // [★ 1초 시점 분열 (1 -> 2발)] 
+    // [★ 프랙탈 분열 로직 (1 -> 2 -> 4 -> 8 -> 16)] 
     // ==========================================================
-    if (tick.current > 1.0 && !hasSplit.current && generation === 0) {
-      hasSplit.current = true;
+    if (tick.current > 1.0 && !isSplit.current && generation < MAX_GEN) {
+      isSplit.current = true;
+      onFinish?.(id); // 현재 세대는 자식을 낳고 사라짐
 
-      // [저장] 현재 내 방향(꺾이기 직전 각도)을 계산해서 자식들에게 물려줍니다.
-      const myCurrentAng = Math.atan2(vel.current.x, vel.current.z);
+      // 기준 각도 계승 (처음 분열할 때의 각도를 가문의 비기로 물려줌)
+      const pivot = baseAng || Math.atan2(vel.current.x, vel.current.z);
 
+      // [자식 A: 기준선 대비 위로 45도]
       onAdd?.({
         startPos: { ...pos.current },
-        velocity: { x: Math.sin(myCurrentAng + circulate(45)) * speed, z: Math.cos(myCurrentAng + circulate(45)) * speed },
-        generation: 1,
-        baseAng: myCurrentAng, // [선물] "얘야, 이게 우리 가문의 기준 각도란다"
+        velocity: { x: Math.sin(pivot + circulate(45)) * speed, z: Math.cos(pivot + circulate(45)) * speed },
+        generation: generation + 1,
+        baseAng: pivot,
         side
       });
 
+      // [자식 B: 기준선 대비 아래로 45도]
       onAdd?.({
         startPos: { ...pos.current },
-        velocity: { x: Math.sin(myCurrentAng - circulate(45)) * speed, z: Math.cos(myCurrentAng - circulate(45)) * speed },
-        generation: 1,
-        baseAng: myCurrentAng, // [선물]
+        velocity: { x: Math.sin(pivot - circulate(45)) * speed, z: Math.cos(pivot - circulate(45)) * speed },
+        generation: generation + 1,
+        baseAng: pivot,
         side
       });
     }
 
-    // ==========================================================
-    // [★ 2초 시점 분열 (2 -> 4발)] 
-    // ==========================================================
-    if (tick.current > 1.0 && !hasSplitSecond.current && generation === 1) {
-      hasSplitSecond.current = true;
-      onFinish?.(id); // 현재 1세대는 삭제
-
-      // [사용] 부모한테 물려받은 'baseAng'가 있다면 그걸 쓰고, 없으면 현재 각도 씀
-      // const standardAng = baseAng || Math.atan2(vel.current.x, vel.current.z);
-
-      // 자식 소환 A (2세대 - 기준선 기준 위로 45도)
-      onAdd?.({
-        startPos: { ...pos.current },
-        velocity: { x: Math.sin(baseAng + circulate(45)) * speed, z: Math.cos(baseAng + circulate(45)) * speed },
-        generation: 2,
-        side
-      });
-
-      // 자식 소환 B (2세대 - 기준선 기준 아래로 45도)
-      onAdd?.({
-        startPos: { ...pos.current },
-        velocity: { x: Math.sin(baseAng - circulate(45)) * speed, z: Math.cos(baseAng - circulate(45)) * speed },
-        generation: 2,
-        side
-      });
-    }
-
-    // 수명 만료 시 삭제
-    if (tick.current > 1.0) onFinish?.(id);
+    // 수명 관리 (마지막 16발일 때만 오랫동안 날아감)
+    const lifeTime = (generation === MAX_GEN) ? 6.0 : 1.1;
+    if (tick.current > lifeTime) onFinish?.(id);
   });
 
   return (
