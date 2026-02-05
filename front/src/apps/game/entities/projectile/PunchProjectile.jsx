@@ -14,7 +14,7 @@ export const PunchProjectile = ({
   const pos = useRef({ ...startPos });
   const vel = useRef(velocity);
   const hasSplit = useRef(false); // [분열 방지용 스위치]
-  const hasSplitSecond = useRef(false); // [2초 분열용 스위치 추가]
+  const hasSplitSecond = useRef(false); // [2초 분열용 스위치]
   const texture = useTexture('/golden_punch.png');
 
   const speed = 2.5; // 속도
@@ -45,49 +45,59 @@ export const PunchProjectile = ({
     spriteRef.current.material.rotation = -moveAng + Math.PI;
 
     // ==========================================================
-    // [★ 사용자 로직 구역 - 1초 분열] 
+    // [★ 사용자 로직 구역 - 1초 분열 (1 -> 2발)] 
     // ==========================================================
     if (tick.current > 1.0 && !hasSplit.current && generation === 0) {
-      hasSplit.current = true; // "나 이제 1초 분열 끝!"
+      hasSplit.current = true;
 
       const myCurrentAng = Math.atan2(vel.current.x, vel.current.z);
 
-      // [자식 1 소환] 왼쪽(+45도)
-      const leftAng = myCurrentAng + circulate(45);
       onAdd?.({
         startPos: { ...pos.current },
-        velocity: { x: Math.sin(leftAng) * speed, z: Math.cos(leftAng) * speed },
+        velocity: { x: Math.sin(myCurrentAng + circulate(45)) * speed, z: Math.cos(myCurrentAng + circulate(45)) * speed },
         generation: 1,
         side
       });
 
-      // [자식 2 소환] 오른쪽(-45도)
-      const rightAng = myCurrentAng - circulate(45);
       onAdd?.({
         startPos: { ...pos.current },
-        velocity: { x: Math.sin(rightAng) * speed, z: Math.cos(rightAng) * speed },
+        velocity: { x: Math.sin(myCurrentAng - circulate(45)) * speed, z: Math.cos(myCurrentAng - circulate(45)) * speed },
         generation: 1,
         side
       });
     }
 
     // ==========================================================
-    // [★ 사용자 로직 구역 - 2초 분열]
-    // 여기서 직접 2단계 분열을 설계해 보세요!
+    // [★ 사용자 로직 구역 - 2초 분열 (2 -> 4발) 및 본체 삭제]
     // ==========================================================
-    if (tick.current > 2.0 && !hasSplitSecond.current && generation === 1) {
-      hasSplitSecond.current = true; // "나 이제 2초 분열 끝!"
+    if (tick.current > 1.0 && !hasSplitSecond.current && generation === 1) {
+      hasSplitSecond.current = true;
 
-      // ------------------------------------------------------
-      // [MISSION] 여기에 2초 뒤 각도 꺾기나 소환 로직을 채우세요!
-      // ------------------------------------------------------
+      // 1. [교체] 현재 펀치(1세대)는 그만 날아가고 삭제합니다.
+      onFinish?.(id);
 
+      // 2. [계승] 현재 날아가던 방향을 기준으로 45도씩 다시 쪼갭니다.
+      const myCurrentAng = Math.atan2(vel.current.x, vel.current.z);
 
-      // ------------------------------------------------------
+      // 자식 소환 A (2세대)
+      onAdd?.({
+        startPos: { ...pos.current },
+        velocity: { x: Math.sin(myCurrentAng + circulate(45)) * speed, z: Math.cos(myCurrentAng + circulate(45)) * speed },
+        generation: 2,
+        side
+      });
+
+      // 자식 소환 B (2세대)
+      onAdd?.({
+        startPos: { ...pos.current },
+        velocity: { x: Math.sin(myCurrentAng - circulate(45)) * speed, z: Math.cos(myCurrentAng - circulate(45)) * speed },
+        generation: 2,
+        side
+      });
     }
     // ==========================================================
 
-    if (tick.current > 10.0) onFinish?.(id);
+    if (tick.current > 4.0) onFinish?.(id);
   });
 
   return (
