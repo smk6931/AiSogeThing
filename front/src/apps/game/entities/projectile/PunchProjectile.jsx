@@ -49,7 +49,7 @@ export const PunchProjectile = ({
       onFinish?.(id); // 현재 세대는 자식을 낳고 사라짐
 
       // 기준 각도 계승 (처음 분열할 때의 각도를 가문의 비기로 물려줌)
-      const pivot = baseAng || Math.atan2(vel.current.x, vel.current.z);
+      const pivot = baseAng !== undefined ? baseAng : Math.atan2(vel.current.x, vel.current.z);
 
       // [자식 A: 기준선 대비 위로 45도]
       onAdd?.({
